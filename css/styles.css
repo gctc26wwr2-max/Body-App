@@ -178,7 +178,7 @@ body { font-size: 14px; }
   display: flex; justify-content: space-around;
   background: rgba(12,13,15,.96); backdrop-filter: blur(12px);
   border-top: 1px solid var(--hair);
-  padding: 14px 12px calc(12px + var(--safe-bottom));
+  padding: 14px 12px calc(12px + min(var(--safe-bottom), 34px));
 }
 .tabbar button {
   width: 64px; background: none; border: none;

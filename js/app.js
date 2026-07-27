@@ -1544,6 +1544,20 @@
   }
   setWinH();
   setInterval(setWinH, 1000);
+
+  /* TEMP diagnostic: live geometry readout (top-left, tiny) */
+  const geo = document.createElement('div');
+  geo.style.cssText = 'position:fixed;top:2px;left:4px;z-index:999;font-size:9px;color:#6E7278;font-family:monospace;pointer-events:none';
+  document.body.appendChild(geo);
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;padding-bottom:env(safe-area-inset-bottom,0px);padding-top:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none';
+  document.body.appendChild(probe);
+  setInterval(() => {
+    const cs = getComputedStyle(probe);
+    const tb = document.querySelector('.tabbar');
+    const r = tb ? Math.round(tb.getBoundingClientRect().bottom) : '-';
+    geo.textContent = `ih${window.innerHeight} vv${window.visualViewport ? Math.round(window.visualViewport.height) : '-'}+${window.visualViewport ? Math.round(window.visualViewport.offsetTop) : '-'} sb${cs.paddingBottom} st${cs.paddingTop} tb${r} dvh${Math.round(document.documentElement.clientHeight)}`;
+  }, 500);
   window.addEventListener('resize', setWinH);
   window.addEventListener('orientationchange', () => setTimeout(setWinH, 100));
   window.addEventListener('pageshow', setWinH);
