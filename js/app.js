@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v25';
+  const APP_VERSION = 'v26';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1086,7 +1086,7 @@
       const strip = el('div', 'day-strip');
       plan.prefDays = plan.prefDays || [];
       ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((ch, i) => {
-        const cell = el('button', 'cell' + (plan.prefDays.includes(i) ? ' today' : ''));
+        const cell = el('button', 'cell' + (plan.prefDays.includes(i) ? ' today pref' : ''));
         cell.type = 'button';
         cell.appendChild(el('span', null, ch));
         cell.appendChild(el('i'));
