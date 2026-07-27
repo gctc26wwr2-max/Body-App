@@ -400,7 +400,7 @@
     hl.appendChild(clock);
     head.appendChild(hl);
     const btns = el('div', 'w-btns');
-    const pause = el('button', null, '⏸');
+    const pause = el('button', null, '⏸︎');
     pause.title = 'Pause — resume from Today';
     pause.onclick = () => { show('today'); renderTab(); };
     const quit = el('button', null, '✕');
@@ -437,7 +437,7 @@
     const col = el('div');
     col.appendChild(el('div', 'ex-name', cur.name));
     col.appendChild(el('div', 'ex-meta', `Exercise ${lw.exIndex + 1} of ${lw.exercises.length} · ${cur.sets.length} × ${cur.repLo}-${cur.repHi}`));
-    const watch = el('div', 'ex-watch', '▶ Watch the movement');
+    const watch = el('div', 'ex-watch', '▶︎ Watch the movement');
     watch.onclick = () => openDetail(ex.id, 'workout');
     col.appendChild(watch);
     row.appendChild(col);
@@ -887,7 +887,7 @@
         const r = el('div', 'prog-day-row' + (doneThisWeek.has(i) ? ' done' : ''));
         r.appendChild(el('div', 'n', (doneThisWeek.has(i) ? '✓ ' : '') + day.name));
         r.appendChild(el('div', 'm', day.items.length + ' exercises'));
-        const go = el('button', 'go', doneThisWeek.has(i) ? 'Done' : '▶ Start');
+        const go = el('button', 'go', doneThisWeek.has(i) ? 'Done' : '▸︎ Start');
         go.onclick = () => startWorkout(plan, i);
         r.appendChild(go);
         c.appendChild(r);
@@ -1594,19 +1594,6 @@
   setWinH();
   setInterval(setWinH, 1000);
 
-  /* TEMP diagnostic: live geometry readout (top-left, tiny) */
-  const geo = document.createElement('div');
-  geo.style.cssText = 'position:fixed;top:2px;left:4px;z-index:999;font-size:9px;color:#6E7278;font-family:monospace;pointer-events:none';
-  document.body.appendChild(geo);
-  const probe = document.createElement('div');
-  probe.style.cssText = 'position:fixed;padding-bottom:env(safe-area-inset-bottom,0px);padding-top:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none';
-  document.body.appendChild(probe);
-  setInterval(() => {
-    const cs = getComputedStyle(probe);
-    const tb = document.querySelector('.tabbar');
-    const r = tb ? Math.round(tb.getBoundingClientRect().bottom) : '-';
-    geo.textContent = `ih${window.innerHeight} vv${window.visualViewport ? Math.round(window.visualViewport.height) : '-'}+${window.visualViewport ? Math.round(window.visualViewport.offsetTop) : '-'} sb${cs.paddingBottom} st${cs.paddingTop} tb${r} dvh${Math.round(document.documentElement.clientHeight)}`;
-  }, 500);
   window.addEventListener('resize', setWinH);
   window.addEventListener('orientationchange', () => setTimeout(setWinH, 100));
   window.addEventListener('pageshow', setWinH);
