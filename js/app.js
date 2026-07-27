@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v27';
+  const APP_VERSION = 'v28';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -321,6 +321,24 @@
       const cta = el('button', 'btn-cta', 'Resume workout');
       cta.onclick = () => { show('workout'); renderWorkout(); };
       hero.appendChild(cta);
+    } else if (!finished && plan.days && plan.days.length && workouts.some(x => x.date === todayStr())) {
+      // already trained today — rest, don't offer another session
+      hero.appendChild(heroTop('DONE FOR TODAY', ''));
+      hero.appendChild(el('div', 'hero-title', 'Session banked'));
+      const dtw = new Set((plan.completed || []).filter(c => c.week === (curWeek || 1)).map(c => c.day));
+      const nIdx = plan.days.findIndex((_, i) => !dtw.has(i));
+      let sub = 'Every day of this week is done — rest up.';
+      if (nIdx >= 0) {
+        const prefD = plan.prefDays || [];
+        const todayIdx = (now.getDay() + 6) % 7;
+        let planned = '';
+        for (let k = 1; k <= 6; k++) {
+          const idx = (todayIdx + k) % 7;
+          if (prefD.includes(idx)) { planned = ' · ' + ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx]; break; }
+        }
+        sub = `Recovery is part of the program. Next up: ${plan.days[nIdx].name}${planned}.`;
+      }
+      hero.appendChild(el('div', 'hero-sub', sub));
     } else if (!finished && plan.days && plan.days.length &&
                plan.days.every && (() => {
                  const dtw = new Set((plan.completed || []).filter(c => c.week === (curWeek || 1)).map(c => c.day));
