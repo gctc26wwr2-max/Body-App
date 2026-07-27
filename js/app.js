@@ -1,6 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
+  const APP_VERSION = 'v15';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1157,7 +1158,7 @@
     // about
     const about = el('div', 'coach-note');
     const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-    about.innerHTML = '<b>Rackside ·</b> Local-first training app. Everything is stored on this iPhone — no account, no cloud, works offline in the gym. '
+    about.innerHTML = '<b>Rackside ' + APP_VERSION + ' ·</b> Local-first training app. Everything is stored on this iPhone — no account, no cloud, works offline in the gym. '
       + (standalone ? 'Running as an installed app.' : 'Running in the browser — install via Share → Add to Home Screen.');
     root.appendChild(about);
   }
