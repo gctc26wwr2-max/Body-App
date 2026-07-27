@@ -388,12 +388,20 @@
     w.type = 'number'; w.min = '0'; w.step = '0.5'; w.inputMode = 'decimal';
     w.placeholder = 'kg'; w.className = 'in-weight';
     if (weight != null && weight !== 0) w.value = weight;
+    const done = document.createElement('button');
+    done.type = 'button';
+    done.className = 'done-set';
+    done.textContent = '✓';
+    done.onclick = () => {
+      row.classList.toggle('done');
+      if (row.classList.contains('done')) startRest(restDefault());
+    };
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'del-set';
     del.textContent = '✕';
     del.onclick = () => { row.remove(); renumberSets(); };
-    row.append(num, r, w, del);
+    row.append(num, r, w, done, del);
     return row;
   }
 
@@ -426,7 +434,7 @@
     rows.innerHTML = '';
     const labels = document.createElement('div');
     labels.className = 'set-col-labels';
-    labels.innerHTML = '<span>#</span><span>Reps</span><span>Weight (kg)</span><span></span>';
+    labels.innerHTML = '<span>#</span><span>Reps</span><span>Weight (kg)</span><span>Done</span><span></span>';
     rows.appendChild(labels);
 
     if (session) {
@@ -643,6 +651,8 @@
   $('#pick-search').oninput = renderPickList;
 
   /* ================= WORKOUT (today) ================= */
+  let elapsedInt = null;
+
   async function renderWorkout() {
     $('#workout-date-label').textContent = 'Today · ' + todayStr();
     const sessions = (await DB.byIndex('sessions', 'byDate', todayStr()))
@@ -662,11 +672,24 @@
       if (!plan || !day) { activeRun.set(null); banner.hidden = true; }
       else {
         banner.hidden = false;
+        if (!liveRun.startedAt) { liveRun.startedAt = Date.now(); activeRun.set(liveRun); }
         const w = Math.min(planWeek(plan) || 1, plan.weeks || 4);
         const title = document.createElement('div');
         title.className = 'pb-title';
-        title.textContent = `▶ ${plan.name} · ${day.name}`;
+        const tName = document.createElement('span');
+        tName.textContent = `▶ ${plan.name} · ${day.name}`;
+        const tClock = document.createElement('span');
+        tClock.className = 'pb-elapsed';
+        title.append(tName, tClock);
         banner.appendChild(title);
+        const fmtElapsed = () => {
+          const s = Math.max(0, Math.floor((Date.now() - liveRun.startedAt) / 1000));
+          const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+          tClock.textContent = '⏱ ' + (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(ss).padStart(2, '0');
+        };
+        fmtElapsed();
+        clearInterval(elapsedInt);
+        elapsedInt = setInterval(fmtElapsed, 1000);
         const sub = document.createElement('div');
         sub.className = 'plan-status' + (w === (plan.weeks || 4) ? ' final' : '');
         sub.textContent = `Week ${w} of ${plan.weeks || 4}` + (w === (plan.weeks || 4) ? ' — final week, finish strong! 🔥' : '');
@@ -699,8 +722,9 @@
         finish.className = 'btn ghost small block pb-finish';
         finish.textContent = '✓ Finish ' + day.name;
         finish.onclick = async () => {
+          const mins = Math.max(1, Math.round((Date.now() - liveRun.startedAt) / 60000));
           plan.completed = plan.completed || [];
-          plan.completed.push({ week: w, day: liveRun.dayIndex || 0, date: todayStr() });
+          plan.completed.push({ week: w, day: liveRun.dayIndex || 0, date: todayStr(), duration: mins });
           if (w >= (plan.weeks || 4)) {
             const doneFinalWeek = new Set(
               plan.completed.filter(c => c.week >= (plan.weeks || 4)).map(c => c.day));
@@ -708,14 +732,17 @@
           }
           await DB.put('plans', plan);
           activeRun.set(null);
+          clearInterval(elapsedInt);
           if (plan.finishedAt) {
-            alert(`🎉 Program complete!\n\n"${plan.name}" — all ${plan.weeks || 4} weeks done. Amazing work!\n\nTime to build a new plan in the Plans tab.`);
+            alert(`🎉 Program complete!\n\n"${plan.name}" — all ${plan.weeks || 4} weeks done (today: ${mins} min). Amazing work!\n\nTime to build a new plan in the Plans tab.`);
+          } else {
+            alert(`✓ ${day.name} complete — ${mins} min. 💪`);
           }
           renderWorkout();
         };
         banner.appendChild(finish);
       }
-    } else banner.hidden = true;
+    } else { banner.hidden = true; clearInterval(elapsedInt); }
 
     $('#workout-empty').hidden = sessions.length > 0 || !banner.hidden;
 
@@ -805,12 +832,13 @@
         dn.textContent = (doneThisWeek.has(i) ? '✓ ' : '') + day.name;
         const cnt = document.createElement('span');
         cnt.className = 'pd-count';
-        cnt.textContent = day.items.length + ' exercises';
+        const lastDone = (plan.completed || []).filter(c => c.day === i && c.duration).pop();
+        cnt.textContent = day.items.length + ' exercises' + (lastDone ? ` · last ${lastDone.duration} min` : '');
         const go = document.createElement('button');
         go.textContent = doneThisWeek.has(i) ? 'Done' : '▶ Start';
         go.onclick = async () => {
           if (!plan.startDate) { plan.startDate = todayStr(); await DB.put('plans', plan); }
-          activeRun.set({ planId: plan.id, dayIndex: i, date: todayStr() });
+          activeRun.set({ planId: plan.id, dayIndex: i, date: todayStr(), startedAt: Date.now() });
           switchView('workout');
         };
         row.append(dn, cnt, go);
@@ -965,6 +993,15 @@
   /* ================= REST TIMER ================= */
   let timerEnd = null, timerInt = null, audioCtx = null;
 
+  function restDefault() {
+    return Number(localStorage.getItem('restDefault')) || 90;
+  }
+  function markRestChip() {
+    const d = restDefault();
+    $$('#rest-chips button').forEach(b =>
+      b.classList.toggle('selected', Number(b.dataset.sec) === d));
+  }
+
   function beep() {
     try {
       if (!audioCtx) return;
@@ -1010,7 +1047,12 @@
     timerTick();
   }
 
-  $$('#rest-chips button').forEach(b => b.onclick = () => startRest(Number(b.dataset.sec)));
+  $$('#rest-chips button').forEach(b => b.onclick = () => {
+    localStorage.setItem('restDefault', b.dataset.sec);
+    markRestChip();
+    startRest(Number(b.dataset.sec));
+  });
+  markRestChip();
   $('#timer-cancel').onclick = () => {
     clearInterval(timerInt);
     timerInt = null;
