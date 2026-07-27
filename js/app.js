@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v16';
+  const APP_VERSION = 'v17';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1076,9 +1076,9 @@
 
     const head = el('header', 't-head');
     const hl = el('div');
-    hl.appendChild(el('div', 't-date', workouts.length
+    hl.appendChild(el('div', 't-date', (workouts.length
       ? 'Training since ' + dateOf(workouts[0].date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-      : 'Rackside'));
+      : 'Rackside') + ' · ' + APP_VERSION));
     hl.appendChild(el('h1', 't-title', 'Profile'));
     head.appendChild(hl);
     head.appendChild(el('div', 'avatar', 'RS'));
