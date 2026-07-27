@@ -237,8 +237,7 @@ body { font-size: 14px; }
   padding: 0 7px 0 9px;   /* mirror the set rows' padding + border so columns line up */
   font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--t6);
 }
-.set-grid-head span:nth-child(2), .set-grid-head span:nth-child(3) { text-align: center; }
-.set-grid-head span:last-child { text-align: center; }
+.set-grid-head span { text-align: center; }
 
 .w-set {
   display: grid; grid-template-columns: 20px 1fr 1fr 44px; gap: 8px; align-items: center;
