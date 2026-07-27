@@ -173,10 +173,22 @@
     }
 
     if (!plan) {
+      // ready-made starter program
+      if (window.STARTER_BLOCK) {
+        const sb = window.STARTER_BLOCK;
+        const rc = el('div', 'card hero');
+        rc.appendChild(heroTop('Ready-made plan', `${sb.days.length}× / week · ${sb.weeks} weeks`));
+        rc.appendChild(el('div', 'hero-title', sb.name));
+        rc.appendChild(el('div', 'hero-sub',
+          'Machine-based, low spinal load — chest, back, shoulders, legs and core across 3 days. Made for you by Claude; installs with every exercise and target set up.'));
+        const cta = el('button', 'btn-cta', 'Install this block');
+        cta.onclick = () => installStarter();
+        rc.appendChild(cta);
+        root.appendChild(rc);
+      }
       const empty = el('div', 'empty-state');
-      empty.appendChild(el('div', 'e-icon', '🏋️'));
-      empty.appendChild(el('p', null, 'No training block yet. Build a plan of 3–4 days per week and run it for 4 weeks.'));
-      const cta = el('button', 'btn-lime', 'Create your block');
+      empty.appendChild(el('p', null, 'Or build your own from scratch:'));
+      const cta = el('button', 'btn-ghost', 'Create a custom block');
       cta.onclick = () => openPlanForm(null);
       empty.appendChild(cta);
       root.appendChild(empty);
@@ -838,6 +850,23 @@
     head.appendChild(nb);
     root.appendChild(head);
 
+    // installable starter block (until a copy of it exists)
+    if (window.STARTER_BLOCK && !plans.some(p => p.name === window.STARTER_BLOCK.name)) {
+      const sb = window.STARTER_BLOCK;
+      const c = el('div', 'compare-card');
+      const h = el('div', 'cmp-head');
+      h.appendChild(el('div', 'a', 'Ready-made · by Claude'));
+      h.appendChild(el('div', 'b', `${sb.days.length}× / week · ${sb.weeks} weeks`));
+      c.appendChild(h);
+      c.appendChild(el('div', 'hist-name', sb.name));
+      c.appendChild(el('div', 'hist-meta', sb.days.map(d => d.name).join(' · ') + ' — machine-based, low spinal load'));
+      const b = el('button', 'btn-lime', 'Install');
+      b.style.cssText = 'margin-top:12px;width:100%';
+      b.onclick = () => installStarter();
+      c.appendChild(b);
+      root.appendChild(c);
+    }
+
     // active program card
     if (plan) {
       const weeks = plan.weeks || 4;
@@ -1133,6 +1162,26 @@
       list.appendChild(row);
     }
     if (!list.children.length) list.appendChild(el('div', 'empty-state', 'Nothing matches.'));
+  }
+
+  async function installStarter() {
+    const sb = window.STARTER_BLOCK;
+    if (!sb) return;
+    const days = [];
+    for (const day of sb.days) {
+      const items = [];
+      for (const it of day.items) {
+        const libItem = (window.EXERCISE_LIBRARY || []).find(l => l.name === it.ex);
+        const ex = await ensureExercise(libItem || { name: it.ex, group: 'Other', notes: '' });
+        items.push({ exerciseId: ex.id, sets: it.sets, repLo: it.repLo, repHi: it.repHi, kg: 0 });
+      }
+      days.push({ name: day.name, items });
+    }
+    await DB.put('plans', {
+      id: DB.uid(), createdAt: Date.now(), name: sb.name, weeks: sb.weeks,
+      days, startDate: null, completed: [], finishedAt: null
+    });
+    renderTab();
   }
 
   async function ensureExercise(item) {

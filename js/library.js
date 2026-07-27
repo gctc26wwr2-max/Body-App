@@ -166,3 +166,42 @@ window.EXERCISE_LIBRARY.forEach(item => {
   const d = window.EXERCISE_DEMOS[item.name];
   if (d) item.demo = d;
 });
+
+/* Additional exercises used by the starter block */
+[
+  { name: 'Chest-Supported Row', group: 'Back', notes: 'Chest stays on the pad the whole set — zero spinal load. Drive elbows back, squeeze mid-back.', demo: 'chest-supported-row' },
+  { name: 'Machine Shoulder Press', group: 'Shoulders', notes: 'Back flat on the pad, press smoothly overhead, don’t lock out hard.', demo: 'machine-shoulder-press' },
+  { name: 'Assisted Pull-Up', group: 'Back', notes: 'Use the assist machine or a band. Full hang to chin over bar, chest up. Or do a lat pulldown.', demo: 'assisted-pull-up' },
+  { name: 'Glute Bridge', group: 'Legs', notes: 'On the floor, bodyweight. Drive hips up, squeeze glutes at the top, lower slow. Back stays neutral.', demo: 'glute-bridge' },
+  { name: 'Pallof Press', group: 'Core', notes: 'Cable at chest height, press arms straight out and resist the twist. Log reps per side.', demo: 'pallof-press' }
+].forEach(item => window.EXERCISE_LIBRARY.push(item));
+
+/* Ready-made starter program (back-friendly, low spinal load) —
+   installable with one tap from Today / Plan when no block exists. */
+window.STARTER_BLOCK = {
+  name: 'Back-Friendly Block',
+  weeks: 4,
+  days: [
+    { name: 'Day A', items: [
+      { ex: 'Machine Chest Press', sets: 3, repLo: 8, repHi: 10 },
+      { ex: 'Lat Pulldown', sets: 3, repLo: 8, repHi: 10 },
+      { ex: 'Dumbbell Shoulder Press', sets: 3, repLo: 8, repHi: 10 },
+      { ex: 'Leg Extension', sets: 2, repLo: 12, repHi: 15 },
+      { ex: 'Dead Bug', sets: 3, repLo: 8, repHi: 8 }
+    ]},
+    { name: 'Day B', items: [
+      { ex: 'Incline Dumbbell Press', sets: 3, repLo: 8, repHi: 10 },
+      { ex: 'Chest-Supported Row', sets: 3, repLo: 8, repHi: 10 },
+      { ex: 'Lateral Raise', sets: 3, repLo: 12, repHi: 15 },
+      { ex: 'Leg Curl', sets: 2, repLo: 12, repHi: 15 },
+      { ex: 'Side Plank', sets: 3, repLo: 15, repHi: 20 }
+    ]},
+    { name: 'Day C', items: [
+      { ex: 'Assisted Pull-Up', sets: 3, repLo: 8, repHi: 10 },
+      { ex: 'Machine Shoulder Press', sets: 3, repLo: 8, repHi: 10 },
+      { ex: 'Cable Crossover', sets: 3, repLo: 10, repHi: 12 },
+      { ex: 'Glute Bridge', sets: 2, repLo: 10, repHi: 12 },
+      { ex: 'Pallof Press', sets: 3, repLo: 8, repHi: 10 }
+    ]}
+  ]
+};
