@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v22';
+  const APP_VERSION = 'v23';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -605,26 +605,6 @@
 
     // ---- rest timer card ----
     root.appendChild(restCard(lw, cur));
-
-    // ---- then list ----
-    const remaining = lw.exercises.map((e2, i) => ({ e2, i })).filter(x => x.i > lw.exIndex);
-    if (remaining.length) {
-      root.appendChild(el('div', 'then-label', 'Then'));
-      for (const { e2, i } of remaining) {
-        const ex2 = exercises.find(x => x.id === e2.exerciseId);
-        const r = el('div', 'then-row');
-        const t = el('div', 'tn-thumb');
-        t.appendChild(thumbFor(ex2));
-        r.appendChild(t);
-        r.appendChild(el('div', 'tn-idx num', String(i + 1)));
-        const c = el('div');
-        c.appendChild(el('div', 'tn-name', e2.name));
-        c.appendChild(el('div', 'tn-scheme num', `${e2.sets.length} × ${e2.repLo}-${e2.repHi}`));
-        r.appendChild(c);
-        r.onclick = () => { lw.exIndex = i; live.set(lw); renderWorkout(); };
-        root.appendChild(r);
-      }
-    }
 
     // ---- finish ----
     const fin = el('button', 'btn-finish', 'Finish workout');
