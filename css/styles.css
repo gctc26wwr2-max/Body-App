@@ -141,13 +141,14 @@ body { font-size: 14px; }
   background: var(--surface); border: 1px solid var(--hair);
 }
 .day-strip .cell span { display: block; font-size: 11px; font-weight: 600; color: var(--t4); }
-.day-strip .cell i { display: block; width: 6px; height: 6px; border-radius: 3px; background: #33373D; margin: 6px auto 0; }
-.day-strip .cell.pref i { background: transparent; border: 1.5px solid var(--lime); }
+.day-strip .cell i { display: block; width: 6px; height: 6px; border-radius: 3px; background: transparent; margin: 6px auto 0; }
+.day-strip .cell.pref i { border: 1.5px solid var(--lime); }
 .day-strip .cell.done i { background: var(--lime); border: none; }
 .day-strip button.cell { cursor: pointer; font: inherit; color: inherit; }
 .day-strip .cell.today { background: var(--lime); border-color: transparent; }
 .day-strip .cell.today span { color: var(--canvas); font-weight: 700; }
-.day-strip .cell.today i { background: rgba(12,13,15,.4); }
+.day-strip .cell.today i { border: none; background: transparent; }
+.day-strip .cell.today.done i { background: rgba(12,13,15,.45); }
 
 /* hero (up next) */
 .hero-top { display: flex; justify-content: space-between; align-items: baseline; }
