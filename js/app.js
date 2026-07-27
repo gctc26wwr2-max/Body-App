@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v18';
+  const APP_VERSION = 'v19';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -493,7 +493,9 @@
     // ---- progress bars ----
     const prog = el('div', 'ex-progress');
     lw.exercises.forEach((e2, i) => {
-      const s = el('span', e2.sets.every(x => x.done) || i < lw.exIndex ? 'done' : '');
+      const allDone = e2.sets.length > 0 && e2.sets.every(x => x.done);
+      const someDone = !allDone && e2.sets.some(x => x.done);
+      const s = el('span', allDone ? 'done' : (someDone ? 'part' : ''));
       s.onclick = () => { lw.exIndex = i; live.set(lw); renderWorkout(); };
       prog.appendChild(s);
     });
