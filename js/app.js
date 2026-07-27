@@ -1532,20 +1532,23 @@
     }
   }
 
-  /* iOS standalone cold-start sizes the web view short until a reflow —
-     nudge layout on load and whenever the visual viewport changes. */
+  /* iOS standalone cold-start lays the page out against a short viewport and
+     doesn't invalidate it until top-level content visibility changes (which is
+     why switching tabs healed it). Replicate that exact mutation: hide the
+     active view for one frame and show it again — invisible on the dark canvas. */
   function fixViewport() {
+    const vis = VIEWS.map(v => $('#view-' + v)).find(s => s && !s.hidden);
+    if (!vis) return;
+    vis.hidden = true;
+    void document.body.offsetHeight;
     requestAnimationFrame(() => {
-      const tb = $('#tabbar');
-      tb.style.display = 'none';
-      void document.body.offsetHeight;
-      tb.style.display = '';
-      window.scrollTo(0, 1);
+      vis.hidden = false;
       window.scrollTo(0, 0);
     });
   }
   window.addEventListener('pageshow', fixViewport);
   window.addEventListener('orientationchange', fixViewport);
+  window.addEventListener('resize', fixViewport);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', fixViewport);
 
   migrate().then(() => {
@@ -1553,7 +1556,6 @@
     if (lw) { show('workout'); renderTab().then(renderWorkout); }
     else renderTab();
     if (lw && lw.restEndsAt) armRestTick();
-    fixViewport();
-    setTimeout(fixViewport, 300);
+    [100, 600, 1500].forEach(t => setTimeout(fixViewport, t));
   });
 })();
