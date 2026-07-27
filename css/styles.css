@@ -34,6 +34,7 @@ html, body {
   border-bottom: 1px solid var(--border);
 }
 .topbar h1 { font-size: 1.35rem; font-weight: 700; }
+.topbar-btns { display: flex; gap: 8px; }
 
 #view-root {
   padding: 14px 14px calc(84px + var(--safe-bottom));
@@ -269,6 +270,31 @@ html, body {
 .plan-item-row input { width: 56px !important; text-align: center; padding: 7px 4px !important; }
 .plan-item-row .pi-x { font-size: .8rem; color: var(--muted); }
 .plan-item-row .del-item { background: none; border: none; color: var(--danger); font-size: 1rem; cursor: pointer; }
+
+/* ---------- library ---------- */
+.chip-row { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; }
+.chip {
+  flex: 0 0 auto; padding: 7px 13px; border-radius: 20px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--muted); font-size: .82rem; font-weight: 600; cursor: pointer;
+}
+.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.library-list { padding-bottom: 8px; }
+.lib-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 4px; border-bottom: 1px solid var(--border);
+}
+.lib-info { flex: 1; min-width: 0; }
+.lib-name { font-weight: 600; font-size: .95rem; }
+.lib-notes { color: var(--muted); font-size: .76rem; margin-top: 2px; }
+.lib-add {
+  flex: 0 0 auto; border: 1px solid var(--accent); background: none;
+  color: var(--accent); border-radius: 18px; padding: 6px 13px;
+  font-size: .82rem; font-weight: 700; cursor: pointer;
+}
+.lib-add.added { border-color: var(--ok); color: var(--ok); }
+.pick-hint { color: var(--muted); font-size: .85rem; padding: 14px 4px; text-align: center; }
+#pick-from-library { margin-bottom: 12px; }
 
 /* ---------- history tab ---------- */
 .day-group { margin-bottom: 18px; }
