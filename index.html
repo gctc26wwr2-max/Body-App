@@ -123,9 +123,18 @@
   <div id="sheet-log" class="sheet" hidden>
     <div class="sheet-handle"></div>
     <h2 id="sheet-log-title">Log sets</h2>
+    <div id="sheet-log-demo"></div>
     <p id="sheet-log-target" class="muted" hidden></p>
     <div id="set-rows"></div>
     <button id="add-set-row" class="btn ghost small">＋ Add set</button>
+    <h3 class="section-label">Rest timer</h3>
+    <div class="rest-chips" id="rest-chips">
+      <button type="button" data-sec="30">0:30</button>
+      <button type="button" data-sec="60">1:00</button>
+      <button type="button" data-sec="90">1:30</button>
+      <button type="button" data-sec="120">2:00</button>
+      <button type="button" data-sec="180">3:00</button>
+    </div>
     <div class="sheet-actions">
       <button type="button" class="btn ghost" data-close>Cancel</button>
       <button id="save-sets" class="btn primary">Save session</button>
@@ -156,16 +165,33 @@
     <h2 id="sheet-plan-title">New plan</h2>
     <form id="form-plan">
       <label>Plan name
-        <input name="name" type="text" required placeholder="e.g. Push Day A" autocomplete="off">
+        <input name="name" type="text" required placeholder="e.g. Strength Program" autocomplete="off">
       </label>
-      <h3 class="section-label">Exercises</h3>
-      <div id="plan-items"></div>
-      <button type="button" id="plan-add-item" class="btn ghost small">＋ Add exercise</button>
+      <label>Program length
+        <select name="weeks">
+          <option value="1">1 week</option>
+          <option value="2">2 weeks</option>
+          <option value="3">3 weeks</option>
+          <option value="4" selected>4 weeks</option>
+          <option value="5">5 weeks</option>
+          <option value="6">6 weeks</option>
+          <option value="8">8 weeks</option>
+        </select>
+      </label>
+      <h3 class="section-label">Training days (3–4 per week works great)</h3>
+      <div id="plan-days"></div>
+      <button type="button" id="plan-add-day" class="btn ghost small">＋ Add training day</button>
       <div class="sheet-actions">
         <button type="button" class="btn ghost" data-close>Cancel</button>
         <button type="submit" class="btn primary">Save plan</button>
       </div>
     </form>
+  </div>
+
+  <!-- Floating rest timer -->
+  <div id="timer-pill" hidden>
+    <span id="timer-remaining">0:00</span>
+    <button id="timer-cancel" type="button">✕</button>
   </div>
 
   <!-- Media viewer -->
