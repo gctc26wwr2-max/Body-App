@@ -1585,7 +1585,13 @@
      tab bar and sheets are anchored to --winH: the window height measured by
      JS, re-checked every second and on every resize. Self-corrects always. */
   function setWinH() {
-    const h = window.innerHeight;
+    let h = window.innerHeight;
+    // Installed app is fullscreen by definition — trust the physical screen
+    // height (which iOS reports correctly even when innerHeight is stale).
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    if (standalone && screen && screen.height && window.matchMedia('(orientation: portrait)').matches) {
+      h = Math.max(h, screen.height);
+    }
     if (setWinH.last !== h) {
       setWinH.last = h;
       document.documentElement.style.setProperty('--winH', h + 'px');
