@@ -205,6 +205,7 @@ body { font-size: 14px; }
 .ex-progress { display: flex; gap: 5px; }
 .ex-progress span { flex: 1; height: 4px; border-radius: 2px; background: #2B2F35; cursor: pointer; }
 .ex-progress span.done { background: var(--lime); }
+.ex-progress span.part { background: #7E9C2A; }
 
 .ex-card { background: var(--surface); border: 1px solid var(--hair-7); border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 .ex-row { display: flex; gap: 14px; align-items: center; }
