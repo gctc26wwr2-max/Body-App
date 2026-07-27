@@ -133,10 +133,10 @@
   $('#media-viewer-close').onclick = () => { $('#media-viewer-body').innerHTML = ''; $('#media-viewer').hidden = true; };
 
   /* ---------------- navigation ---------------- */
-  const VIEWS = ['today', 'plan', 'stats', 'library', 'workout', 'summary', 'detail'];
+  const VIEWS = ['today', 'plan', 'stats', 'library', 'profile', 'workout', 'summary', 'detail'];
   function show(view) {
     VIEWS.forEach(v => $('#view-' + v).hidden = v !== view);
-    const isTab = ['today', 'plan', 'stats', 'library'].includes(view);
+    const isTab = ['today', 'plan', 'stats', 'library', 'profile'].includes(view);
     $('#tabbar').hidden = !isTab;
     if (isTab) {
       currentTab = view;
@@ -154,6 +154,7 @@
     else if (currentTab === 'plan') await renderPlanTab();
     else if (currentTab === 'stats') await renderStats();
     else if (currentTab === 'library') renderLibrary();
+    else if (currentTab === 'profile') await renderProfile();
   }
 
   /* ============================================================
@@ -1022,8 +1023,46 @@
       root.appendChild(r);
     });
 
-    // ---- data: backup / restore / reset ----
-    root.appendChild(el('div', 'month-label', 'Data'));
+    if (!workouts.length && !plan) {
+      const emp = el('div', 'empty-state');
+      emp.appendChild(el('div', 'e-icon', '🗓️'));
+      emp.appendChild(el('p', null, 'No block yet — build one to start training.'));
+      root.appendChild(emp);
+    }
+  }
+  /* ============================================================
+     PROFILE (overview + data controls)
+     ============================================================ */
+  async function renderProfile() {
+    const root = $('#view-profile');
+    root.innerHTML = '';
+    const workouts = (await DB.all('workouts')).sort((a, b) => a.ts - b.ts);
+
+    const head = el('header', 't-head');
+    const hl = el('div');
+    hl.appendChild(el('div', 't-date', workouts.length
+      ? 'Training since ' + dateOf(workouts[0].date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      : 'Rackside'));
+    hl.appendChild(el('h1', 't-title', 'Profile'));
+    head.appendChild(hl);
+    head.appendChild(el('div', 'avatar', 'RS'));
+    root.appendChild(head);
+
+    // lifetime stats
+    const totVol = workouts.reduce((a, w) => a + (w.volume || 0), 0);
+    const totPRs = workouts.reduce((a, w) => a + ((w.prs || []).length), 0);
+    const totMin = workouts.reduce((a, w) => a + (w.duration || 0), 0);
+    const grid = el('div', 'sum-grid');
+    grid.appendChild(sumCard(String(workouts.length), 'Sessions'));
+    grid.appendChild(sumCard(fmtKg(totVol) + ' kg', 'Lifetime volume'));
+    grid.appendChild(sumCard(totMin + ' min', 'Time trained'));
+    const prC = sumCard(String(totPRs), 'Records');
+    prC.classList.add('hl');
+    grid.appendChild(prC);
+    root.appendChild(grid);
+
+    // data controls
+    root.appendChild(el('div', 'month-label', 'Data & backup'));
     const dc = el('div', 'card');
     const bk = el('button', 'btn-lime', 'Back up now');
     bk.style.cssText = 'width:100%';
@@ -1051,13 +1090,14 @@
     dc.appendChild(reset);
     root.appendChild(dc);
 
-    if (!workouts.length && !plan) {
-      const emp = el('div', 'empty-state');
-      emp.appendChild(el('div', 'e-icon', '🗓️'));
-      emp.appendChild(el('p', null, 'No block yet — build one to start training.'));
-      root.appendChild(emp);
-    }
+    // about
+    const about = el('div', 'coach-note');
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    about.innerHTML = '<b>Rackside ·</b> Local-first training app. Everything is stored on this iPhone — no account, no cloud, works offline in the gym. '
+      + (standalone ? 'Running as an installed app.' : 'Running in the browser — install via Share → Add to Home Screen.');
+    root.appendChild(about);
   }
+
   /* ---------------- backup / restore / reset ---------------- */
   async function backupData() {
     const [exs, pls, sess, wks] = await Promise.all([
