@@ -1,6 +1,6 @@
 /* Service worker: caches the app shell so it opens instantly and works offline.
    User data (exercises, media, sessions, plans) lives in IndexedDB, not here. */
-const CACHE = 'body-app-v6';
+const CACHE = 'body-app-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -12,7 +12,14 @@ const ASSETS = [
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/apple-touch-icon.png'
+  './icons/apple-touch-icon.png',
+  './fonts/Barlow-400.woff2',
+  './fonts/Barlow-500.woff2',
+  './fonts/Barlow-600.woff2',
+  './fonts/Barlow-700.woff2',
+  './fonts/BarlowCondensed-500.woff2',
+  './fonts/BarlowCondensed-600.woff2',
+  './fonts/BarlowCondensed-700.woff2'
 ];
 
 self.addEventListener('install', e => {

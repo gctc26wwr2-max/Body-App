@@ -1,7 +1,7 @@
 /* Tiny IndexedDB wrapper — everything is stored on-device (works offline). */
 const DB = (() => {
   const NAME = 'body-app-db';
-  const VERSION = 1;
+  const VERSION = 2;
   let dbp = null;
 
   function open() {
@@ -24,6 +24,10 @@ const DB = (() => {
         }
         if (!db.objectStoreNames.contains('plans')) {
           db.createObjectStore('plans', { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains('workouts')) {
+          const w = db.createObjectStore('workouts', { keyPath: 'id' });
+          w.createIndex('byDate', 'date');
         }
       };
       req.onsuccess = () => resolve(req.result);
