@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v15';
+  const APP_VERSION = 'v16';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1867,11 +1867,28 @@
   window.addEventListener('pageshow', setWinH);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', setWinH);
 
+  /* self-update: when the server has a newer build, reload once to pick it
+     up — on launch and whenever the app returns to the foreground. Never
+     mid-workout. */
+  async function checkUpdate() {
+    try {
+      if (live.get()) return;
+      const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+      const j = await r.json();
+      if (j.v && j.v !== APP_VERSION && sessionStorage.getItem('reloadedFor') !== j.v) {
+        sessionStorage.setItem('reloadedFor', j.v);
+        location.reload();
+      }
+    } catch { /* offline — try again next time */ }
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
+
   migrate().then(() => {
     const lw = live.get();
     if (lw) { show('workout'); renderTab().then(renderWorkout); }
     else renderTab();
     if (lw && lw.restEndsAt) armRestTick();
     [100, 600, 1500].forEach(t => setTimeout(setWinH, t));
+    checkUpdate();
   });
 })();
