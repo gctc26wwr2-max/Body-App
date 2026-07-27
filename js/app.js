@@ -298,10 +298,13 @@
       const cta = el('button', 'btn-cta', 'Resume workout');
       cta.onclick = () => { show('workout'); renderWorkout(); };
       hero.appendChild(cta);
-    } else if (!finished && plan.days && plan.days.length) {
+    } else if (!finished && plan.days && plan.days.length &&
+               plan.days.every && (() => {
+                 const dtw = new Set((plan.completed || []).filter(c => c.week === (curWeek || 1)).map(c => c.day));
+                 return plan.days.some((_, i) => !dtw.has(i));
+               })()) {
       const doneThisWeek = new Set((plan.completed || []).filter(c => c.week === (curWeek || 1)).map(c => c.day));
-      let nextIdx = plan.days.findIndex((_, i) => !doneThisWeek.has(i));
-      if (nextIdx < 0) nextIdx = 0;
+      const nextIdx = plan.days.findIndex((_, i) => !doneThisWeek.has(i));
       const day = plan.days[nextIdx];
       const names = day.items.map(it => (exercises.find(e => e.id === it.exerciseId) || {}).name).filter(Boolean);
       const totalSets = day.items.reduce((a, it) => a + (it.sets || 3), 0);
@@ -318,10 +321,14 @@
       const cta = el('button', 'btn-cta', 'Start workout');
       cta.onclick = () => startWorkout(plan, nextIdx);
       hero.appendChild(cta);
-    } else {
+    } else if (finished) {
       hero.appendChild(heroTop('DONE', ''));
       hero.appendChild(el('div', 'hero-title', 'Block complete'));
       hero.appendChild(el('div', 'hero-sub', 'Renew your plan above to keep progressing.'));
+    } else {
+      hero.appendChild(heroTop('WEEK DONE', ''));
+      hero.appendChild(el('div', 'hero-title', 'All sessions banked'));
+      hero.appendChild(el('div', 'hero-sub', `Every training day of week ${curWeek || 1} is done. Rest up — week ${Math.min((curWeek || 1) + 1, weeks)} unlocks as the calendar rolls over.`));
     }
     root.appendChild(hero);
 
@@ -332,6 +339,18 @@
     const lastW = workouts[0];
     pair.appendChild(pairCard(lastW ? lastW.duration + ' min' : '—', 'Last session'));
     root.appendChild(pair);
+
+    // ---- monthly backup reminder ----
+    const lb = Number(localStorage.getItem('lastBackup')) || 0;
+    if (workouts.length && (!lb || Date.now() - lb > 30 * 86400000)) {
+      const note = el('div', 'coach-note');
+      const days = lb ? Math.floor((Date.now() - lb) / 86400000) : null;
+      note.innerHTML = `<b>Backup ·</b> ${days ? days + ' days since your last backup.' : 'Your training data has never been backed up.'} `;
+      const b = el('button', 'rest-edit', 'Back up now');
+      b.onclick = backupData;
+      note.appendChild(b);
+      root.appendChild(note);
+    }
   }
 
   function heroTop(tag, meta) {
@@ -369,6 +388,11 @@
 
   async function startWorkout(plan, dayIndex) {
     const day = plan.days[dayIndex];
+    const wk = plan.startDate ? Math.min(planWeek(plan), plan.weeks || 4) : 1;
+    if ((plan.completed || []).some(c => c.week === wk && c.day === dayIndex)) {
+      alert(`${day.name} is already done this week. To redo it, delete its session in Plan → history first.`);
+      return;
+    }
     if (!plan.startDate) { plan.startDate = todayStr(); await DB.put('plans', plan); }
     const sessions = await DB.all('sessions');
     const exList = [];
@@ -905,12 +929,15 @@
         r.appendChild(el('div', 'n', (doneThisWeek.has(i) ? '✓ ' : '') + day.name));
         r.appendChild(el('div', 'm', day.items.length + ' exercises'));
         const go = el('button', 'go');
-        if (doneThisWeek.has(i)) go.textContent = 'Done';
-        else {
+        if (doneThisWeek.has(i)) {
+          go.textContent = '✓ Done';
+          go.disabled = true;
+          go.style.opacity = '.55';
+        } else {
           go.appendChild(svgIcon(PLAY, 10));
           go.appendChild(document.createTextNode(' Start'));
+          go.onclick = () => startWorkout(plan, i);
         }
-        go.onclick = () => startWorkout(plan, i);
         r.appendChild(go);
         c.appendChild(r);
       });
@@ -973,8 +1000,56 @@
       c.appendChild(nm);
       c.appendChild(el('div', 'hist-meta num', `${w.duration} min · ${fmtKg(w.volume)} kg · ${w.sets} sets${w.feel ? ' · ' + w.feel : ''}`));
       r.appendChild(c);
+      const del = el('button', 'hist-del', '✕');
+      del.title = 'Delete this session';
+      del.onclick = async e => {
+        e.stopPropagation();
+        if (!confirm(`Delete the ${w.name} session from ${w.date}? Its logged sets are removed too.`)) return;
+        const sess = await DB.all('sessions');
+        for (const s of sess) {
+          if (s.date === w.date && s.planId === w.planId) await DB.del('sessions', s.id);
+        }
+        const p = w.planId ? await DB.get('plans', w.planId) : null;
+        if (p && p.completed) {
+          p.completed = p.completed.filter(cpl => !(cpl.date === w.date && cpl.day === w.dayIndex));
+          if (p.finishedAt) p.finishedAt = null;
+          await DB.put('plans', p);
+        }
+        await DB.del('workouts', w.id);
+        renderTab();
+      };
+      r.appendChild(del);
       root.appendChild(r);
     });
+
+    // ---- data: backup / restore / reset ----
+    root.appendChild(el('div', 'month-label', 'Data'));
+    const dc = el('div', 'card');
+    const bk = el('button', 'btn-lime', 'Back up now');
+    bk.style.cssText = 'width:100%';
+    bk.onclick = backupData;
+    dc.appendChild(bk);
+    const lbTs = Number(localStorage.getItem('lastBackup')) || 0;
+    const hint = el('div', 'hist-meta');
+    hint.style.margin = '8px 0 12px';
+    hint.textContent = (lbTs ? `Last backup ${new Date(lbTs).toLocaleDateString('en-GB')} · ` : 'Never backed up · ')
+      + 'in the share sheet choose "Save to Files" → iCloud Drive. Do it monthly — a reminder appears on Today. Photos/videos you attached are not included.';
+    dc.appendChild(hint);
+    const restoreBtn = el('button', 'btn-ghost', 'Restore from backup');
+    restoreBtn.style.cssText = 'width:100%;margin-bottom:10px';
+    const fileIn = document.createElement('input');
+    fileIn.type = 'file';
+    fileIn.accept = 'application/json,.json';
+    fileIn.style.display = 'none';
+    fileIn.onchange = () => { if (fileIn.files[0]) restoreData(fileIn.files[0]); fileIn.value = ''; };
+    restoreBtn.onclick = () => fileIn.click();
+    dc.appendChild(restoreBtn);
+    dc.appendChild(fileIn);
+    const reset = el('button', 'btn-ghost', 'Reset training history');
+    reset.style.cssText = 'width:100%;color:var(--amber);border-color:var(--amber-border)';
+    reset.onclick = resetHistory;
+    dc.appendChild(reset);
+    root.appendChild(dc);
 
     if (!workouts.length && !plan) {
       const emp = el('div', 'empty-state');
@@ -983,6 +1058,59 @@
       root.appendChild(emp);
     }
   }
+  /* ---------------- backup / restore / reset ---------------- */
+  async function backupData() {
+    const [exs, pls, sess, wks] = await Promise.all([
+      DB.all('exercises'), DB.all('plans'), DB.all('sessions'), DB.all('workouts')
+    ]);
+    const payload = {
+      app: 'rackside', version: 2, exportedAt: new Date().toISOString(),
+      exercises: exs, plans: pls, sessions: sess, workouts: wks
+    };
+    const file = new File([JSON.stringify(payload)], `rackside-backup-${todayStr()}.json`, { type: 'application/json' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Rackside backup' });
+      } else {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(file);
+        a.download = file.name;
+        a.click();
+      }
+      localStorage.setItem('lastBackup', String(Date.now()));
+      renderTab();
+    } catch (e) { /* user cancelled the share sheet */ }
+  }
+
+  async function restoreData(fileBlob) {
+    let data;
+    try { data = JSON.parse(await fileBlob.text()); } catch { alert('That file is not a Rackside backup.'); return; }
+    if (!data || data.app !== 'rackside') { alert('That file is not a Rackside backup.'); return; }
+    if (!confirm('Restore this backup? Records with the same id are overwritten; nothing else is deleted.')) return;
+    let n = 0;
+    for (const [store, key] of [['exercises', 'exercises'], ['plans', 'plans'], ['sessions', 'sessions'], ['workouts', 'workouts']]) {
+      for (const rec of (data[key] || [])) {
+        if (rec && rec.id) { await DB.put(store, rec); n++; }
+      }
+    }
+    alert(`Restored ${n} records from ${data.exportedAt ? data.exportedAt.slice(0, 10) : 'backup'}.`);
+    renderTab();
+  }
+
+  async function resetHistory() {
+    if (!confirm('Delete ALL logged workouts and sets?\n\nYour exercises and your block stay — only the training history and week progress are wiped.')) return;
+    for (const s of await DB.all('sessions')) await DB.del('sessions', s.id);
+    for (const w of await DB.all('workouts')) await DB.del('workouts', w.id);
+    for (const p of await DB.all('plans')) {
+      p.startDate = null; p.completed = []; p.finishedAt = null;
+      for (const d of (p.days || [])) for (const it of d.items) it.kg = 0;
+      await DB.put('plans', p);
+    }
+    live.set(null);
+    stopRest();
+    renderTab();
+  }
+
   function agoDays(ds) {
     const n = Math.round((Date.now() - dateOf(ds).getTime()) / 86400000);
     return n <= 0 ? 'today' : n === 1 ? 'yesterday' : n + ' days ago';
