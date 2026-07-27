@@ -292,15 +292,19 @@
       root.appendChild(rc);
     }
 
-    // ---- 7-day strip ----
+    // ---- 7-day strip (rings = preferred training days) ----
     const strip = el('div', 'day-strip');
     const dow = (now.getDay() + 6) % 7; // Mon=0
     const monday = new Date(now); monday.setDate(now.getDate() - dow);
     const doneDates = new Set(workouts.map(x => x.date));
+    const pref = plan.prefDays || [];
     'MTWTFSS'.split('').forEach((ch, i) => {
       const d = new Date(monday); d.setDate(monday.getDate() + i);
       const ds = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-      const cell = el('div', 'cell' + (ds === todayStr() ? ' today' : '') + (doneDates.has(ds) ? ' done' : ''));
+      const cell = el('div', 'cell'
+        + (ds === todayStr() ? ' today' : '')
+        + (doneDates.has(ds) ? ' done' : '')
+        + (pref.includes(i) ? ' pref' : ''));
       cell.appendChild(el('span', null, ch));
       cell.appendChild(el('i'));
       strip.appendChild(cell);
@@ -328,7 +332,16 @@
       const names = day.items.map(it => (exercises.find(e => e.id === it.exerciseId) || {}).name).filter(Boolean);
       const totalSets = day.items.reduce((a, it) => a + (it.sets || 3), 0);
       const lastDone = (plan.completed || []).filter(c => c.day === nextIdx && c.duration).pop();
-      hero.appendChild(heroTop('UP NEXT', `${day.items.length} exercises · ~${lastDone ? lastDone.duration : Math.round(totalSets * 2.5)} min`));
+      const prefD = plan.prefDays || [];
+      const todayIdx = (now.getDay() + 6) % 7;
+      let planned = '';
+      if (prefD.length && !prefD.includes(todayIdx)) {
+        for (let k = 1; k <= 6; k++) {
+          const idx = (todayIdx + k) % 7;
+          if (prefD.includes(idx)) { planned = ' · planned ' + ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx]; break; }
+        }
+      }
+      hero.appendChild(heroTop('UP NEXT', `${day.items.length} exercises · ~${lastDone ? lastDone.duration : Math.round(totalSets * 2.5)} min${planned}`));
       hero.appendChild(el('div', 'hero-title', day.name));
       hero.appendChild(el('div', 'hero-sub', names.join(' · ')));
       const stats = el('div', 'hero-stats');
@@ -533,6 +546,10 @@
       log.onclick = () => {
         set.done = !set.done;
         if (set.done) set.doneAt = Date.now();
+        // last set of this exercise banked -> move on to the next one
+        if (set.done && cur.sets.every(s => s.done) && lw.exIndex < lw.exercises.length - 1) {
+          lw.exIndex++;
+        }
         live.set(lw);
         if (set.done) startRest(cur.rest);   // after save — startRest re-reads state
         renderWorkout();
@@ -1079,6 +1096,35 @@
     grid.appendChild(prC);
     root.appendChild(grid);
 
+    // preferred training days
+    const plan = activePlan();
+    if (plan) {
+      root.appendChild(el('div', 'month-label', 'Preferred training days'));
+      const pc = el('div', 'card');
+      const strip = el('div', 'day-strip');
+      plan.prefDays = plan.prefDays || [];
+      ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((ch, i) => {
+        const cell = el('button', 'cell' + (plan.prefDays.includes(i) ? ' today' : ''));
+        cell.type = 'button';
+        cell.appendChild(el('span', null, ch));
+        cell.appendChild(el('i'));
+        cell.onclick = async () => {
+          plan.prefDays = plan.prefDays.includes(i)
+            ? plan.prefDays.filter(x => x !== i)
+            : [...plan.prefDays, i].sort((a, b) => a - b);
+          await DB.put('plans', plan);
+          renderProfile();
+        };
+        strip.appendChild(cell);
+      });
+      pc.appendChild(strip);
+      const ph = el('div', 'hist-meta');
+      ph.style.marginTop = '10px';
+      ph.textContent = `${plan.prefDays.length} of ${(plan.days || []).length} training days picked — they show as rings on the Today week strip.`;
+      pc.appendChild(ph);
+      root.appendChild(pc);
+    }
+
     // data controls
     root.appendChild(el('div', 'month-label', 'Data & backup'));
     const dc = el('div', 'card');
@@ -1388,7 +1434,8 @@
     }
     await DB.put('plans', {
       id: DB.uid(), createdAt: Date.now(), name: sb.name, weeks: sb.weeks,
-      days, startDate: null, completed: [], finishedAt: null
+      days, startDate: null, completed: [], finishedAt: null,
+      prefDays: [0, 2, 4]
     });
     renderTab();
   }
@@ -1777,6 +1824,11 @@
         for (const it of d.items) {
           if (!it.repLo) { it.repLo = it.reps || 8; it.repHi = it.repHi || it.reps || 12; dirty = true; }
         }
+      }
+      if (!p.prefDays) {
+        const presets = { 1: [0], 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4], 5: [0, 1, 2, 3, 4], 6: [0, 1, 2, 3, 4, 5], 7: [0, 1, 2, 3, 4, 5, 6] };
+        p.prefDays = presets[(p.days || []).length] || [0, 2, 4];
+        dirty = true;
       }
       if (dirty) await DB.put('plans', p);
     }
