@@ -10,6 +10,20 @@
     if (txt !== undefined) e.textContent = txt;
     return e;
   };
+  const svgIcon = (path, size = 11, fill = 'currentColor') => {
+    const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    s.setAttribute('viewBox', '0 0 12 12');
+    s.setAttribute('width', size);
+    s.setAttribute('height', size);
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d', path);
+    p.setAttribute('fill', fill);
+    s.appendChild(p);
+    s.style.verticalAlign = '-1px';
+    return s;
+  };
+  const PLAY = 'M2.5 1.2 L10.8 6 L2.5 10.8 Z';
+  const PAUSE = 'M2.5 1.5 h2.6 v9 h-2.6 Z M6.9 1.5 h2.6 v9 h-2.6 Z';
 
   /* ---------------- state ---------------- */
   let exercises = [];
@@ -400,7 +414,8 @@
     hl.appendChild(clock);
     head.appendChild(hl);
     const btns = el('div', 'w-btns');
-    const pause = el('button', null, '⏸︎');
+    const pause = el('button');
+    pause.appendChild(svgIcon(PAUSE, 13));
     pause.title = 'Pause — resume from Today';
     pause.onclick = () => { show('today'); renderTab(); };
     const quit = el('button', null, '✕');
@@ -437,7 +452,9 @@
     const col = el('div');
     col.appendChild(el('div', 'ex-name', cur.name));
     col.appendChild(el('div', 'ex-meta', `Exercise ${lw.exIndex + 1} of ${lw.exercises.length} · ${cur.sets.length} × ${cur.repLo}-${cur.repHi}`));
-    const watch = el('div', 'ex-watch', '▶︎ Watch the movement');
+    const watch = el('div', 'ex-watch');
+    watch.appendChild(svgIcon(PLAY, 10));
+    watch.appendChild(document.createTextNode(' Watch the movement'));
     watch.onclick = () => openDetail(ex.id, 'workout');
     col.appendChild(watch);
     row.appendChild(col);
@@ -887,7 +904,12 @@
         const r = el('div', 'prog-day-row' + (doneThisWeek.has(i) ? ' done' : ''));
         r.appendChild(el('div', 'n', (doneThisWeek.has(i) ? '✓ ' : '') + day.name));
         r.appendChild(el('div', 'm', day.items.length + ' exercises'));
-        const go = el('button', 'go', doneThisWeek.has(i) ? 'Done' : '▸︎ Start');
+        const go = el('button', 'go');
+        if (doneThisWeek.has(i)) go.textContent = 'Done';
+        else {
+          go.appendChild(svgIcon(PLAY, 10));
+          go.appendChild(document.createTextNode(' Start'));
+        }
         go.onclick = () => startWorkout(plan, i);
         r.appendChild(go);
         c.appendChild(r);
@@ -1283,7 +1305,7 @@
     const editBtn = el('button', 'btn-ghost', 'Edit');
     editBtn.onclick = () => openExerciseForm(ex);
     acts.appendChild(editBtn);
-    const delBtn = el('button', 'btn-ghost', '🗑');
+    const delBtn = el('button', 'btn-ghost', 'Delete');
     delBtn.onclick = async () => {
       if (!confirm(`Delete "${ex.name}" and its history?`)) return;
       for (const mid of (ex.mediaIds || [])) await DB.del('media', mid);
@@ -1432,7 +1454,7 @@
       nameIn.oninput = () => day.name = nameIn.value;
       head.appendChild(nameIn);
       if (planDraft.days.length > 1) {
-        const del = el('button', 'del', '🗑');
+        const del = el('button', 'del', '✕');
         del.type = 'button';
         del.onclick = () => { planDraft.days.splice(di, 1); renderPlanDays(); };
         head.appendChild(del);
