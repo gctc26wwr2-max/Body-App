@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v26';
+  const APP_VERSION = 'v27';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -192,7 +192,6 @@
       ? `Block ${blockNumber(plan)}${w ? ` · Week ${w} of ${plan.weeks || 4}` : ''}`
       : 'Rackside'));
     head.appendChild(hl);
-    head.appendChild(el('div', 'avatar', 'RS'));
     root.appendChild(head);
 
     // running in the browser tab (not installed) — layout loses the bottom strip to Safari
@@ -432,16 +431,22 @@
     for (const item of day.items) {
       const ex = exercises.find(e => e.id === item.exerciseId);
       if (!ex) continue;
-      // prefill weight: plan item kg, else heaviest from last session of this exercise
-      let kg = item.kg || 0;
-      const hist = sessions.filter(s => s.exerciseId === ex.id).sort((a, b) => b.ts - a.ts);
-      if (!kg && hist.length) kg = Math.max(...hist[0].sets.map(s => s.weight || 0));
       const lo = item.repLo || item.reps || 8;
       const hi = item.repHi || item.reps || 12;
+      // remember what you did last time: prefill each set with the weight
+      // and reps from the most recent session of this exercise
+      const hist = sessions.filter(s => s.exerciseId === ex.id).sort((a, b) => b.ts - a.ts);
+      const lastSets = hist.length ? hist[0].sets : null;
+      const lastMax = lastSets ? Math.max(...lastSets.map(s => s.weight || 0)) : 0;
       exList.push({
         exerciseId: ex.id, name: ex.name,
         repLo: lo, repHi: hi, rest: ex.rest || 120,
-        sets: Array.from({ length: item.sets || 3 }, () => ({ kg, reps: lo, targetLo: lo, targetHi: hi, done: false }))
+        sets: Array.from({ length: item.sets || 3 }, (_, si) => {
+          const prev = lastSets ? lastSets[si] : null;
+          const kg = (prev && prev.weight) || lastMax || item.kg || 0;
+          const reps = (prev && prev.reps) || lo;
+          return { kg, reps, targetLo: lo, targetHi: hi, done: false };
+        })
       });
     }
     live.set({
@@ -1062,7 +1067,6 @@
       : 'Rackside') + ' · ' + APP_VERSION));
     hl.appendChild(el('h1', 't-title', 'Profile'));
     head.appendChild(hl);
-    head.appendChild(el('div', 'avatar', 'RS'));
     root.appendChild(head);
 
     // lifetime stats
