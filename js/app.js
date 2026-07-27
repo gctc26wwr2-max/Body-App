@@ -46,6 +46,19 @@
     return { type: rec.type, url: await mediaURL(rec.id) };
   }
 
+  function demoEl(slug, cls) {
+    const wrap = document.createElement('div');
+    wrap.className = 'demo-anim ' + cls;
+    for (const i of [0, 1]) {
+      const img = document.createElement('img');
+      img.src = `demos/${slug}/${i}.jpg`;
+      img.loading = 'lazy';
+      img.alt = '';
+      wrap.appendChild(img);
+    }
+    return wrap;
+  }
+
   function mediaEl(type, url, cls) {
     let el;
     if (type.startsWith('video')) {
@@ -145,6 +158,8 @@
           b.textContent = '▶ video';
           wrap.appendChild(b);
         }
+      } else if (ex.demo) {
+        wrap.appendChild(demoEl(ex.demo, 'card'));
       } else {
         const ph = document.createElement('div');
         ph.className = 'thumb placeholder';
@@ -256,6 +271,7 @@
 
     const mediaRow = document.createElement('div');
     mediaRow.className = 'detail-media';
+    if (ex.demo) mediaRow.appendChild(demoEl(ex.demo, 'big'));
     for (const mid of (ex.mediaIds || [])) {
       const rec = await DB.get('media', mid);
       if (!rec) continue;
@@ -457,7 +473,7 @@
     if (ex) return ex;
     ex = {
       id: DB.uid(), createdAt: Date.now(), mediaIds: [],
-      name: item.name, group: item.group, notes: item.notes
+      name: item.name, group: item.group, notes: item.notes, demo: item.demo || null
     };
     await DB.put('exercises', ex);
     exercises.push(ex);
@@ -498,6 +514,7 @@
       if (q && !item.name.toLowerCase().includes(q) && !item.group.toLowerCase().includes(q)) continue;
       const row = document.createElement('div');
       row.className = 'lib-item';
+      if (item.demo) row.appendChild(demoEl(item.demo, 'lib'));
       const info = document.createElement('div');
       info.className = 'lib-info';
       const nm = document.createElement('div');
@@ -565,6 +582,12 @@
       if (m && !m.type.startsWith('video')) {
         const img = document.createElement('img');
         img.src = m.url;
+        btn.appendChild(img);
+      } else if (ex.demo) {
+        const img = document.createElement('img');
+        img.src = `demos/${ex.demo}/0.jpg`;
+        img.style.objectFit = 'contain';
+        img.style.background = '#fff';
         btn.appendChild(img);
       } else {
         const ph = document.createElement('div');
@@ -830,5 +853,16 @@
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
-  render();
+
+  /* attach demo animations to exercises added before demos existed */
+  async function migrateDemos() {
+    const all = await DB.all('exercises');
+    for (const ex of all) {
+      if (ex.demo) continue;
+      const item = (window.EXERCISE_LIBRARY || []).find(
+        i => i.demo && i.name.toLowerCase() === ex.name.toLowerCase());
+      if (item) { ex.demo = item.demo; await DB.put('exercises', ex); }
+    }
+  }
+  migrateDemos().then(render);
 })();
