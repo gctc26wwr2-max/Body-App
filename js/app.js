@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v24';
+  const APP_VERSION = 'v25';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -482,7 +482,10 @@
       stopRest();
       show('today'); renderTab();
     };
-    btns.append(pause, quit);
+    const fin = el('button', 'fin-btn', '✓');
+    fin.title = 'Finish workout';
+    fin.onclick = () => finishWorkout();
+    btns.append(fin, pause, quit);
     head.appendChild(btns);
     root.appendChild(head);
     clearInterval(elapsedInt);
@@ -606,10 +609,6 @@
     // ---- rest timer card ----
     root.appendChild(restCard(lw, cur));
 
-    // ---- finish ----
-    const fin = el('button', 'btn-finish', 'Finish workout');
-    fin.onclick = () => finishWorkout();
-    root.appendChild(el('div')).appendChild(fin);
   }
 
   function stepper(set, key, step, onChange) {

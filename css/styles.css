@@ -204,6 +204,7 @@ body { font-size: 14px; }
   width: 40px; height: 40px; border-radius: 20px; background: #16191E;
   border: 1px solid var(--hair-8); color: var(--t2); font-size: 15px;
 }
+.w-btns .fin-btn { background: var(--lime); border-color: transparent; color: var(--canvas); font-weight: 800; font-size: 17px; }
 .ex-progress { display: flex; gap: 5px; }
 .ex-progress span { flex: 1; height: 4px; border-radius: 2px; background: #2B2F35; cursor: pointer; }
 .ex-progress span.cur { background: #7A7E84; }
