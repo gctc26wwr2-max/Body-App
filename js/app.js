@@ -79,12 +79,27 @@
   }
   const isBarbell = ex => /(^|\s)bar(bell)?\b/i.test((ex.name || '') + ' ' + (ex.notes || ''));
 
-  function planWeek(plan) {
+  function planWeek(plan) {          // calendar week since start
     if (!plan.startDate) return null;
     const days = Math.floor((Date.now() - dateOf(plan.startDate).getTime()) / 86400000);
     return Math.floor(days / 7) + 1;
   }
-  const planFinished = p => !!p.finishedAt || (planWeek(p) !== null && planWeek(p) > (p.weeks || 4));
+  function progressWeek(plan) {      // first week whose days aren't all done
+    const weeks = plan.weeks || 4;
+    const nDays = (plan.days || []).length || 1;
+    for (let w = 1; w <= weeks; w++) {
+      const done = new Set((plan.completed || []).filter(c => c.week === w).map(c => c.day));
+      if (done.size < nDays) return w;
+    }
+    return weeks;
+  }
+  /* the week you're allowed to train: can't run ahead of the calendar, and
+     can't skip into the next week until every day of this one is banked */
+  function weekOf(plan) {
+    if (!plan.startDate) return null;
+    return Math.min(planWeek(plan) || 1, progressWeek(plan), plan.weeks || 4);
+  }
+  const planFinished = p => !!p.finishedAt;
 
   function activePlan() {
     const open = plans.filter(p => !planFinished(p));
@@ -171,7 +186,7 @@
     const hl = el('div');
     const now = new Date();
     hl.appendChild(el('div', 't-date', now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })));
-    const w = plan ? Math.min(planWeek(plan) || 0, plan.weeks || 4) : 0;
+    const w = plan ? (weekOf(plan) || 0) : 0;
     hl.appendChild(el('h1', 't-title', plan
       ? `Block ${blockNumber(plan)}${w ? ` · Week ${w} of ${plan.weeks || 4}` : ''}`
       : 'Rackside'));
@@ -212,8 +227,9 @@
 
     const weeks = plan.weeks || 4;
     const started = !!plan.startDate;
-    const curWeek = started ? Math.min(planWeek(plan), weeks) : 0;
+    const curWeek = started ? weekOf(plan) : 0;
     const finished = planFinished(plan);
+    const behind = started && !finished && (planWeek(plan) || 1) > progressWeek(plan);
 
     // ---- block card ----
     const bc = el('div', 'card');
@@ -221,9 +237,11 @@
     bh.appendChild(el('div', 'micro', `${weeks}-week block`));
     bh.appendChild(finished
       ? el('div', 'block-note final', 'BLOCK COMPLETE')
-      : (started && curWeek === weeks
-        ? el('div', 'block-note final', 'FINAL WEEK')
-        : el('div', 'block-note', started ? `${weeks - curWeek} week${weeks - curWeek === 1 ? '' : 's'} left in Block ${blockNumber(plan)}` : 'Not started')));
+      : (behind
+        ? el('div', 'block-note', `Finish week ${curWeek} to unlock week ${Math.min(curWeek + 1, weeks)}`)
+        : (started && curWeek === weeks
+          ? el('div', 'block-note final', 'FINAL WEEK')
+          : el('div', 'block-note', started ? `${weeks - curWeek} week${weeks - curWeek === 1 ? '' : 's'} left in Block ${blockNumber(plan)}` : 'Not started'))));
     bc.appendChild(bh);
     const seg = el('div', 'week-seg');
     for (let i = 1; i <= weeks; i++) {
@@ -389,7 +407,7 @@
 
   async function startWorkout(plan, dayIndex) {
     const day = plan.days[dayIndex];
-    const wk = plan.startDate ? Math.min(planWeek(plan), plan.weeks || 4) : 1;
+    const wk = plan.startDate ? weekOf(plan) : 1;
     if ((plan.completed || []).some(c => c.week === wk && c.day === dayIndex)) {
       alert(`${day.name} is already done this week. To redo it, delete its session in Plan → history first.`);
       return;
@@ -786,7 +804,7 @@
           if (done.length) item.kg = Math.max(...done.map(s => s.kg));
         }
       }
-      const w = Math.min(planWeek(plan) || 1, plan.weeks || 4);
+      const w = weekOf(plan) || 1;
       plan.completed = plan.completed || [];
       plan.completed.push({ week: w, day: lw.dayIndex, date: todayStr(), duration: mins });
       if (w >= (plan.weeks || 4)) {
@@ -912,7 +930,7 @@
     // active program card
     if (plan) {
       const weeks = plan.weeks || 4;
-      const curWeek = plan.startDate ? Math.min(planWeek(plan), weeks) : 0;
+      const curWeek = plan.startDate ? weekOf(plan) : 0;
       const c = el('div', 'card');
       const bh = el('div', 'block-head');
       bh.appendChild(el('div', 'micro', plan.name));
