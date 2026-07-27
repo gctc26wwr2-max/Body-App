@@ -271,6 +271,22 @@ html, body {
 .plan-item-row .pi-x { font-size: .8rem; color: var(--muted); }
 .plan-item-row .del-item { background: none; border: none; color: var(--danger); font-size: 1rem; cursor: pointer; }
 
+/* ---------- demo animations (2-frame exercise photos) ---------- */
+.demo-anim { position: relative; overflow: hidden; background: #fff; }
+.demo-anim img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  max-width: none; border: none; border-radius: 0;
+  object-fit: contain; display: block;
+}
+.demo-anim img:last-child { opacity: 0; animation: demo-swap 1.7s steps(1) infinite; }
+@keyframes demo-swap { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+.demo-anim.lib { flex: 0 0 auto; width: 84px; height: 56px; border-radius: 8px; border: 1px solid var(--border); }
+.demo-anim.card { width: 100%; aspect-ratio: 4/3; }
+.demo-anim.big {
+  flex: 0 0 auto; width: min(285px, 78vw); height: 190px;
+  border-radius: var(--radius); border: 1px solid var(--border);
+}
+
 /* ---------- library ---------- */
 .chip-row { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; }
 .chip {
