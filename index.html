@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0f1115">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Body App">
+  <title>Body App — Training Tracker</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <h1 id="topbar-title">Exercises</h1>
+    <button id="topbar-action" class="icon-btn accent">＋</button>
+  </header>
+
+  <main id="view-root">
+
+    <!-- ============ EXERCISES ============ -->
+    <section id="view-exercises" class="view">
+      <div class="searchbar">
+        <input id="exercise-search" type="search" placeholder="Search exercises…" autocomplete="off">
+      </div>
+      <div id="exercise-list" class="card-grid"></div>
+      <div id="exercise-empty" class="empty-state" hidden>
+        <div class="empty-icon">🏋️</div>
+        <p>No exercises yet.</p>
+        <p class="muted">Tap <b>＋</b> to add your first exercise with a photo or video.</p>
+      </div>
+    </section>
+
+    <!-- ============ WORKOUT (today's log) ============ -->
+    <section id="view-workout" class="view" hidden>
+      <div id="active-plan-banner" class="plan-banner" hidden></div>
+      <h2 class="section-label" id="workout-date-label">Today</h2>
+      <div id="workout-log"></div>
+      <div id="workout-empty" class="empty-state" hidden>
+        <div class="empty-icon">📋</div>
+        <p>Nothing logged today.</p>
+        <p class="muted">Tap <b>＋</b> to log an exercise, or start a plan from the Plans tab.</p>
+      </div>
+    </section>
+
+    <!-- ============ PLANS ============ -->
+    <section id="view-plans" class="view" hidden>
+      <div id="plan-list"></div>
+      <div id="plan-empty" class="empty-state" hidden>
+        <div class="empty-icon">🗓️</div>
+        <p>No plans yet.</p>
+        <p class="muted">Tap <b>＋</b> to build a plan from your exercises.</p>
+      </div>
+    </section>
+
+    <!-- ============ HISTORY ============ -->
+    <section id="view-history" class="view" hidden>
+      <div id="history-list"></div>
+      <div id="history-empty" class="empty-state" hidden>
+        <div class="empty-icon">📈</div>
+        <p>No history yet.</p>
+        <p class="muted">Sessions you log will show up here, newest first.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-view="exercises"><span class="tab-icon">🏋️</span>Exercises</button>
+    <button class="tab" data-view="workout"><span class="tab-icon">✅</span>Workout</button>
+    <button class="tab" data-view="plans"><span class="tab-icon">🗓️</span>Plans</button>
+    <button class="tab" data-view="history"><span class="tab-icon">📈</span>History</button>
+  </nav>
+
+  <!-- ============ SHEETS (modals) ============ -->
+  <div id="sheet-backdrop" hidden></div>
+
+  <!-- Add / edit exercise -->
+  <div id="sheet-exercise" class="sheet" hidden>
+    <div class="sheet-handle"></div>
+    <h2 id="sheet-exercise-title">New exercise</h2>
+    <form id="form-exercise">
+      <label>Name
+        <input name="name" type="text" required placeholder="e.g. Bench Press" autocomplete="off">
+      </label>
+      <label>Muscle group
+        <select name="group">
+          <option>Chest</option><option>Back</option><option>Shoulders</option>
+          <option>Arms</option><option>Legs</option><option>Core</option>
+          <option>Cardio</option><option>Full body</option><option>Other</option>
+        </select>
+      </label>
+      <label>Notes
+        <textarea name="notes" rows="2" placeholder="Cues, machine settings, seat height…"></textarea>
+      </label>
+      <label class="file-label">
+        <span>Photos / videos</span>
+        <input id="exercise-media-input" type="file" accept="image/*,video/*" multiple>
+        <span class="file-button">📷 Add photo or video</span>
+      </label>
+      <div id="media-preview" class="media-strip"></div>
+      <div class="sheet-actions">
+        <button type="button" class="btn ghost" data-close>Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Exercise detail -->
+  <div id="sheet-detail" class="sheet tall" hidden>
+    <div class="sheet-handle"></div>
+    <div id="detail-content"></div>
+  </div>
+
+  <!-- Log sets -->
+  <div id="sheet-log" class="sheet" hidden>
+    <div class="sheet-handle"></div>
+    <h2 id="sheet-log-title">Log sets</h2>
+    <p id="sheet-log-target" class="muted" hidden></p>
+    <div id="set-rows"></div>
+    <button id="add-set-row" class="btn ghost small">＋ Add set</button>
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" data-close>Cancel</button>
+      <button id="save-sets" class="btn primary">Save session</button>
+    </div>
+  </div>
+
+  <!-- Pick exercise (for logging / plan building) -->
+  <div id="sheet-pick" class="sheet" hidden>
+    <div class="sheet-handle"></div>
+    <h2>Choose exercise</h2>
+    <input id="pick-search" type="search" placeholder="Search…" autocomplete="off">
+    <div id="pick-list" class="pick-list"></div>
+  </div>
+
+  <!-- Add / edit plan -->
+  <div id="sheet-plan" class="sheet tall" hidden>
+    <div class="sheet-handle"></div>
+    <h2 id="sheet-plan-title">New plan</h2>
+    <form id="form-plan">
+      <label>Plan name
+        <input name="name" type="text" required placeholder="e.g. Push Day A" autocomplete="off">
+      </label>
+      <h3 class="section-label">Exercises</h3>
+      <div id="plan-items"></div>
+      <button type="button" id="plan-add-item" class="btn ghost small">＋ Add exercise</button>
+      <div class="sheet-actions">
+        <button type="button" class="btn ghost" data-close>Cancel</button>
+        <button type="submit" class="btn primary">Save plan</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Media viewer -->
+  <div id="media-viewer" hidden>
+    <button id="media-viewer-close" class="icon-btn">✕</button>
+    <div id="media-viewer-body"></div>
+  </div>
+
+  <script src="js/db.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
