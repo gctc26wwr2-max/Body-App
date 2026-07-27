@@ -16,6 +16,8 @@
   let planDraftItems = [];            // [{exerciseId, sets, reps}]
   let logCtx = null;                  // {exerciseId, sessionId?, target?}
   let pickCallback = null;
+  let libraryCb = null;               // set when the library is opened as a picker
+  let libFilter = 'All';
 
   const todayStr = () => {
     const d = new Date();
@@ -84,7 +86,7 @@
     $('#sheet-backdrop').hidden = true;
     $$('.sheet').forEach(s => s.hidden = true);
   }
-  $('#sheet-backdrop').onclick = closeSheets;
+  $('#sheet-backdrop').onclick = () => { closeSheets(); render(); };
   $$('[data-close]').forEach(b => b.onclick = closeSheets);
 
   /* ---------------- tabs ---------------- */
@@ -97,6 +99,7 @@
     $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
     $('#topbar-title').textContent = TITLES[view];
     $('#topbar-action').hidden = (view === 'history');
+    $('#topbar-library').hidden = (view !== 'exercises');
     render();
   }
   $$('.tab').forEach(t => t.onclick = () => switchView(t.dataset.view));
@@ -446,17 +449,108 @@
     if (logCtx.fromPlan) switchView('workout'); else render();
   };
 
+  /* ================= LIBRARY ================= */
+  const LIB_GROUPS = ['All', ...new Set((window.EXERCISE_LIBRARY || []).map(i => i.group))];
+
+  async function ensureExercise(item) {
+    let ex = exercises.find(e => e.name.toLowerCase() === item.name.toLowerCase());
+    if (ex) return ex;
+    ex = {
+      id: DB.uid(), createdAt: Date.now(), mediaIds: [],
+      name: item.name, group: item.group, notes: item.notes
+    };
+    await DB.put('exercises', ex);
+    exercises.push(ex);
+    exercises.sort((a, b) => a.name.localeCompare(b.name));
+    return ex;
+  }
+
+  function openLibrary(cb) {
+    libraryCb = cb || null;
+    libFilter = 'All';
+    $('#library-search').value = '';
+    renderLibraryChips();
+    renderLibraryList();
+    $('#library-chips').scrollLeft = 0;
+    $('#library-list').scrollTop = 0;
+    openSheet('#sheet-library');
+  }
+
+  function renderLibraryChips() {
+    const row = $('#library-chips');
+    row.innerHTML = '';
+    for (const g of LIB_GROUPS) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (libFilter === g ? ' active' : '');
+      chip.textContent = g;
+      chip.onclick = () => { libFilter = g; renderLibraryChips(); renderLibraryList(); };
+      row.appendChild(chip);
+    }
+  }
+
+  function renderLibraryList() {
+    const q = $('#library-search').value.trim().toLowerCase();
+    const list = $('#library-list');
+    list.innerHTML = '';
+    for (const item of (window.EXERCISE_LIBRARY || [])) {
+      if (libFilter !== 'All' && item.group !== libFilter) continue;
+      if (q && !item.name.toLowerCase().includes(q) && !item.group.toLowerCase().includes(q)) continue;
+      const row = document.createElement('div');
+      row.className = 'lib-item';
+      const info = document.createElement('div');
+      info.className = 'lib-info';
+      const nm = document.createElement('div');
+      nm.className = 'lib-name';
+      nm.textContent = item.name;
+      const notes = document.createElement('div');
+      notes.className = 'lib-notes';
+      notes.textContent = item.group + ' · ' + item.notes;
+      info.append(nm, notes);
+      row.appendChild(info);
+      const already = exercises.some(e => e.name.toLowerCase() === item.name.toLowerCase());
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'lib-add' + (already && !libraryCb ? ' added' : '');
+      btn.textContent = libraryCb ? 'Pick' : (already ? '✓ Added' : '＋ Add');
+      btn.onclick = async () => {
+        const ex = await ensureExercise(item);
+        if (libraryCb) {
+          const cb = libraryCb;
+          libraryCb = null;
+          closeSheets();
+          cb(ex);
+        } else {
+          btn.className = 'lib-add added';
+          btn.textContent = '✓ Added';
+        }
+      };
+      row.appendChild(btn);
+      list.appendChild(row);
+    }
+    if (!list.children.length) {
+      const hint = document.createElement('div');
+      hint.className = 'pick-hint';
+      hint.textContent = 'Nothing matches your search.';
+      list.appendChild(hint);
+    }
+  }
+  $('#library-search').oninput = renderLibraryList;
+  $('#topbar-library').onclick = () => openLibrary();
+
   /* ================= PICKER ================= */
   function openPicker(cb) {
-    if (!exercises.length) {
-      alert('Add an exercise first (Exercises tab → ＋).');
-      return;
-    }
     pickCallback = cb;
     $('#pick-search').value = '';
     renderPickList();
     openSheet('#sheet-pick');
   }
+
+  $('#pick-from-library').onclick = () => {
+    const cb = pickCallback;
+    pickCallback = null;
+    openLibrary(cb);
+  };
 
   async function renderPickList() {
     const q = $('#pick-search').value.trim().toLowerCase();
@@ -488,6 +582,14 @@
       btn.appendChild(txt);
       btn.onclick = () => { closeSheets(); const cb = pickCallback; pickCallback = null; cb(ex); };
       list.appendChild(btn);
+    }
+    if (!list.children.length) {
+      const hint = document.createElement('div');
+      hint.className = 'pick-hint';
+      hint.textContent = exercises.length
+        ? 'Nothing matches your search.'
+        : 'You have no exercises yet — use the library button above.';
+      list.appendChild(hint);
     }
   }
   $('#pick-search').oninput = renderPickList;

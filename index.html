@@ -17,7 +17,10 @@
 
   <header class="topbar">
     <h1 id="topbar-title">Exercises</h1>
-    <button id="topbar-action" class="icon-btn accent">＋</button>
+    <div class="topbar-btns">
+      <button id="topbar-library" class="icon-btn" title="Exercise library">📚</button>
+      <button id="topbar-action" class="icon-btn accent">＋</button>
+    </div>
   </header>
 
   <main id="view-root">
@@ -133,8 +136,18 @@
   <div id="sheet-pick" class="sheet" hidden>
     <div class="sheet-handle"></div>
     <h2>Choose exercise</h2>
-    <input id="pick-search" type="search" placeholder="Search…" autocomplete="off">
+    <button id="pick-from-library" class="btn ghost small block">📚 Choose from exercise library</button>
+    <input id="pick-search" type="search" placeholder="Search my exercises…" autocomplete="off">
     <div id="pick-list" class="pick-list"></div>
+  </div>
+
+  <!-- Exercise library -->
+  <div id="sheet-library" class="sheet tall" hidden>
+    <div class="sheet-handle"></div>
+    <h2>Exercise library</h2>
+    <input id="library-search" type="search" placeholder="Search library…" autocomplete="off">
+    <div id="library-chips" class="chip-row"></div>
+    <div id="library-list" class="library-list"></div>
   </div>
 
   <!-- Add / edit plan -->
@@ -162,6 +175,7 @@
   </div>
 
   <script src="js/db.js"></script>
+  <script src="js/library.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
