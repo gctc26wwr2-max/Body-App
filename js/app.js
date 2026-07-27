@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v20';
+  const APP_VERSION = 'v21';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1468,7 +1468,7 @@
     root.innerHTML = '';
 
     const hero = el('div', 'det-hero');
-    hero.appendChild(thumbFor(ex, 'contain'));
+    hero.appendChild(thumbFor(ex));
     const back = el('button', 'det-back', '‹');
     back.onclick = goBackFromDetail;
     hero.appendChild(back);
