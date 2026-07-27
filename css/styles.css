@@ -41,6 +41,7 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --cond: 'Barlow Condensed', 'Barlow', sans-serif;
+  --winH: 100dvh;   /* overwritten by JS with the measured window height */
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -63,7 +64,7 @@ body { font-size: 14px; }
 .view {
   padding: calc(14px + var(--safe-top)) 20px calc(92px + var(--safe-bottom));
   display: flex; flex-direction: column; gap: 18px;
-  min-height: 100dvh;
+  min-height: var(--winH);
 }
 .view.stack { padding-bottom: calc(24px + var(--safe-bottom)); }
 .view.full { padding: 0 0 calc(24px + var(--safe-bottom)); gap: 0; }
@@ -171,7 +172,9 @@ body { font-size: 14px; }
 
 /* ---------- tab bar ---------- */
 .tabbar {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+  /* anchored to the JS-measured window height, not the (buggy) viewport bottom */
+  position: fixed; top: var(--winH); left: 0; right: 0; z-index: 30;
+  transform: translateY(-100%);
   display: flex; justify-content: space-around;
   background: rgba(12,13,15,.96); backdrop-filter: blur(12px);
   border-top: 1px solid var(--hair);
@@ -494,17 +497,18 @@ body { font-size: 14px; }
 .demo-anim.ph { display: flex; align-items: center; justify-content: center; background: var(--sunken); color: var(--t6); font-size: 20px; }
 
 /* ---------- sheets ---------- */
-#sheet-backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.6); }
+#sheet-backdrop { position: fixed; top: 0; left: 0; right: 0; height: var(--winH); z-index: 40; background: rgba(0,0,0,.6); }
 .sheet {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
-  max-height: 90dvh; overflow-y: auto;
+  position: fixed; left: 0; right: 0; top: var(--winH); z-index: 50;
+  transform: translateY(-100%);
+  max-height: calc(var(--winH) * 0.9); overflow-y: auto;
   background: var(--surface); border-radius: 24px 24px 0 0;
   padding: 8px 20px calc(22px + var(--safe-bottom));
   max-width: 640px; margin: 0 auto;
   animation: slide-up .22s ease;
 }
-.sheet.tall { height: 90dvh; }
-@keyframes slide-up { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+.sheet.tall { height: calc(var(--winH) * 0.9); }
+@keyframes slide-up { from { transform: translateY(calc(-100% + 40px)); opacity: .4; } to { transform: translateY(-100%); opacity: 1; } }
 .sheet-handle { width: 42px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.14); margin: 6px auto 16px; }
 .sheet h2 { font-family: var(--cond); font-size: 22px; font-weight: 700; text-transform: uppercase; margin-bottom: 14px; }
 .sheet label { display: block; margin-bottom: 12px; font-size: 12px; color: var(--t4); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
@@ -562,7 +566,7 @@ body { font-size: 14px; }
 .pick-list { max-height: 55dvh; overflow-y: auto; }
 
 /* media viewer */
-#media-viewer { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.96); display: flex; align-items: center; justify-content: center; }
+#media-viewer { position: fixed; top: 0; left: 0; right: 0; height: var(--winH); z-index: 100; background: rgba(0,0,0,.96); display: flex; align-items: center; justify-content: center; }
 #media-viewer-close { position: absolute; top: calc(14px + var(--safe-top)); right: 14px; z-index: 101; width: 38px; height: 38px; border-radius: 19px; border: none; background: rgba(255,255,255,.1); color: #fff; }
 #media-viewer-body img, #media-viewer-body video { max-width: 100vw; max-height: 100vh; display: block; }
 

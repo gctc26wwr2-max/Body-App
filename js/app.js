@@ -1532,30 +1532,28 @@
     }
   }
 
-  /* iOS standalone cold-start lays the page out against a short viewport and
-     doesn't invalidate it until top-level content visibility changes (which is
-     why switching tabs healed it). Replicate that exact mutation: hide the
-     active view for one frame and show it again — invisible on the dark canvas. */
-  function fixViewport() {
-    const vis = VIEWS.map(v => $('#view-' + v)).find(s => s && !s.hidden);
-    if (!vis) return;
-    vis.hidden = true;
-    void document.body.offsetHeight;
-    requestAnimationFrame(() => {
-      vis.hidden = false;
-      window.scrollTo(0, 0);
-    });
+  /* iOS standalone cold-start reports a stale viewport height to CSS, so the
+     tab bar and sheets are anchored to --winH: the window height measured by
+     JS, re-checked every second and on every resize. Self-corrects always. */
+  function setWinH() {
+    const h = window.innerHeight;
+    if (setWinH.last !== h) {
+      setWinH.last = h;
+      document.documentElement.style.setProperty('--winH', h + 'px');
+    }
   }
-  window.addEventListener('pageshow', fixViewport);
-  window.addEventListener('orientationchange', fixViewport);
-  window.addEventListener('resize', fixViewport);
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', fixViewport);
+  setWinH();
+  setInterval(setWinH, 1000);
+  window.addEventListener('resize', setWinH);
+  window.addEventListener('orientationchange', () => setTimeout(setWinH, 100));
+  window.addEventListener('pageshow', setWinH);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', setWinH);
 
   migrate().then(() => {
     const lw = live.get();
     if (lw) { show('workout'); renderTab().then(renderWorkout); }
     else renderTab();
     if (lw && lw.restEndsAt) armRestTick();
-    [100, 600, 1500].forEach(t => setTimeout(fixViewport, t));
+    [100, 600, 1500].forEach(t => setTimeout(setWinH, t));
   });
 })();
