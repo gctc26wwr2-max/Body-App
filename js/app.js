@@ -13,7 +13,7 @@
   let pendingMedia = [];              // files staged in the exercise form
   let editingExerciseId = null;
   let editingPlanId = null;
-  let planDraftItems = [];            // [{exerciseId, sets, reps}]
+  let planDraft = null;               // {weeks, days: [{name, items: [{exerciseId, sets, reps}]}]}
   let logCtx = null;                  // {exerciseId, sessionId?, target?}
   let pickCallback = null;
   let libraryCb = null;               // set when the library is opened as a picker
@@ -28,6 +28,19 @@
     get() { try { return JSON.parse(localStorage.getItem('activeRun')); } catch { return null; } },
     set(v) { v ? localStorage.setItem('activeRun', JSON.stringify(v)) : localStorage.removeItem('activeRun'); }
   };
+
+  /* ---- weekly program helpers ---- */
+  function planWeek(plan) {          // 1-based current calendar week, or null if not started
+    if (!plan.startDate) return null;
+    const start = new Date(plan.startDate + 'T00:00:00');
+    const days = Math.floor((Date.now() - start.getTime()) / 86400000);
+    return Math.floor(days / 7) + 1;
+  }
+  function planFinished(plan) {
+    if (plan.finishedAt) return true;
+    const w = planWeek(plan);
+    return w !== null && w > (plan.weeks || 4);
+  }
 
   /* ---------------- media helpers ---------------- */
   async function mediaURL(mediaId) {
@@ -390,6 +403,18 @@
 
   function openLogSheet(ex, session) {
     $('#sheet-log-title').textContent = ex ? ex.name : 'Log sets';
+
+    // show how the exercise is done while logging
+    const demoBox = $('#sheet-log-demo');
+    demoBox.innerHTML = '';
+    if (ex && ex.demo) demoBox.appendChild(demoEl(ex.demo, 'log'));
+    if (ex && ex.notes) {
+      const n = document.createElement('div');
+      n.className = 'log-demo-notes';
+      n.textContent = '💡 ' + ex.notes;
+      demoBox.appendChild(n);
+    }
+
     const target = logCtx && logCtx.target;
     const tEl = $('#sheet-log-target');
     if (target) {
@@ -633,15 +658,21 @@
     const liveRun = activeRun.get();
     if (liveRun) {
       const plan = await DB.get('plans', liveRun.planId);
-      if (!plan) { activeRun.set(null); banner.hidden = true; }
+      const day = plan && plan.days ? plan.days[liveRun.dayIndex || 0] : null;
+      if (!plan || !day) { activeRun.set(null); banner.hidden = true; }
       else {
         banner.hidden = false;
+        const w = Math.min(planWeek(plan) || 1, plan.weeks || 4);
         const title = document.createElement('div');
         title.className = 'pb-title';
-        title.textContent = '▶ ' + plan.name;
+        title.textContent = `▶ ${plan.name} · ${day.name}`;
         banner.appendChild(title);
+        const sub = document.createElement('div');
+        sub.className = 'plan-status' + (w === (plan.weeks || 4) ? ' final' : '');
+        sub.textContent = `Week ${w} of ${plan.weeks || 4}` + (w === (plan.weeks || 4) ? ' — final week, finish strong! 🔥' : '');
+        banner.appendChild(sub);
         const doneIds = new Set(sessions.filter(s => s.planId === plan.id).map(s => s.exerciseId));
-        for (const item of plan.items) {
+        for (const item of day.items) {
           const ex = exercises.find(e => e.id === item.exerciseId);
           if (!ex) continue;
           const row = document.createElement('div');
@@ -666,8 +697,22 @@
         }
         const finish = document.createElement('button');
         finish.className = 'btn ghost small block pb-finish';
-        finish.textContent = 'Finish plan';
-        finish.onclick = () => { activeRun.set(null); renderWorkout(); };
+        finish.textContent = '✓ Finish ' + day.name;
+        finish.onclick = async () => {
+          plan.completed = plan.completed || [];
+          plan.completed.push({ week: w, day: liveRun.dayIndex || 0, date: todayStr() });
+          if (w >= (plan.weeks || 4)) {
+            const doneFinalWeek = new Set(
+              plan.completed.filter(c => c.week >= (plan.weeks || 4)).map(c => c.day));
+            if (doneFinalWeek.size >= plan.days.length) plan.finishedAt = Date.now();
+          }
+          await DB.put('plans', plan);
+          activeRun.set(null);
+          if (plan.finishedAt) {
+            alert(`🎉 Program complete!\n\n"${plan.name}" — all ${plan.weeks || 4} weeks done. Amazing work!\n\nTime to build a new plan in the Plans tab.`);
+          }
+          renderWorkout();
+        };
         banner.appendChild(finish);
       }
     } else banner.hidden = true;
@@ -711,6 +756,11 @@
     list.innerHTML = '';
     $('#plan-empty').hidden = plans.length > 0;
     for (const plan of plans) {
+      const weeks = plan.weeks || 4;
+      const days = plan.days || [];
+      const w = planWeek(plan);
+      const finished = planFinished(plan);
+
       const card = document.createElement('div');
       card.className = 'plan-card';
       const nm = document.createElement('div');
@@ -718,22 +768,74 @@
       nm.textContent = plan.name;
       const meta = document.createElement('div');
       meta.className = 'plan-meta';
-      meta.textContent = plan.items.length + ' exercise' + (plan.items.length === 1 ? '' : 's');
-      const exList = document.createElement('div');
-      exList.className = 'plan-ex-list';
-      exList.textContent = plan.items.map(it => {
-        const ex = exercises.find(e => e.id === it.exerciseId);
-        return ex ? `${ex.name} ${it.sets}×${it.reps}` : null;
-      }).filter(Boolean).join('  ·  ');
+      meta.textContent = `${weeks}-week program · ${days.length}× per week`;
+      card.append(nm, meta);
+
+      const status = document.createElement('div');
+      if (finished) {
+        status.className = 'plan-complete-box';
+        status.textContent = `🎉 Program complete — ${weeks} weeks done! Build a new plan to keep progressing.`;
+      } else if (!w) {
+        status.className = 'plan-status';
+        status.textContent = 'Not started — hit ▶ on a training day to begin week 1';
+      } else {
+        const cur = Math.min(w, weeks);
+        status.className = 'plan-status' + (cur === weeks ? ' final' : '');
+        status.textContent = `Week ${cur} of ${weeks}` + (cur === weeks ? ' — final week! 🔥' : '');
+      }
+      card.appendChild(status);
+
+      if (w && !finished) {
+        const bar = document.createElement('div');
+        bar.className = 'plan-progress';
+        const fill = document.createElement('div');
+        fill.style.width = Math.min(100, Math.round((Math.min(w, weeks) - 1) / weeks * 100 + (100 / weeks) * 0.5)) + '%';
+        bar.appendChild(fill);
+        card.appendChild(bar);
+      }
+
+      const curWeek = w ? Math.min(w, weeks) : null;
+      const doneThisWeek = new Set(
+        (plan.completed || []).filter(c => c.week === curWeek).map(c => c.day));
+      days.forEach((day, i) => {
+        const row = document.createElement('div');
+        row.className = 'plan-day-row' + (doneThisWeek.has(i) ? ' done' : '');
+        const dn = document.createElement('span');
+        dn.className = 'pd-name';
+        dn.textContent = (doneThisWeek.has(i) ? '✓ ' : '') + day.name;
+        const cnt = document.createElement('span');
+        cnt.className = 'pd-count';
+        cnt.textContent = day.items.length + ' exercises';
+        const go = document.createElement('button');
+        go.textContent = doneThisWeek.has(i) ? 'Done' : '▶ Start';
+        go.onclick = async () => {
+          if (!plan.startDate) { plan.startDate = todayStr(); await DB.put('plans', plan); }
+          activeRun.set({ planId: plan.id, dayIndex: i, date: todayStr() });
+          switchView('workout');
+        };
+        row.append(dn, cnt, go);
+        card.appendChild(row);
+      });
+
       const actions = document.createElement('div');
       actions.className = 'plan-actions';
-      const start = document.createElement('button');
-      start.className = 'btn primary small';
-      start.textContent = '▶ Start';
-      start.onclick = () => {
-        activeRun.set({ planId: plan.id, date: todayStr() });
-        switchView('workout');
-      };
+      if (finished) {
+        const again = document.createElement('button');
+        again.className = 'btn primary small';
+        again.textContent = 'New plan';
+        again.onclick = () => openPlanForm(null);
+        actions.appendChild(again);
+        const restart = document.createElement('button');
+        restart.className = 'btn ghost small';
+        restart.textContent = 'Restart';
+        restart.onclick = async () => {
+          if (!confirm(`Restart "${plan.name}" from week 1?`)) return;
+          plan.startDate = null; plan.completed = []; plan.finishedAt = null;
+          await DB.put('plans', plan);
+          render();
+        };
+        actions.appendChild(restart);
+      }
       const edit = document.createElement('button');
       edit.className = 'btn ghost small';
       edit.textContent = 'Edit';
@@ -748,74 +850,171 @@
         await DB.del('plans', plan.id);
         render();
       };
-      actions.append(start, edit, del);
-      card.append(nm, meta, exList, actions);
+      actions.append(edit, del);
+      card.appendChild(actions);
       list.appendChild(card);
     }
   }
 
-  /* ----- plan form ----- */
+  /* ----- plan form (weekly days builder) ----- */
   function openPlanForm(plan) {
     editingPlanId = plan ? plan.id : null;
-    planDraftItems = plan ? plan.items.map(i => ({ ...i })) : [];
+    planDraft = plan
+      ? {
+          weeks: plan.weeks || 4,
+          days: (plan.days || []).map(d => ({ name: d.name, items: d.items.map(i => ({ ...i })) }))
+        }
+      : { weeks: 4, days: [{ name: 'Day 1', items: [] }] };
     const form = $('#form-plan');
     form.reset();
+    form.weeks.value = String(planDraft.weeks);
     if (plan) form.name.value = plan.name;
     $('#sheet-plan-title').textContent = plan ? 'Edit plan' : 'New plan';
-    renderPlanItems();
+    renderPlanDays();
     openSheet('#sheet-plan');
   }
 
-  function renderPlanItems() {
-    const wrap = $('#plan-items');
+  function renderPlanDays() {
+    const wrap = $('#plan-days');
     wrap.innerHTML = '';
-    planDraftItems.forEach((item, i) => {
-      const ex = exercises.find(e => e.id === item.exerciseId);
-      const row = document.createElement('div');
-      row.className = 'plan-item-row';
-      const nm = document.createElement('span');
-      nm.className = 'pi-name';
-      nm.textContent = ex ? ex.name : '(deleted)';
-      const sets = document.createElement('input');
-      sets.type = 'number'; sets.min = '1'; sets.inputMode = 'numeric';
-      sets.value = item.sets;
-      sets.oninput = () => item.sets = Number(sets.value) || 1;
-      const x = document.createElement('span');
-      x.className = 'pi-x';
-      x.textContent = '×';
-      const reps = document.createElement('input');
-      reps.type = 'number'; reps.min = '1'; reps.inputMode = 'numeric';
-      reps.value = item.reps;
-      reps.oninput = () => item.reps = Number(reps.value) || 1;
-      const del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'del-item';
-      del.textContent = '✕';
-      del.onclick = () => { planDraftItems.splice(i, 1); renderPlanItems(); };
-      row.append(nm, sets, x, reps, del);
-      wrap.appendChild(row);
+    planDraft.days.forEach((day, di) => {
+      const card = document.createElement('div');
+      card.className = 'day-card';
+      const head = document.createElement('div');
+      head.className = 'day-head';
+      const nameIn = document.createElement('input');
+      nameIn.type = 'text';
+      nameIn.value = day.name;
+      nameIn.placeholder = 'Day name (e.g. Push, Legs…)';
+      nameIn.oninput = () => day.name = nameIn.value;
+      head.appendChild(nameIn);
+      if (planDraft.days.length > 1) {
+        const delDay = document.createElement('button');
+        delDay.type = 'button';
+        delDay.className = 'del-day';
+        delDay.textContent = '🗑';
+        delDay.onclick = () => { planDraft.days.splice(di, 1); renderPlanDays(); };
+        head.appendChild(delDay);
+      }
+      card.appendChild(head);
+
+      day.items.forEach((item, i) => {
+        const ex = exercises.find(e => e.id === item.exerciseId);
+        const row = document.createElement('div');
+        row.className = 'plan-item-row';
+        const nm = document.createElement('span');
+        nm.className = 'pi-name';
+        nm.textContent = ex ? ex.name : '(deleted)';
+        const sets = document.createElement('input');
+        sets.type = 'number'; sets.min = '1'; sets.inputMode = 'numeric';
+        sets.value = item.sets;
+        sets.oninput = () => item.sets = Number(sets.value) || 1;
+        const x = document.createElement('span');
+        x.className = 'pi-x';
+        x.textContent = '×';
+        const reps = document.createElement('input');
+        reps.type = 'number'; reps.min = '1'; reps.inputMode = 'numeric';
+        reps.value = item.reps;
+        reps.oninput = () => item.reps = Number(reps.value) || 1;
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'del-item';
+        del.textContent = '✕';
+        del.onclick = () => { day.items.splice(i, 1); renderPlanDays(); };
+        row.append(nm, sets, x, reps, del);
+        card.appendChild(row);
+      });
+
+      const addEx = document.createElement('button');
+      addEx.type = 'button';
+      addEx.className = 'btn ghost small';
+      addEx.textContent = '＋ Add exercise';
+      addEx.onclick = () => {
+        openPicker(ex => {
+          day.items.push({ exerciseId: ex.id, sets: 3, reps: 10 });
+          renderPlanDays();
+          openSheet('#sheet-plan');
+        });
+      };
+      card.appendChild(addEx);
+      wrap.appendChild(card);
     });
   }
 
-  $('#plan-add-item').onclick = () => {
-    openPicker(ex => {
-      planDraftItems.push({ exerciseId: ex.id, sets: 3, reps: 10 });
-      renderPlanItems();
-      openSheet('#sheet-plan');
-    });
+  $('#plan-add-day').onclick = () => {
+    planDraft.days.push({ name: `Day ${planDraft.days.length + 1}`, items: [] });
+    renderPlanDays();
   };
 
   $('#form-plan').onsubmit = async e => {
     e.preventDefault();
-    if (!planDraftItems.length) { alert('Add at least one exercise to the plan.'); return; }
+    const days = planDraft.days.filter(d => d.items.length);
+    if (!days.length) { alert('Add at least one exercise to a training day.'); return; }
     const plan = editingPlanId
       ? await DB.get('plans', editingPlanId)
-      : { id: DB.uid(), createdAt: Date.now() };
+      : { id: DB.uid(), createdAt: Date.now(), startDate: null, completed: [], finishedAt: null };
     plan.name = e.target.name.value.trim();
-    plan.items = planDraftItems;
+    plan.weeks = Number(e.target.weeks.value) || 4;
+    plan.days = days.map(d => ({ name: d.name.trim() || 'Day', items: d.items }));
+    delete plan.items;
     await DB.put('plans', plan);
     closeSheets();
     render();
+  };
+
+  /* ================= REST TIMER ================= */
+  let timerEnd = null, timerInt = null, audioCtx = null;
+
+  function beep() {
+    try {
+      if (!audioCtx) return;
+      for (let i = 0; i < 3; i++) {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.frequency.value = 880;
+        o.connect(g); g.connect(audioCtx.destination);
+        const t = audioCtx.currentTime + i * 0.35;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.4, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+        o.start(t); o.stop(t + 0.3);
+      }
+    } catch { /* sound is best-effort */ }
+  }
+
+  function timerTick() {
+    const left = Math.ceil((timerEnd - Date.now()) / 1000);
+    if (left <= 0) {
+      $('#timer-remaining').textContent = 'GO! 💪';
+      $('#timer-pill').classList.add('done');
+      clearInterval(timerInt);
+      timerInt = null;
+      beep();
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      setTimeout(() => { if (!timerInt) $('#timer-pill').hidden = true; }, 4000);
+      return;
+    }
+    $('#timer-remaining').textContent = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
+  }
+
+  function startRest(sec) {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch { /* no audio available */ }
+    timerEnd = Date.now() + sec * 1000;
+    const pill = $('#timer-pill');
+    pill.classList.remove('done');
+    pill.hidden = false;
+    clearInterval(timerInt);
+    timerInt = setInterval(timerTick, 250);
+    timerTick();
+  }
+
+  $$('#rest-chips button').forEach(b => b.onclick = () => startRest(Number(b.dataset.sec)));
+  $('#timer-cancel').onclick = () => {
+    clearInterval(timerInt);
+    timerInt = null;
+    $('#timer-pill').hidden = true;
   };
 
   /* ================= HISTORY ================= */
@@ -864,5 +1063,20 @@
       if (item) { ex.demo = item.demo; await DB.put('exercises', ex); }
     }
   }
-  migrateDemos().then(render);
+
+  /* convert single-list plans (old format) to weekly programs */
+  async function migratePlans() {
+    const all = await DB.all('plans');
+    for (const p of all) {
+      if (p.items && !p.days) {
+        p.days = [{ name: 'Day 1', items: p.items }];
+        delete p.items;
+        p.weeks = p.weeks || 4;
+        p.completed = p.completed || [];
+        await DB.put('plans', p);
+      }
+    }
+  }
+
+  Promise.all([migrateDemos(), migratePlans()]).then(render);
 })();

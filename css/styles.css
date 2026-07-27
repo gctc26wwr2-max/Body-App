@@ -261,6 +261,43 @@ html, body {
 .plan-card .plan-actions { display: flex; gap: 8px; }
 .plan-card .plan-actions .btn { flex: 1; }
 
+.plan-status { font-size: .85rem; margin: 2px 0 8px; color: var(--muted); font-weight: 600; }
+.plan-status.final { color: #ffb84d; }
+.plan-status.complete { color: var(--ok); }
+.plan-progress {
+  height: 6px; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 4px; overflow: hidden; margin: 6px 0 10px;
+}
+.plan-progress > div { height: 100%; background: linear-gradient(90deg, var(--accent), #7fb0ff); transition: width .3s; }
+.plan-day-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 0; border-top: 1px solid var(--border); font-size: .93rem;
+}
+.plan-day-row .pd-name { flex: 1; font-weight: 600; }
+.plan-day-row .pd-count { color: var(--muted); font-size: .8rem; }
+.plan-day-row.done .pd-name { color: var(--ok); }
+.plan-day-row button {
+  background: var(--accent); border: none; color: #fff;
+  border-radius: 8px; padding: 6px 14px; font-size: .82rem; font-weight: 700; cursor: pointer;
+}
+.plan-day-row.done button { background: var(--surface-2); color: var(--ok); }
+.plan-complete-box {
+  background: linear-gradient(135deg, #1d3a2c, #16241c);
+  border: 1px solid var(--ok); border-radius: 10px;
+  padding: 12px; margin: 8px 0; text-align: center; font-weight: 600;
+}
+
+/* plan form day cards */
+.day-card {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px; margin-bottom: 10px;
+}
+.day-card .day-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.day-card .day-head input { flex: 1; margin-top: 0 !important; font-weight: 700; }
+.day-card .del-day { background: none; border: none; color: var(--danger); font-size: 1.05rem; cursor: pointer; }
+.day-card .plan-item-row { background: var(--bg); }
+.day-card .btn { width: 100%; }
+
 .plan-item-row {
   display: flex; align-items: center; gap: 8px;
   background: var(--surface-2); border: 1px solid var(--border);
@@ -286,6 +323,11 @@ html, body {
   flex: 0 0 auto; width: min(285px, 78vw); height: 190px;
   border-radius: var(--radius); border: 1px solid var(--border);
 }
+.demo-anim.log {
+  width: 100%; height: 175px; border-radius: var(--radius);
+  border: 1px solid var(--border); margin-bottom: 8px;
+}
+.log-demo-notes { color: var(--muted); font-size: .82rem; margin-bottom: 12px; }
 
 /* ---------- library ---------- */
 .chip-row { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; }
@@ -315,6 +357,27 @@ html, body {
 /* ---------- history tab ---------- */
 .day-group { margin-bottom: 18px; }
 .day-group .day-label { font-weight: 700; margin-bottom: 8px; }
+
+/* ---------- rest timer ---------- */
+.rest-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.rest-chips button {
+  flex: 1; min-width: 56px; padding: 10px 0;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--accent); border-radius: 10px; font-size: .95rem; font-weight: 700; cursor: pointer;
+}
+.rest-chips button:active { background: var(--accent); color: #fff; }
+#timer-pill {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(84px + var(--safe-bottom)); z-index: 70;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--accent); color: #fff;
+  padding: 12px 22px; border-radius: 28px;
+  font-size: 1.3rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  box-shadow: 0 8px 24px rgba(0,0,0,.55);
+}
+#timer-pill.done { background: var(--ok); animation: pulse .6s ease 3; }
+@keyframes pulse { 50% { transform: translateX(-50%) scale(1.07); } }
+#timer-cancel { background: rgba(0,0,0,.25); border: none; color: #fff; border-radius: 50%; width: 28px; height: 28px; font-size: .85rem; cursor: pointer; }
 
 /* ---------- media viewer ---------- */
 #media-viewer {
