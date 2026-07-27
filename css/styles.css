@@ -145,6 +145,8 @@ body { font-size: 14px; }
 .day-strip .cell.pref { border: 1.5px solid rgba(200,255,46,.55); }
 .day-strip .cell.pref span { color: var(--t2); }
 .day-strip .cell.pref i { border: 1.5px solid #F2F3F5; }
+.day-strip .cell.missed { border-color: var(--amber-border); }
+.day-strip .cell.missed i { border-color: var(--amber); }
 .day-strip .cell.done i { background: var(--lime); border: none; }
 .day-strip button.cell { cursor: pointer; font: inherit; color: inherit; }
 .day-strip .cell.today { background: var(--lime); border-color: transparent; }
