@@ -1112,8 +1112,9 @@
   }
 
   function agoDays(ds) {
-    const n = Math.round((Date.now() - dateOf(ds).getTime()) / 86400000);
-    return n <= 0 ? 'today' : n === 1 ? 'yesterday' : n + ' days ago';
+    if (ds === todayStr()) return 'today';
+    const n = Math.floor((dateOf(todayStr()).getTime() - dateOf(ds).getTime()) / 86400000);
+    return n <= 1 ? 'yesterday' : n + ' days ago';
   }
 
   /* ============================================================
