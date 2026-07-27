@@ -1532,10 +1532,28 @@
     }
   }
 
+  /* iOS standalone cold-start sizes the web view short until a reflow —
+     nudge layout on load and whenever the visual viewport changes. */
+  function fixViewport() {
+    requestAnimationFrame(() => {
+      const tb = $('#tabbar');
+      tb.style.display = 'none';
+      void document.body.offsetHeight;
+      tb.style.display = '';
+      window.scrollTo(0, 1);
+      window.scrollTo(0, 0);
+    });
+  }
+  window.addEventListener('pageshow', fixViewport);
+  window.addEventListener('orientationchange', fixViewport);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fixViewport);
+
   migrate().then(() => {
     const lw = live.get();
     if (lw) { show('workout'); renderTab().then(renderWorkout); }
     else renderTab();
     if (lw && lw.restEndsAt) armRestTick();
+    fixViewport();
+    setTimeout(fixViewport, 300);
   });
 })();
