@@ -238,6 +238,7 @@ body { font-size: 14px; }
   font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--t6);
 }
 .set-grid-head span { text-align: center; }
+.set-grid-head span:first-child { transform: translateX(3px); }
 
 .w-set {
   display: grid; grid-template-columns: 20px 1fr 1fr 44px; gap: 8px; align-items: center;
