@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v32';
+  const APP_VERSION = 'v33';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1150,6 +1150,14 @@
     hint.textContent = (lbTs ? `Last backup ${new Date(lbTs).toLocaleDateString('en-GB')} · ` : 'Never backed up · ')
       + 'in the share sheet choose "Save to Files" → iCloud Drive. Do it monthly — a reminder appears on Today. Photos/videos you attached are not included.';
     dc.appendChild(hint);
+    const report = el('button', 'btn-ghost', '📝 Report for Claude');
+    report.style.cssText = 'width:100%;margin-bottom:10px;color:var(--lime);border-color:var(--lime-border)';
+    report.onclick = shareReport;
+    dc.appendChild(report);
+    const rHint = el('div', 'hist-meta');
+    rHint.style.margin = '0 0 12px';
+    rHint.textContent = 'Builds a text summary of your program, sessions, times, how they felt, and current numbers — share it into a Claude chat to plan your next block.';
+    dc.appendChild(rHint);
     const restoreBtn = el('button', 'btn-ghost', 'Restore from backup');
     restoreBtn.style.cssText = 'width:100%;margin-bottom:10px';
     const fileIn = document.createElement('input');
@@ -1172,6 +1180,62 @@
     about.innerHTML = '<b>Rackside ' + APP_VERSION + ' ·</b> Local-first training app. Everything is stored on this iPhone — no account, no cloud, works offline in the gym. '
       + (standalone ? 'Running as an installed app.' : 'Running in the browser — install via Share → Add to Home Screen.');
     root.appendChild(about);
+  }
+
+  /* ---------------- training report (to hand to Claude) ---------------- */
+  async function shareReport() {
+    const [workouts, sessions, allExs] = await Promise.all([
+      DB.all('workouts'), DB.all('sessions'), DB.all('exercises')
+    ]);
+    const exName = id => (allExs.find(e => e.id === id) || {}).name || 'Unknown';
+    const plan = activePlan();
+    const L = [];
+    L.push(`RACKSIDE TRAINING REPORT — ${todayStr()}`);
+    if (plan) {
+      const w = plan.startDate ? weekOf(plan) : 0;
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      L.push(`Program: ${plan.name} · ${plan.weeks || 4} weeks · week ${w || '-'} · ` +
+        `${(plan.days || []).length} days/week (${(plan.prefDays || []).map(i => days[i]).join('/') || 'no set days'})`);
+      for (const d of (plan.days || [])) {
+        L.push(`  ${d.name}: ` + d.items.map(it =>
+          `${exName(it.exerciseId)} ${it.sets}×${it.repLo}-${it.repHi}`).join(', '));
+      }
+    }
+    const ws = workouts.sort((a, b) => b.ts - a.ts).slice(0, 15);
+    L.push('');
+    L.push(`SESSIONS (${workouts.length} total, latest ${ws.length}):`);
+    for (const w of ws) {
+      L.push(`${w.date} · ${w.name} · ${w.duration} min · ${fmtKg(w.volume)} kg volume` +
+        (w.feel ? ` · felt: ${w.feel}` : '') +
+        (w.prs && w.prs.length ? ` · ${w.prs.length} PR` : ''));
+      const sess = sessions.filter(s => s.date === w.date && s.planId === w.planId);
+      for (const s of sess) {
+        L.push(`  - ${exName(s.exerciseId)}: ` +
+          s.sets.map(x => x.weight ? `${fmtKg(x.weight)}×${x.reps}` : `${x.reps} reps`).join(', '));
+      }
+    }
+    // current strength numbers
+    const byEx = new Map();
+    for (const s of sessions) {
+      const arr = byEx.get(s.exerciseId) || [];
+      arr.push(s);
+      byEx.set(s.exerciseId, arr);
+    }
+    L.push('');
+    L.push('CURRENT NUMBERS (last working weight · best est. 1RM):');
+    for (const [id, arr] of byEx) {
+      arr.sort((a, b) => b.ts - a.ts);
+      const lastKg = Math.max(...arr[0].sets.map(x => x.weight || 0));
+      const best = Math.round(Math.max(...arr.flatMap(s2 => s2.sets.map(x => est1RM(x.weight || 0, x.reps)))));
+      if (lastKg > 0) L.push(`- ${exName(id)}: ${fmtKg(lastKg)} kg · est 1RM ${best} kg`);
+    }
+    L.push('');
+    L.push('Please review this training history and plan my next block accordingly (same weekly frequency unless you advise otherwise).');
+    const text = L.join('\n');
+    try {
+      if (navigator.share) await navigator.share({ title: 'Rackside training report', text });
+      else { await navigator.clipboard.writeText(text); alert('Report copied to clipboard — paste it to Claude.'); }
+    } catch { /* share sheet dismissed */ }
   }
 
   /* ---------------- backup / restore / reset ---------------- */
