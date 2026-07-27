@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v28';
+  const APP_VERSION = 'v29';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -304,7 +304,8 @@
       const cell = el('div', 'cell'
         + (ds === todayStr() ? ' today' : '')
         + (doneDates.has(ds) ? ' done' : '')
-        + (pref.includes(i) ? ' pref' : ''));
+        + (pref.includes(i) ? ' pref' : '')
+        + (pref.includes(i) && i < dow && !doneDates.has(ds) ? ' missed' : ''));
       cell.appendChild(el('span', null, ch));
       cell.appendChild(el('i'));
       strip.appendChild(cell);
@@ -352,11 +353,18 @@
       const lastDone = (plan.completed || []).filter(c => c.day === nextIdx && c.duration).pop();
       const prefD = plan.prefDays || [];
       const todayIdx = (now.getDay() + 6) % 7;
+      const doneThisWk = workouts.filter(x => sameWeek(x.date)).length;
+      const dueSlots = prefD.filter(x => x <= todayIdx).length;
       let planned = '';
-      if (prefD.length && !prefD.includes(todayIdx)) {
-        for (let k = 1; k <= 6; k++) {
-          const idx = (todayIdx + k) % 7;
-          if (prefD.includes(idx)) { planned = ' · planned ' + ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx]; break; }
+      if (prefD.length) {
+        if (doneThisWk < dueSlots) {
+          // a scheduled session was missed (or is today) — it rolls over daily
+          planned = ' · due today';
+        } else if (!prefD.includes(todayIdx)) {
+          for (let k = 1; k <= 6; k++) {
+            const idx = (todayIdx + k) % 7;
+            if (prefD.includes(idx)) { planned = ' · planned ' + ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx]; break; }
+          }
         }
       }
       hero.appendChild(heroTop('UP NEXT', `${day.items.length} exercises · ~${lastDone ? lastDone.duration : Math.round(totalSets * 2.5)} min${planned}`));
