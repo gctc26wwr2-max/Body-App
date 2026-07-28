@@ -259,12 +259,16 @@ body { font-size: 14px; }
   color: var(--t2);
 }
 .hold-btn {
-  min-width: 66px; height: 38px; border-radius: 10px; padding: 0 8px;
+  min-width: 56px; height: 38px; border-radius: 10px; padding: 0 6px;
   background: none; border: 1px solid var(--lime-border); color: var(--lime);
-  font-family: var(--cond); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums;
-  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  font-family: var(--cond); font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  white-space: nowrap;
 }
 .hold-btn.on { background: var(--lime); border-color: transparent; color: var(--canvas); }
+/* timed rows: kg column narrower, seconds column wider */
+.w-set.timed, .set-grid-head.timed { grid-template-columns: 20px 0.7fr 1.3fr 44px; }
+.w-set.timed .stepper .val { min-width: 26px; }
 .w-set .reps-val.pending { color: #7A7E84; }
 .w-set .reps-val.inrange { color: var(--lime); }
 .w-set .reps-val.below { color: var(--amber); }
