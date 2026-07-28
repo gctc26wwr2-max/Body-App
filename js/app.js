@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v39';
+  const APP_VERSION = 'v40';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -570,13 +570,13 @@
     }
 
     // column headers
-    const gh = el('div', 'set-grid-head');
+    const gh = el('div', 'set-grid-head' + (cur.timed ? ' timed' : ''));
     ['#', 'Kg', cur.timed ? 'Seconds' : 'Reps', 'Log'].forEach(t => gh.appendChild(el('span', null, t)));
     card.appendChild(gh);
 
     // set rows
     cur.sets.forEach((set, si) => {
-      const r = el('div', 'w-set' + (set.done ? ' logged' : ''));
+      const r = el('div', 'w-set' + (set.done ? ' logged' : '') + (cur.timed ? ' timed' : ''));
       r.appendChild(el('div', 'sn num', String(si + 1)));
       r.appendChild(stepper(set, 'kg', 2.5, () => { live.set(lw); renderWorkout(); }));
       if (cur.timed) {
