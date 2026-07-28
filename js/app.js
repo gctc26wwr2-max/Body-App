@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v35';
+  const APP_VERSION = 'v36';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1640,9 +1640,18 @@
     acts.appendChild(editBtn);
     const delBtn = el('button', 'btn-ghost', 'Delete');
     delBtn.onclick = async () => {
-      if (!confirm(`Delete "${ex.name}" and its history?`)) return;
+      const plansAll = await DB.all('plans');
+      const usedIn = plansAll.filter(p => (p.days || []).some(d => d.items.some(it => it.exerciseId === ex.id)));
+      const warn = usedIn.length
+        ? `\n\n⚠️ It is part of ${usedIn.map(p => `"${p.name}"`).join(', ')} — it will be removed from that plan too.`
+        : '';
+      if (!confirm(`Delete "${ex.name}" and its history?${warn}`)) return;
       for (const mid of (ex.mediaIds || [])) await DB.del('media', mid);
       for (const s of sessions) await DB.del('sessions', s.id);
+      for (const p of usedIn) {
+        for (const d of p.days) d.items = d.items.filter(it => it.exerciseId !== ex.id);
+        await DB.put('plans', p);
+      }
       await DB.del('exercises', ex.id);
       goBackFromDetail();
     };
