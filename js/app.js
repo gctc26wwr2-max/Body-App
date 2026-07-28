@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v38';
+  const APP_VERSION = 'v39';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -467,6 +467,7 @@
       exList.push({
         exerciseId: ex.id, name: ex.name,
         timed: /second/i.test(ex.notes || ''),   // hold/interval exercises log seconds
+        perSide: /side/i.test(ex.notes || ''),   // run the hold once per side
         repLo: lo, repHi: hi, rest: ex.rest || 120,
         sets: Array.from({ length: item.sets || 3 }, (_, si) => {
           const prev = lastSets ? lastSets[si] : null;
@@ -545,7 +546,8 @@
     row.appendChild(th);
     const col = el('div');
     col.appendChild(el('div', 'ex-name', cur.name));
-    col.appendChild(el('div', 'ex-meta', `Exercise ${lw.exIndex + 1} of ${lw.exercises.length} · ${cur.sets.length} × ${cur.repLo}-${cur.repHi}`));
+    col.appendChild(el('div', 'ex-meta', `Exercise ${lw.exIndex + 1} of ${lw.exercises.length} · ${cur.sets.length} × ${cur.repLo}-${cur.repHi}`
+      + (cur.timed ? (cur.perSide ? ' s / side' : ' s') : '')));
     const watch = el('div', 'ex-watch');
     watch.appendChild(svgIcon(PLAY, 10));
     watch.appendChild(document.createTextNode(' Watch the movement'));
@@ -682,9 +684,15 @@
     cancelHold();
     const lw0 = live.get();
     if (!lw0) return;
-    const secs = lw0.exercises[exIdx].sets[si].reps;
+    const exRef = lw0.exercises[exIdx];
+    const secs = exRef.sets[si].reps;
+    // two-sided holds run the timer once per side with a short switch break
+    const phases = exRef.perSide
+      ? [{ label: 'L', dur: secs }, { label: '⇆', dur: 5 }, { label: 'R', dur: secs }]
+      : [{ label: '', dur: secs }];
+    let phase = 0;
     holdIdx = si;
-    holdEndTs = Date.now() + secs * 1000;
+    holdEndTs = Date.now() + phases[0].dur * 1000;
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -695,13 +703,18 @@
       if (left > 0) {
         if (btn) {
           btn.classList.add('on');
-          btn.textContent = fmtClock(left);
+          btn.textContent = (phases[phase].label ? phases[phase].label + ' ' : '') + fmtClock(left);
         }
         return;
       }
-      cancelHold();
       beep();
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      if (phase < phases.length - 1) {
+        phase++;
+        holdEndTs = Date.now() + phases[phase].dur * 1000;
+        return;
+      }
+      cancelHold();
       const fresh = live.get();
       if (!fresh) return;
       const set = fresh.exercises[exIdx].sets[si];
