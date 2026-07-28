@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v34';
+  const APP_VERSION = 'v35';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -990,6 +990,29 @@
         r.appendChild(go);
         c.appendChild(r);
       });
+      if (window.STARTER_BLOCK && plan.name === window.STARTER_BLOCK.name) {
+        const rst = el('button', 'btn-ghost', 'Restore original days');
+        rst.style.cssText = 'margin-top:12px;width:100%;height:42px;color:var(--lime);border-color:var(--lime-border)';
+        rst.onclick = async () => {
+          if (!confirm('Restore this block’s days and exercises to the original plan? Your history and week progress are kept.')) return;
+          const sb = window.STARTER_BLOCK;
+          const days = [];
+          for (const day of sb.days) {
+            const items = [];
+            for (const it of day.items) {
+              const libItem = (window.EXERCISE_LIBRARY || []).find(l => l.name === it.ex);
+              const ex = await ensureExercise(libItem || { name: it.ex, group: 'Other', notes: '' });
+              items.push({ exerciseId: ex.id, sets: it.sets, repLo: it.repLo, repHi: it.repHi, kg: 0 });
+            }
+            days.push({ name: day.name, items });
+          }
+          plan.days = days;
+          await DB.put('plans', plan);
+          alert('Plan restored: ' + days.map(d => d.name).join(', ') + '.');
+          renderTab();
+        };
+        c.appendChild(rst);
+      }
       const delB = el('button', 'btn-ghost', 'Delete block');
       delB.style.cssText = 'margin-top:12px;width:100%;height:42px';
       delB.onclick = async () => {
