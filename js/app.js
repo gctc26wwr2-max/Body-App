@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v36';
+  const APP_VERSION = 'v37';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1947,6 +1947,46 @@
       const item = (window.EXERCISE_LIBRARY || []).find(
         i => i.demo && i.name.toLowerCase() === ex.name.toLowerCase());
       if (item) { ex.demo = item.demo; await DB.put('exercises', ex); }
+    }
+
+    // heal orphaned "(deleted)" slots in the starter block: re-create the
+    // template exercise that's missing from that day and re-link the slot
+    const sb = window.STARTER_BLOCK;
+    if (sb) {
+      const exs = await DB.all('exercises');
+      const exists = id => exs.some(e => e.id === id);
+      for (const p of allPlans) {
+        if (p.name !== sb.name) continue;
+        let dirty = false;
+        for (const d of (p.days || [])) {
+          const tmplDay = sb.days.find(td => td.name === d.name);
+          if (!tmplDay || !d.items.some(it => !exists(it.exerciseId))) continue;
+          const presentNames = new Set(d.items.filter(it => exists(it.exerciseId))
+            .map(it => exs.find(e => e.id === it.exerciseId).name.toLowerCase()));
+          const missing = tmplDay.items.filter(ti => !presentNames.has(ti.ex.toLowerCase()));
+          const healed = [];
+          for (const it of d.items) {
+            if (exists(it.exerciseId)) { healed.push(it); continue; }
+            const ti = missing.shift();
+            dirty = true;
+            if (!ti) continue;   // nothing sensible to re-link — drop the dead slot
+            let ex = exs.find(e => e.name.toLowerCase() === ti.ex.toLowerCase());
+            if (!ex) {
+              const libItem = (window.EXERCISE_LIBRARY || []).find(l => l.name === ti.ex);
+              ex = {
+                id: DB.uid(), createdAt: Date.now(), mediaIds: [],
+                name: ti.ex, group: (libItem || {}).group || 'Other',
+                notes: (libItem || {}).notes || '', demo: (libItem || {}).demo || null
+              };
+              await DB.put('exercises', ex);
+              exs.push(ex);
+            }
+            healed.push({ exerciseId: ex.id, sets: ti.sets, repLo: ti.repLo, repHi: ti.repHi, kg: it.kg || 0 });
+          }
+          d.items = healed;
+        }
+        if (dirty) await DB.put('plans', p);
+      }
     }
   }
 
