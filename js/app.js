@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v41';
+  const APP_VERSION = 'v42';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -890,7 +890,18 @@
     const loggedEx = lw.exercises.filter(e => e.sets.some(s => s.done));
     if (!loggedEx.length) {
       if (!confirm('No sets logged. Finish anyway?')) return;
-    } else if (!confirm('Are you finished? The session will be saved.')) return;
+    } else {
+      const missed = lw.exercises.filter(e => !e.sets.some(s => s.done));
+      const partial = lw.exercises.filter(e => e.sets.some(s => s.done) && !e.sets.every(s => s.done));
+      let msg = 'Are you finished? The session will be saved.';
+      if (missed.length || partial.length) {
+        const parts = [];
+        if (missed.length) parts.push('⚠️ Not logged: ' + missed.map(e => e.name).join(', '));
+        if (partial.length) parts.push('⚠️ Sets left open: ' + partial.map(e => e.name).join(', '));
+        msg = parts.join('\n') + '\n\nFinish anyway? These will not be saved.';
+      }
+      if (!confirm(msg)) return;
+    }
 
     const sessionsAll = await DB.all('sessions');
     const mins = Math.max(1, Math.round((Date.now() - lw.startedAt) / 60000));
