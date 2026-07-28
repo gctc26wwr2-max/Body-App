@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v40';
+  const APP_VERSION = 'v41';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -888,7 +888,9 @@
     const lw = live.get();
     if (!lw) return;
     const loggedEx = lw.exercises.filter(e => e.sets.some(s => s.done));
-    if (!loggedEx.length && !confirm('No sets logged. Finish anyway?')) return;
+    if (!loggedEx.length) {
+      if (!confirm('No sets logged. Finish anyway?')) return;
+    } else if (!confirm('Are you finished? The session will be saved.')) return;
 
     const sessionsAll = await DB.all('sessions');
     const mins = Math.max(1, Math.round((Date.now() - lw.startedAt) / 60000));
