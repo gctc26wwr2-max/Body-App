@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v37';
+  const APP_VERSION = 'v38';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -466,6 +466,7 @@
       const lastMax = lastSets ? Math.max(...lastSets.map(s => s.weight || 0)) : 0;
       exList.push({
         exerciseId: ex.id, name: ex.name,
+        timed: /second/i.test(ex.notes || ''),   // hold/interval exercises log seconds
         repLo: lo, repHi: hi, rest: ex.rest || 120,
         sets: Array.from({ length: item.sets || 3 }, (_, si) => {
           const prev = lastSets ? lastSets[si] : null;
@@ -568,7 +569,7 @@
 
     // column headers
     const gh = el('div', 'set-grid-head');
-    ['#', 'Kg', 'Reps', 'Log'].forEach(t => gh.appendChild(el('span', null, t)));
+    ['#', 'Kg', cur.timed ? 'Seconds' : 'Reps', 'Log'].forEach(t => gh.appendChild(el('span', null, t)));
     card.appendChild(gh);
 
     // set rows
@@ -576,9 +577,24 @@
       const r = el('div', 'w-set' + (set.done ? ' logged' : ''));
       r.appendChild(el('div', 'sn num', String(si + 1)));
       r.appendChild(stepper(set, 'kg', 2.5, () => { live.set(lw); renderWorkout(); }));
-      const repsStep = stepper(set, 'reps', 1, () => { live.set(lw); renderWorkout(); });
-      repsStep.querySelector('.val').classList.add('reps-val', repTone(set));
-      r.appendChild(repsStep);
+      if (cur.timed) {
+        const wrap = el('div', 'stepper');
+        const minus = el('button', null, '−');
+        minus.onclick = () => { set.reps = Math.max(5, set.reps - 5); live.set(lw); renderWorkout(); };
+        const mid = el('button', 'hold-btn num' + (holdIdx === si && !$('#view-workout').hidden ? ' on' : ''));
+        mid.id = 'hold-' + si;
+        mid.appendChild(svgIcon(PLAY, 9));
+        mid.appendChild(document.createTextNode(' ' + fmtClock(set.reps)));
+        mid.onclick = () => toggleHold(lw.exIndex, si);
+        const plus = el('button', null, '+');
+        plus.onclick = () => { set.reps += 5; live.set(lw); renderWorkout(); };
+        wrap.append(minus, mid, plus);
+        r.appendChild(wrap);
+      } else {
+        const repsStep = stepper(set, 'reps', 1, () => { live.set(lw); renderWorkout(); });
+        repsStep.querySelector('.val').classList.add('reps-val', repTone(set));
+        r.appendChild(repsStep);
+      }
       const log = el('button', 'log-btn', set.done ? '✓' : '○');
       log.onclick = () => {
         set.done = !set.done;
@@ -601,26 +617,37 @@
       const s = el('div', 'suggest up');
       const t = el('div');
       t.appendChild(el('div', 's-title', `Top of range · ${sug.last.reps}/${cur.repLo}-${cur.repHi}`));
-      t.appendChild(el('div', 's-body', `Go up to ${fmtKg(sug.nextKg)} kg on your remaining sets.`));
+      t.appendChild(el('div', 's-body', cur.timed
+        ? 'Full hold banked — add 5 s to your remaining sets.'
+        : `Go up to ${fmtKg(sug.nextKg)} kg on your remaining sets.`));
       s.appendChild(t);
       if (cur.sets.some(x => !x.done)) {
-        const act = el('button', 's-act num', `+2.5 kg`);
-        act.onclick = () => { applySuggestion(cur.sets, sug.nextKg); live.set(lw); renderWorkout(); };
+        const act = el('button', 's-act num', cur.timed ? '+5 s' : '+2.5 kg');
+        act.onclick = () => {
+          if (cur.timed) cur.sets.forEach(x => { if (!x.done) x.reps += 5; });
+          else applySuggestion(cur.sets, sug.nextKg);
+          live.set(lw);
+          renderWorkout();
+        };
         s.appendChild(act);
       }
       card.appendChild(s);
     } else if (sug.kind === 'hold') {
       const s = el('div', 'suggest hold');
       const t = el('div');
-      t.appendChild(el('div', 's-title', `Hold weight · ${sug.last.reps}/${cur.repLo}-${cur.repHi}`));
-      t.appendChild(el('div', 's-body', `Stay at ${fmtKg(sug.kg)} kg until you reach ${cur.repHi} reps.`));
+      t.appendChild(el('div', 's-title', `Hold steady · ${sug.last.reps}/${cur.repLo}-${cur.repHi}`));
+      t.appendChild(el('div', 's-body', cur.timed
+        ? `Build up to ${cur.repHi} s holds before adding time.`
+        : `Stay at ${fmtKg(sug.kg)} kg until you reach ${cur.repHi} reps.`));
       s.appendChild(t);
       card.appendChild(s);
     } else {
       const s = el('div', 'suggest idle');
       const t = el('div');
       t.appendChild(el('div', 's-title', 'Progression'));
-      t.appendChild(el('div', 's-body', `Hit ${cur.repHi} reps on a set to earn +2.5 kg.`));
+      t.appendChild(el('div', 's-body', cur.timed
+        ? `Tap ▸ on a set to run the hold timer — reach ${cur.repHi} s to progress.`
+        : `Hit ${cur.repHi} reps on a set to earn +2.5 kg.`));
       s.appendChild(t);
       card.appendChild(s);
     }
@@ -640,6 +667,55 @@
     // ---- rest timer card ----
     root.appendChild(restCard(lw, cur));
 
+  }
+
+  /* ---- live hold timer for timed exercises (plank etc.) ---- */
+  let holdInt = null, holdIdx = -1, holdEndTs = 0;
+
+  function cancelHold() {
+    clearInterval(holdInt);
+    holdInt = null;
+    holdIdx = -1;
+  }
+  function toggleHold(exIdx, si) {
+    if (holdInt && holdIdx === si) { cancelHold(); renderWorkout(); return; }
+    cancelHold();
+    const lw0 = live.get();
+    if (!lw0) return;
+    const secs = lw0.exercises[exIdx].sets[si].reps;
+    holdIdx = si;
+    holdEndTs = Date.now() + secs * 1000;
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch { /* no audio */ }
+    holdInt = setInterval(() => {
+      const left = Math.ceil((holdEndTs - Date.now()) / 1000);
+      const btn = $('#hold-' + si);
+      if (left > 0) {
+        if (btn) {
+          btn.classList.add('on');
+          btn.textContent = fmtClock(left);
+        }
+        return;
+      }
+      cancelHold();
+      beep();
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      const fresh = live.get();
+      if (!fresh) return;
+      const set = fresh.exercises[exIdx].sets[si];
+      set.done = true;
+      set.doneAt = Date.now();
+      const curEx = fresh.exercises[exIdx];
+      if (curEx.sets.every(s => s.done) && exIdx < fresh.exercises.length - 1 && fresh.exIndex === exIdx) {
+        fresh.exIndex++;
+      }
+      live.set(fresh);
+      startRest(curEx.rest);
+      if (!$('#view-workout').hidden) renderWorkout();
+    }, 200);
+    renderWorkout();
   }
 
   function stepper(set, key, step, onChange) {
@@ -820,7 +896,8 @@
       }
       await DB.put('sessions', {
         id: DB.uid(), exerciseId: e.exerciseId, date: todayStr(), ts: Date.now(),
-        planId: lw.planId, sets: done.map(s => ({ reps: s.reps, weight: s.kg }))
+        planId: lw.planId, timed: !!e.timed,
+        sets: done.map(s => ({ reps: s.reps, weight: s.kg }))
       });
     }
 
