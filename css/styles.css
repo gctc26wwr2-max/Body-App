@@ -248,15 +248,20 @@ body { font-size: 14px; }
 .w-set.logged { background: rgba(200,255,46,.07); border-color: rgba(200,255,46,.3); }
 .w-set .sn { font-family: var(--cond); font-size: 17px; font-weight: 700; color: var(--t6); text-align: center; }
 .w-set.logged .sn { color: var(--lime); }
-.stepper { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.stepper { display: flex; align-items: center; justify-content: center; gap: 3px; }
 .stepper button {
-  width: 26px; height: 38px; border-radius: 10px; background: var(--ctrl);
-  border: none; color: var(--t2); font-size: 16px; font-weight: 600;
+  width: 36px; height: 44px; border-radius: 11px; background: var(--ctrl);
+  border: none; color: var(--t2); font-size: 18px; font-weight: 600; flex: 0 0 auto;
 }
 .stepper .val {
-  min-width: 44px; text-align: center;
+  min-width: 40px; text-align: center; cursor: pointer;
   font-family: var(--cond); font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums;
   color: var(--t2);
+}
+.val-edit {
+  width: 54px; height: 42px; text-align: center;
+  background: var(--ctrl-alt); border: 1px solid var(--lime-border); border-radius: 9px;
+  color: var(--t1); font-family: var(--cond); font-size: 20px; font-weight: 700;
 }
 .hold-btn {
   min-width: 56px; height: 38px; border-radius: 10px; padding: 0 6px;

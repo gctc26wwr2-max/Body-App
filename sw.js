@@ -1,6 +1,6 @@
 /* Service worker: caches the app shell so it opens instantly and works offline.
    User data (exercises, media, sessions, plans) lives in IndexedDB, not here. */
-const CACHE = 'body-app-v42';
+const CACHE = 'body-app-v43';
 const ASSETS = [
   './',
   './index.html',

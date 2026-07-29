@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v42';
+  const APP_VERSION = 'v43';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -736,6 +736,26 @@
     const minus = el('button', null, '−');
     minus.onclick = () => { set[key] = Math.max(0, +(set[key] - step).toFixed(2)); onChange(); };
     const val = el('div', 'val num', String(set[key]));
+    // tap the number to type it directly (number pad)
+    val.onclick = () => {
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.min = '0';
+      inp.inputMode = key === 'kg' ? 'decimal' : 'numeric';
+      inp.step = key === 'kg' ? '0.5' : '1';
+      inp.value = set[key];
+      inp.className = 'val-edit num';
+      val.replaceWith(inp);
+      inp.focus();
+      inp.select();
+      const commit = () => {
+        const v = Math.max(0, Number(inp.value) || 0);
+        set[key] = key === 'kg' ? +v.toFixed(2) : Math.round(v);
+        onChange();
+      };
+      inp.onblur = commit;
+      inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
+    };
     const plus = el('button', null, '+');
     plus.onclick = () => { set[key] = +(set[key] + step).toFixed(2); onChange(); };
     wrap.append(minus, val, plus);
