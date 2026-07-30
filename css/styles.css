@@ -452,6 +452,13 @@ body { font-size: 14px; }
   padding: 16px; font-size: 13px; line-height: 1.45; color: var(--t2); text-wrap: pretty;
 }
 .coach-note b { color: var(--lime); font-weight: 700; }
+.bw-input { display: flex; gap: 8px; margin-top: 12px; }
+.bw-input input {
+  flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--hair-8);
+  background: var(--sunken); color: var(--t1); font-size: 16px;
+  font-family: var(--cond); font-weight: 700;
+}
+.bw-input .btn-lime { flex: 0 0 auto; height: 48px; }
 
 /* ============ LIBRARY ============ */
 .search-input {
