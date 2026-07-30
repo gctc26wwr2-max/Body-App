@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v43';
+  const APP_VERSION = 'v44';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1254,6 +1254,68 @@
     grid.appendChild(prC);
     root.appendChild(grid);
 
+    // body weight tracker
+    root.appendChild(el('div', 'month-label', 'Body weight'));
+    const bw = (await DB.all('bodyweight')).sort((a, b) => a.ts - b.ts);
+    const bwCard = el('div', 'card');
+    const lastBw = bw[bw.length - 1];
+    bwCard.appendChild(el('div', 'rm-label', lastBw ? 'Logged ' + lastBw.date : 'Not logged yet'));
+    const bwRow = el('div', 'rm-row');
+    const bwVal = el('div', 'rm-val num', (lastBw ? fmtKg(lastBw.kg) : '—') + ' ');
+    bwVal.appendChild(el('small', null, 'kg'));
+    bwRow.appendChild(bwVal);
+    if (lastBw && bw.length > 1) {
+      const past = [...bw].reverse().find(x => lastBw.ts - x.ts >= 25 * 86400000) || bw[0];
+      const d = +(lastBw.kg - past.kg).toFixed(1);
+      if (d) bwRow.appendChild(el('div', 'rm-delta num', (d > 0 ? '+' : '') + d + ' kg'));
+    }
+    bwCard.appendChild(bwRow);
+    if (bw.length > 1) {
+      const weeks12 = Array.from({ length: 12 }, () => ({ sum: 0, n: 0 }));
+      for (const e of bw) {
+        const wAgo = Math.floor((Date.now() - e.ts) / (7 * 86400000));
+        if (wAgo >= 0 && wAgo < 12) { const i = 11 - wAgo; weeks12[i].sum += e.kg; weeks12[i].n++; }
+      }
+      const vals = weeks12.map(x => x.n ? x.sum / x.n : 0);
+      const present = vals.filter(x => x > 0);
+      if (present.length > 1) {
+        const lo = Math.min(...present), hi = Math.max(...present);
+        const chart = el('div', 'rm-chart');
+        chart.style.height = '72px';
+        vals.forEach((val, i) => {
+          const bar = el('span');
+          bar.style.height = val ? Math.round(((val - lo) / Math.max(hi - lo, 0.5)) * 75 + 25) + '%' : '3px';
+          bar.style.background = i === 11 ? 'var(--lime)' : '#3A4029';
+          chart.appendChild(bar);
+        });
+        bwCard.appendChild(chart);
+        const axis = el('div', 'rm-axis');
+        ['-12w', '-8w', '-4w', 'Now'].forEach(t => axis.appendChild(el('span', null, t)));
+        bwCard.appendChild(axis);
+      }
+    }
+    const bwIn = el('div', 'bw-input');
+    const bwInp = document.createElement('input');
+    bwInp.type = 'number';
+    bwInp.min = '20';
+    bwInp.step = '0.1';
+    bwInp.inputMode = 'decimal';
+    bwInp.placeholder = 'kg';
+    if (lastBw) bwInp.value = lastBw.kg;
+    const bwLog = el('button', 'btn-lime', 'Log today');
+    bwLog.onclick = async () => {
+      const kg = Number(bwInp.value);
+      if (!(kg > 20)) { alert('Enter your weight in kg.'); return; }
+      const today = bw.find(x => x.date === todayStr());
+      await DB.put('bodyweight', today
+        ? { ...today, kg, ts: Date.now() }
+        : { id: DB.uid(), date: todayStr(), kg, ts: Date.now() });
+      renderProfile();
+    };
+    bwIn.append(bwInp, bwLog);
+    bwCard.appendChild(bwIn);
+    root.appendChild(bwCard);
+
     // preferred training days
     const plan = activePlan();
     if (plan) {
@@ -1375,6 +1437,14 @@
       const best = Math.round(Math.max(...arr.flatMap(s2 => s2.sets.map(x => est1RM(x.weight || 0, x.reps)))));
       if (lastKg > 0) L.push(`- ${exName(id)}: ${fmtKg(lastKg)} kg · est 1RM ${best} kg`);
     }
+    const bws = (await DB.all('bodyweight')).sort((a, b) => a.ts - b.ts);
+    if (bws.length) {
+      const lastB = bws[bws.length - 1];
+      const pastB = [...bws].reverse().find(x => lastB.ts - x.ts >= 25 * 86400000);
+      L.push('');
+      L.push(`BODY WEIGHT: ${fmtKg(lastB.kg)} kg (${lastB.date})` +
+        (pastB ? ` · ${(lastB.kg - pastB.kg >= 0 ? '+' : '')}${(lastB.kg - pastB.kg).toFixed(1)} kg over ~30 days` : ''));
+    }
     L.push('');
     L.push('Please review this training history and plan my next block accordingly (same weekly frequency unless you advise otherwise).');
     const text = L.join('\n');
@@ -1386,12 +1456,12 @@
 
   /* ---------------- backup / restore / reset ---------------- */
   async function backupData() {
-    const [exs, pls, sess, wks] = await Promise.all([
-      DB.all('exercises'), DB.all('plans'), DB.all('sessions'), DB.all('workouts')
+    const [exs, pls, sess, wks, bws] = await Promise.all([
+      DB.all('exercises'), DB.all('plans'), DB.all('sessions'), DB.all('workouts'), DB.all('bodyweight')
     ]);
     const payload = {
-      app: 'rackside', version: 2, exportedAt: new Date().toISOString(),
-      exercises: exs, plans: pls, sessions: sess, workouts: wks
+      app: 'rackside', version: 3, exportedAt: new Date().toISOString(),
+      exercises: exs, plans: pls, sessions: sess, workouts: wks, bodyweight: bws
     };
     const file = new File([JSON.stringify(payload)], `rackside-backup-${todayStr()}.json`, { type: 'application/json' });
     try {
@@ -1414,7 +1484,7 @@
     if (!data || data.app !== 'rackside') { alert('That file is not a Rackside backup.'); return; }
     if (!confirm('Restore this backup? Records with the same id are overwritten; nothing else is deleted.')) return;
     let n = 0;
-    for (const [store, key] of [['exercises', 'exercises'], ['plans', 'plans'], ['sessions', 'sessions'], ['workouts', 'workouts']]) {
+    for (const [store, key] of [['exercises', 'exercises'], ['plans', 'plans'], ['sessions', 'sessions'], ['workouts', 'workouts'], ['bodyweight', 'bodyweight']]) {
       for (const rec of (data[key] || [])) {
         if (rec && rec.id) { await DB.put(store, rec); n++; }
       }
