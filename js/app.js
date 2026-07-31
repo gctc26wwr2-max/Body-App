@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v44';
+  const APP_VERSION = 'v45';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1270,28 +1270,14 @@
       if (d) bwRow.appendChild(el('div', 'rm-delta num', (d > 0 ? '+' : '') + d + ' kg'));
     }
     bwCard.appendChild(bwRow);
-    if (bw.length > 1) {
-      const weeks12 = Array.from({ length: 12 }, () => ({ sum: 0, n: 0 }));
-      for (const e of bw) {
-        const wAgo = Math.floor((Date.now() - e.ts) / (7 * 86400000));
-        if (wAgo >= 0 && wAgo < 12) { const i = 11 - wAgo; weeks12[i].sum += e.kg; weeks12[i].n++; }
-      }
-      const vals = weeks12.map(x => x.n ? x.sum / x.n : 0);
-      const present = vals.filter(x => x > 0);
-      if (present.length > 1) {
-        const lo = Math.min(...present), hi = Math.max(...present);
-        const chart = el('div', 'rm-chart');
-        chart.style.height = '72px';
-        vals.forEach((val, i) => {
-          const bar = el('span');
-          bar.style.height = val ? Math.round(((val - lo) / Math.max(hi - lo, 0.5)) * 75 + 25) + '%' : '3px';
-          bar.style.background = i === 11 ? 'var(--lime)' : '#3A4029';
-          chart.appendChild(bar);
-        });
-        bwCard.appendChild(chart);
-        const axis = el('div', 'rm-axis');
-        ['-12w', '-8w', '-4w', 'Now'].forEach(t => axis.appendChild(el('span', null, t)));
-        bwCard.appendChild(axis);
+    // line graph of the last ~90 days (all entries if fewer)
+    {
+      let pts = bw.filter(e => Date.now() - e.ts < 90 * 86400000);
+      if (pts.length < 2) pts = bw;
+      if (pts.length >= 2) {
+        const wrap = el('div', 'bw-graph');
+        wrap.innerHTML = bwGraphSVG(pts);
+        bwCard.appendChild(wrap);
       }
     }
     const bwIn = el('div', 'bw-input');
@@ -1388,6 +1374,36 @@
     about.innerHTML = '<b>Rackside ' + APP_VERSION + ' ·</b> Local-first training app. Everything is stored on this iPhone — no account, no cloud, works offline in the gym. '
       + (standalone ? 'Running as an installed app.' : 'Running in the browser — install via Share → Add to Home Screen.');
     root.appendChild(about);
+  }
+
+  /* ---------------- body weight line graph (inline SVG) ---------------- */
+  function bwGraphSVG(entries) {
+    const W = 320, H = 116, padL = 34, padR = 12, padT = 10, padB = 20;
+    const x0 = entries[0].ts, x1 = entries[entries.length - 1].ts;
+    let lo = Math.min(...entries.map(e => e.kg));
+    let hi = Math.max(...entries.map(e => e.kg));
+    if (hi - lo < 1) { const m = (hi + lo) / 2; lo = m - 0.6; hi = m + 0.6; }
+    const X = t => padL + (t - x0) / Math.max(x1 - x0, 1) * (W - padL - padR);
+    const Y = v => padT + (hi - v) / (hi - lo) * (H - padT - padB);
+    const P = entries.map(e => [X(e.ts), Y(e.kg)]);
+    const line = P.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+    const area = line + ` L${P[P.length - 1][0].toFixed(1)} ${(H - padB).toFixed(1)} L${P[0][0].toFixed(1)} ${(H - padB).toFixed(1)} Z`;
+    const fmtD = ts => new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const grid = [hi, (hi + lo) / 2, lo].map(v =>
+      `<line x1="${padL}" y1="${Y(v).toFixed(1)}" x2="${W - padR}" y2="${Y(v).toFixed(1)}" stroke="rgba(255,255,255,.06)" stroke-width="1"/>` +
+      `<text x="${padL - 5}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end" fill="#6E7278" font-size="9" font-family="Barlow, sans-serif">${(Math.round(v * 10) / 10)}</text>`
+    ).join('');
+    const dots = P.map((p, i) =>
+      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i === P.length - 1 ? 4 : 3}" fill="#C8FF2E" stroke="#14161A" stroke-width="2"/>`
+    ).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;margin-top:12px" role="img" aria-label="Body weight over time">
+      ${grid}
+      <path d="${area}" fill="rgba(200,255,46,.10)"/>
+      <path d="${line}" fill="none" stroke="#C8FF2E" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dots}
+      <text x="${padL}" y="${H - 6}" fill="#6E7278" font-size="9" font-family="Barlow, sans-serif">${fmtD(x0)}</text>
+      <text x="${W - padR}" y="${H - 6}" text-anchor="end" fill="#6E7278" font-size="9" font-family="Barlow, sans-serif">${fmtD(x1)}</text>
+    </svg>`;
   }
 
   /* ---------------- training report (to hand to Claude) ---------------- */
