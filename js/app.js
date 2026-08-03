@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v45';
+  const APP_VERSION = 'v46';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -578,7 +578,14 @@
     cur.sets.forEach((set, si) => {
       const r = el('div', 'w-set' + (set.done ? ' logged' : '') + (cur.timed ? ' timed' : ''));
       r.appendChild(el('div', 'sn num', String(si + 1)));
-      r.appendChild(stepper(set, 'kg', 2.5, () => { live.set(lw); renderWorkout(); }));
+      r.appendChild(stepper(set, 'kg', 2.5, () => {
+        // the new weight carries forward to the remaining unlogged sets
+        for (let j = si + 1; j < cur.sets.length; j++) {
+          if (!cur.sets[j].done) cur.sets[j].kg = set.kg;
+        }
+        live.set(lw);
+        renderWorkout();
+      }));
       if (cur.timed) {
         const wrap = el('div', 'stepper');
         const minus = el('button', null, '−');
