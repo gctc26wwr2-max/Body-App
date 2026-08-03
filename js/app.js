@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v50';
+  const APP_VERSION = 'v51';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -534,7 +534,7 @@
       const allDone = e2.sets.length > 0 && e2.sets.every(x => x.done);
       const someDone = !allDone && e2.sets.some(x => x.done);
       const s = el('span', (allDone ? 'done' : (someDone ? 'part' : '')) + (i === lw.exIndex ? ' cur' : ''));
-      s.onclick = () => { lw.exIndex = i; live.set(lw); renderWorkout(); };
+      s.onclick = () => { lw.exIndex = i; lw.advanceAfterRest = false; live.set(lw); renderWorkout(); };
       prog.appendChild(s);
     });
     root.appendChild(prog);
@@ -649,10 +649,8 @@
       log.onclick = () => {
         set.done = !set.done;
         if (set.done) set.doneAt = Date.now();
-        // last set of this exercise banked -> move on to the next one
-        if (set.done && cur.sets.every(s => s.done) && lw.exIndex < lw.exercises.length - 1) {
-          lw.exIndex++;
-        }
+        // last set banked -> advance AFTER the rest finishes, not abruptly now
+        lw.advanceAfterRest = set.done && cur.sets.every(s => s.done) && lw.exIndex < lw.exercises.length - 1;
         live.set(lw);
         if (set.done) startRest(cur.rest);   // after save — startRest re-reads state
         renderWorkout();
@@ -769,9 +767,7 @@
       set.done = true;
       set.doneAt = Date.now();
       const curEx = fresh.exercises[exIdx];
-      if (curEx.sets.every(s => s.done) && exIdx < fresh.exercises.length - 1 && fresh.exIndex === exIdx) {
-        fresh.exIndex++;
-      }
+      fresh.advanceAfterRest = curEx.sets.every(s => s.done) && exIdx < fresh.exercises.length - 1 && fresh.exIndex === exIdx;
       live.set(fresh);
       startRest(curEx.rest);
       if (!$('#view-workout').hidden) renderWorkout();
@@ -844,7 +840,14 @@
   }
   function stopRest() {
     const lw = live.get();
-    if (lw) { lw.restEndsAt = null; live.set(lw); }
+    if (lw) {
+      if (lw.restEndsAt && lw.advanceAfterRest) {
+        lw.advanceAfterRest = false;
+        if (lw.exIndex < lw.exercises.length - 1) lw.exIndex++;
+      }
+      lw.restEndsAt = null;
+      live.set(lw);
+    }
     clearInterval(restInt);
     restInt = null;
     updatePill();
@@ -860,6 +863,10 @@
     const left = Math.ceil((lw.restEndsAt - Date.now()) / 1000);
     if (left <= 0) {
       lw.restEndsAt = null;
+      if (lw.advanceAfterRest) {
+        lw.advanceAfterRest = false;
+        if (lw.exIndex < lw.exercises.length - 1) lw.exIndex++;
+      }
       live.set(lw);
       clearInterval(restInt); restInt = null;
       beep();
@@ -896,7 +903,9 @@
     const c = el('div', 'rest-card');
     const top = el('div', 'rest-top');
     const resting = !!lw.restEndsAt;
-    top.appendChild(el('div', 'rest-state' + (resting ? ' on' : ''), resting ? 'Resting' : 'Rest timer · ready'));
+    const nextEx = lw.advanceAfterRest && lw.exercises[lw.exIndex + 1];
+    top.appendChild(el('div', 'rest-state' + (resting ? ' on' : ''),
+      resting ? (nextEx ? 'Resting · next: ' + nextEx.name : 'Resting') : 'Rest timer · ready'));
     const edit = el('button', 'rest-edit', lw.pickerOpen ? 'Close' : 'Edit');
     edit.onclick = () => { lw.pickerOpen = !lw.pickerOpen; live.set(lw); renderWorkout(); };
     top.appendChild(edit);
