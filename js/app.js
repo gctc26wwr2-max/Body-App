@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v49';
+  const APP_VERSION = 'v50';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -565,11 +565,39 @@
       if (plates.length) {
         const ps = el('div', 'plate-strip');
         ps.appendChild(el('span', 'bar', 'BAR'));
-        ps.appendChild(el('span', 'plates num', '20 + ' + plates.join(' + ')));
+        const pSpan = el('span', 'plates num', '20 + ' + plates.join(' + '));
+        pSpan.id = 'plate-live';
+        ps.appendChild(pSpan);
         ps.appendChild(el('span', 'side', 'per side'));
         card.appendChild(ps);
       }
     }
+
+    // in-place refresh for value edits — avoids full re-render flicker
+    const updateVals = () => {
+      cur.sets.forEach((s, i) => {
+        const kv = $('#val-kg-' + i);
+        if (kv) kv.textContent = String(s.kg);
+        const rv = $('#val-reps-' + i);
+        if (rv) {
+          rv.textContent = String(s.reps);
+          rv.classList.remove('pending', 'inrange', 'below');
+          rv.classList.add(repTone(s));
+        }
+        const hb = $('#hold-' + i);
+        if (hb && !(holdInt && holdIdx === i)) {
+          hb.textContent = '';
+          hb.appendChild(svgIcon(PLAY, 9));
+          hb.appendChild(document.createTextNode(' ' + fmtClock(s.reps)));
+        }
+      });
+      const ps = $('#plate-live');
+      if (ps) {
+        const fp = cur.sets.find(s => !s.done) || cur.sets[cur.sets.length - 1];
+        const plates = plateMath(fp.kg);
+        ps.textContent = plates.length ? '20 + ' + plates.join(' + ') : 'bar only';
+      }
+    };
 
     // column headers
     const gh = el('div', 'set-grid-head' + (cur.timed ? ' timed' : ''));
@@ -582,30 +610,39 @@
       const r = el('div', 'w-set' + (set.done ? ' logged' : '') + (cur.timed ? ' timed' : '')
         + (!set.done && firstPending >= 0 && si > firstPending ? ' upcoming' : ''));
       r.appendChild(el('div', 'sn num', String(si + 1)));
-      r.appendChild(stepper(set, 'kg', 2.5, () => {
+      const kgStep = stepper(set, 'kg', 2.5, () => {
         // the new weight carries forward to the remaining unlogged sets
         for (let j = si + 1; j < cur.sets.length; j++) {
           if (!cur.sets[j].done) cur.sets[j].kg = set.kg;
         }
         live.set(lw);
-        renderWorkout();
-      }));
+        if (set.done) { renderWorkout(); return; }   // edits to logged sets refresh the suggestion
+        updateVals();
+      });
+      kgStep.querySelector('.val').id = 'val-kg-' + si;
+      r.appendChild(kgStep);
       if (cur.timed) {
         const wrap = el('div', 'stepper');
         const minus = el('button', null, '−');
-        minus.onclick = () => { set.reps = Math.max(5, set.reps - 5); live.set(lw); renderWorkout(); };
+        minus.onclick = () => { set.reps = Math.max(5, set.reps - 5); live.set(lw); updateVals(); };
         const mid = el('button', 'hold-btn num' + (holdIdx === si && !$('#view-workout').hidden ? ' on' : ''));
         mid.id = 'hold-' + si;
         mid.appendChild(svgIcon(PLAY, 9));
         mid.appendChild(document.createTextNode(' ' + fmtClock(set.reps)));
         mid.onclick = () => toggleHold(lw.exIndex, si);
         const plus = el('button', null, '+');
-        plus.onclick = () => { set.reps += 5; live.set(lw); renderWorkout(); };
+        plus.onclick = () => { set.reps += 5; live.set(lw); updateVals(); };
         wrap.append(minus, mid, plus);
         r.appendChild(wrap);
       } else {
-        const repsStep = stepper(set, 'reps', 1, () => { live.set(lw); renderWorkout(); });
-        repsStep.querySelector('.val').classList.add('reps-val', repTone(set));
+        const repsStep = stepper(set, 'reps', 1, () => {
+          live.set(lw);
+          if (set.done) { renderWorkout(); return; }
+          updateVals();
+        });
+        const rv = repsStep.querySelector('.val');
+        rv.id = 'val-reps-' + si;
+        rv.classList.add('reps-val', repTone(set));
         r.appendChild(repsStep);
       }
       const log = el('button', 'log-btn', set.done ? '✓' : '○');
@@ -745,7 +782,7 @@
   function stepper(set, key, step, onChange) {
     const wrap = el('div', 'stepper');
     const minus = el('button', null, '−');
-    minus.onclick = () => { set[key] = Math.max(0, +(set[key] - step).toFixed(2)); onChange(); };
+    minus.onclick = () => { set[key] = Math.max(0, +(set[key] - step).toFixed(2)); val.textContent = String(set[key]); onChange(); };
     const val = el('div', 'val num', String(set[key]));
     // tap the number to type it directly (number pad)
     val.onclick = () => {
@@ -762,13 +799,15 @@
       const commit = () => {
         const v = Math.max(0, Number(inp.value) || 0);
         set[key] = key === 'kg' ? +v.toFixed(2) : Math.round(v);
+        val.textContent = String(set[key]);
+        inp.replaceWith(val);
         onChange();
       };
       inp.onblur = commit;
       inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
     };
     const plus = el('button', null, '+');
-    plus.onclick = () => { set[key] = +(set[key] + step).toFixed(2); onChange(); };
+    plus.onclick = () => { set[key] = +(set[key] + step).toFixed(2); val.textContent = String(set[key]); onChange(); };
     wrap.append(minus, val, plus);
     return wrap;
   }
