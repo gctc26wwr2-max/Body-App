@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v56';
+  const APP_VERSION = 'v57';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1938,6 +1938,27 @@
     stats.appendChild(detStat(bestRM ? String(bestRM) : '—', 'kg', 'Est. 1RM'));
     stats.appendChild(detStat(String(sessions.length), '', 'Sessions'));
     body.appendChild(stats);
+
+    // weight (or best set) history graph — one point per session
+    {
+      const asc = [...sessions].sort((a, b) => a.ts - b.ts);
+      const hasWeight = asc.some(s => s.sets.some(x => (x.weight || 0) > 0));
+      const pts = asc.map(s => ({
+        ts: s.ts,
+        kg: hasWeight
+          ? Math.max(...s.sets.map(x => x.weight || 0))
+          : Math.max(...s.sets.map(x => x.reps || 0))
+      })).filter(p => p.kg > 0);
+      if (pts.length >= 2) {
+        const gWrap = el('div');
+        const lbl = el('div', 'micro', hasWeight ? 'Weight over time' : 'Best set over time');
+        gWrap.appendChild(lbl);
+        const g = el('div', 'bw-graph');
+        g.innerHTML = bwGraphSVG(pts);
+        gWrap.appendChild(g);
+        body.appendChild(gWrap);
+      }
+    }
 
     // user media
     if (ex.mediaIds && ex.mediaIds.length) {
