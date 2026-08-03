@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v58';
+  const APP_VERSION = 'v59';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -710,6 +710,23 @@
       line.appendChild(el('span', 'num', `Last time · ${fmtKg(kg)} kg × ${h.sets.map(s => s.reps).join(', ')}`));
       card.appendChild(line);
     }
+
+    // weight history graph for this move, right under its sets
+    {
+      const asc = [...hist].sort((a, b) => a.ts - b.ts);
+      const hasWeight = asc.some(s => s.sets.some(x => (x.weight || 0) > 0));
+      const pts = asc.map(s => ({
+        ts: s.ts,
+        kg: hasWeight
+          ? Math.max(...s.sets.map(x => x.weight || 0))
+          : Math.max(...s.sets.map(x => x.reps || 0))
+      })).filter(p => p.kg > 0);
+      if (pts.length >= 2) {
+        const g = el('div', 'bw-graph');
+        g.innerHTML = bwGraphSVG(pts);
+        card.appendChild(g);
+      }
+    }
     root.appendChild(card);
 
     // ---- rest timer card ----
@@ -1343,7 +1360,34 @@
         renderTab();
       };
       r.appendChild(del);
-      root.appendChild(r);
+
+      // tap a past session to see exactly what was logged
+      const det2 = el('div', 'hist-detail');
+      det2.hidden = true;
+      r.onclick = () => {
+        if (det2.hidden && !det2.dataset.built) {
+          const daySess = sessions.filter(s => s.date === w.date && s.planId === w.planId);
+          if (!daySess.length) det2.appendChild(el('div', 'hd-empty', 'No sets were logged.'));
+          for (const s of daySess) {
+            const ex = exercises.find(e2 => e2.id === s.exerciseId);
+            const dr = el('div', 'hd-row');
+            dr.appendChild(el('div', 'hd-name', ex ? ex.name : 'Deleted exercise'));
+            const txt = s.sets.map(x => (x.weight || 0) > 0
+              ? `${fmtKg(x.weight)}×${x.reps}`
+              : `${x.reps}${s.timed ? 's' : ''}`).join(' · ');
+            dr.appendChild(el('div', 'hd-sets num', txt));
+            det2.appendChild(dr);
+          }
+          det2.dataset.built = '1';
+        }
+        det2.hidden = !det2.hidden;
+        r.classList.toggle('open', !det2.hidden);
+      };
+
+      const wrap = el('div', 'hist-wrap');
+      wrap.appendChild(r);
+      wrap.appendChild(det2);
+      root.appendChild(wrap);
     });
 
     if (!workouts.length && !plan) {
