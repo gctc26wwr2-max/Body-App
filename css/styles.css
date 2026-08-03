@@ -455,11 +455,12 @@ body { font-size: 14px; }
 .coach-note b { color: var(--lime); font-weight: 700; }
 .bw-input { display: flex; gap: 8px; margin-top: 12px; }
 .bw-input input {
-  flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--hair-8);
-  background: var(--sunken); color: var(--t1); font-size: 16px;
+  flex: 0 0 104px; width: 104px; height: 48px; padding: 0 10px;
+  border-radius: 12px; border: 1px solid var(--hair-8);
+  background: var(--sunken); color: var(--t1); font-size: 26px; text-align: center;
   font-family: var(--cond); font-weight: 700;
 }
-.bw-input .btn-lime { flex: 0 0 auto; height: 48px; }
+.bw-input .btn-lime { flex: 1; height: 48px; }
 
 /* ============ LIBRARY ============ */
 .search-input {
