@@ -1,6 +1,6 @@
 /* Service worker: caches the app shell so it opens instantly and works offline.
    User data (exercises, media, sessions, plans) lives in IndexedDB, not here. */
-const CACHE = 'body-app-v60';
+const CACHE = 'body-app-v61';
 const ASSETS = [
   './',
   './index.html',
@@ -40,9 +40,6 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
-  /* Videos stream with Range requests — let the browser handle them directly
-     (cache.put can't store partial 206 responses). */
-  if (url.pathname.endsWith('.mp4')) return;
   e.respondWith(
     fetch(e.request)
       .then(res => {
