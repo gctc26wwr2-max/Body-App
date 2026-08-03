@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v53';
+  const APP_VERSION = 'v54';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -745,7 +745,7 @@
       const left = Math.ceil((holdEndTs - Date.now()) / 1000);
       const btn = $('#hold-' + si);
       if (left > 0) {
-        if (left <= 3 && lastHoldTick !== phase * 1000 + left) {
+        if (left <= 5 && lastHoldTick !== phase * 1000 + left) {
           lastHoldTick = phase * 1000 + left;
           tickBeep();
         }
@@ -894,8 +894,8 @@
       updatePill(true);
       return;
     }
-    // 3-2-1 warning ticks before GO
-    if (left <= 3 && left >= 1 && restTick.last !== left) {
+    // 5-4-3-2-1 warning ticks before GO
+    if (left <= 5 && left >= 1 && restTick.last !== left) {
       restTick.last = left;
       tickBeep();
     }
