@@ -409,6 +409,23 @@ body { font-size: 14px; }
   width: 32px; height: 32px; border-radius: 10px;
   background: none; border: 1px solid var(--hair); color: var(--t6); font-size: 12px;
 }
+.hist-wrap { display: flex; flex-direction: column; gap: 8px; }
+.hist-row.open { border-color: rgba(200,255,46,.3); }
+.hist-detail {
+  border-radius: 16px; background: var(--sunken); border: 1px solid var(--hair);
+  padding: 4px 14px;
+}
+.hist-detail .hd-row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  padding: 9px 0; border-bottom: 1px solid var(--hair-8);
+}
+.hist-detail .hd-row:last-child { border-bottom: none; }
+.hd-name { font-size: 13px; color: var(--t2); }
+.hd-sets {
+  font-family: var(--cond); font-size: 15px; font-weight: 600; color: var(--t1);
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.hd-empty { padding: 10px 0; font-size: 13px; color: var(--t5); }
 
 .prog-day-row {
   display: flex; align-items: center; gap: 10px;
