@@ -214,7 +214,7 @@ body { font-size: 14px; }
 .ex-progress span.done { background: var(--lime); }
 .ex-progress span.part { background: #7E9C2A; }
 
-.ex-card { background: var(--surface); border: 1px solid var(--hair-7); border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.ex-card { background: var(--surface); border: 1px solid var(--hair-7); border-radius: 24px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 .ex-row { display: flex; gap: 14px; align-items: center; }
 .ex-thumb {
   width: 84px; height: 84px; border-radius: 16px; overflow: hidden;
@@ -233,29 +233,29 @@ body { font-size: 14px; }
 .plate-strip .side { font-size: 12px; color: var(--t5); }
 
 .set-grid-head {
-  display: grid; grid-template-columns: 20px 1fr 1fr 44px; gap: 8px;
-  padding: 0 7px 0 9px;   /* mirror the set rows' padding + border so columns line up */
+  display: grid; grid-template-columns: 16px minmax(0,1fr) minmax(0,1fr) 42px; gap: 6px;
+  padding: 0 7px;   /* mirror the set rows' padding + border so columns line up */
   font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--t6);
 }
 .set-grid-head span { text-align: center; }
 .set-grid-head span:first-child { transform: translateX(3px); }
 
 .w-set {
-  display: grid; grid-template-columns: 20px 1fr 1fr 44px; gap: 8px; align-items: center;
-  padding: 7px 6px 7px 8px; border-radius: 14px;
+  display: grid; grid-template-columns: 16px minmax(0,1fr) minmax(0,1fr) 42px; gap: 6px; align-items: center;
+  padding: 6px; border-radius: 14px;
   background: var(--sunken); border: 1px solid var(--hair);
 }
 .w-set.logged { background: rgba(200,255,46,.07); border-color: rgba(200,255,46,.3); }
-.w-set .sn { font-family: var(--cond); font-size: 17px; font-weight: 700; color: var(--t6); text-align: center; }
+.w-set .sn { font-family: var(--cond); font-size: 15px; font-weight: 700; color: var(--t6); text-align: center; }
 .w-set.logged .sn { color: var(--lime); }
-.stepper { display: flex; align-items: center; justify-content: center; gap: 3px; }
+.stepper { display: flex; align-items: center; justify-content: center; gap: 2px; min-width: 0; }
 .stepper button {
-  width: 36px; height: 44px; border-radius: 11px; background: var(--ctrl);
-  border: none; color: var(--t2); font-size: 18px; font-weight: 600; flex: 0 0 auto;
+  width: 31px; height: 42px; border-radius: 10px; background: var(--ctrl);
+  border: none; color: var(--t2); font-size: 16px; font-weight: 600; flex: 0 0 auto;
 }
 .stepper .val {
-  min-width: 40px; text-align: center; cursor: pointer;
-  font-family: var(--cond); font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums;
+  min-width: 32px; max-width: 46px; overflow: hidden; text-align: center; cursor: pointer;
+  font-family: var(--cond); font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums;
   color: var(--t2);
 }
 .val-edit {
@@ -272,14 +272,14 @@ body { font-size: 14px; }
 }
 .hold-btn.on { background: var(--lime); border-color: transparent; color: var(--canvas); }
 /* timed rows: kg column narrower, seconds column wider */
-.w-set.timed, .set-grid-head.timed { grid-template-columns: 20px 0.7fr 1.3fr 44px; }
-.w-set.timed .stepper .val { min-width: 26px; }
+.w-set.timed, .set-grid-head.timed { grid-template-columns: 16px minmax(0,0.7fr) minmax(0,1.3fr) 42px; }
+.w-set.timed .stepper .val { min-width: 24px; }
 .w-set .reps-val.pending { color: #7A7E84; }
 .w-set .reps-val.inrange { color: var(--lime); }
 .w-set .reps-val.below { color: var(--amber); }
 .log-btn {
-  width: 44px; height: 44px; border-radius: 13px; border: none;
-  background: var(--ctrl); color: #8A8E94; font-size: 17px; justify-self: end;
+  width: 42px; height: 42px; border-radius: 12px; border: none;
+  background: var(--ctrl); color: #8A8E94; font-size: 16px; justify-self: end;
 }
 .w-set.logged .log-btn { background: var(--lime); color: var(--canvas); }
 
