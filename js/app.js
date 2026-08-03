@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v51';
+  const APP_VERSION = 'v52';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -886,6 +886,8 @@
     const pill = $('#timer-pill');
     const lw = live.get();
     const inWorkout = !$('#view-workout').hidden;
+    // on the exercise page the demo fills the top — dock the pill at the bottom
+    pill.classList.toggle('bottom', !$('#view-detail').hidden);
     if (justDone && !inWorkout) {
       pill.hidden = false;
       $('#pill-time').textContent = 'GO! 💪';
