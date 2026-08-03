@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v46';
+  const APP_VERSION = 'v47';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -471,7 +471,9 @@
         repLo: lo, repHi: hi, rest: ex.rest || 120,
         sets: Array.from({ length: item.sets || 3 }, (_, si) => {
           const prev = lastSets ? lastSets[si] : null;
-          const kg = (prev && prev.weight) || lastMax || item.kg || 0;
+          // start every set at the heaviest weight you reached last time —
+          // weight you earned mid-session carries into the whole next session
+          const kg = lastMax || item.kg || 0;
           const reps = (prev && prev.reps) || lo;
           return { kg, reps, targetLo: lo, targetHi: hi, done: false };
         })
