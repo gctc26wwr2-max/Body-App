@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v59';
+  const APP_VERSION = 'v60';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1545,7 +1545,8 @@
     const about = el('div', 'coach-note');
     const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
     about.innerHTML = '<b>Rackside ' + APP_VERSION + ' ·</b> Local-first training app. Everything is stored on this iPhone — no account, no cloud, works offline in the gym. '
-      + (standalone ? 'Running as an installed app.' : 'Running in the browser — install via Share → Add to Home Screen.');
+      + (standalone ? 'Running as an installed app.' : 'Running in the browser — install via Share → Add to Home Screen.')
+      + ' Demo videos by the wger.de community (CC-BY-SA 4.0); demo photos from free-exercise-db (public domain).';
     root.appendChild(about);
   }
 
@@ -1946,7 +1947,20 @@
     root.innerHTML = '';
 
     const hero = el('div', 'det-hero');
-    hero.appendChild(thumbFor(ex));
+    const vidSrc = ex.demo && (window.EXERCISE_VIDEOS || []).includes(ex.demo)
+      ? `demos/videos/${ex.demo}.mp4` : null;
+    if (vidSrc) {
+      const v = document.createElement('video');
+      v.src = vidSrc;
+      v.muted = true; v.loop = true; v.autoplay = true; v.playsInline = true;
+      v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
+      v.poster = `demos/${ex.demo}/0.jpg`;
+      v.className = 'det-video';
+      hero.appendChild(v);
+      v.play().catch(() => {});
+    } else {
+      hero.appendChild(thumbFor(ex));
+    }
     const back = el('button', 'det-back', '‹');
     back.onclick = goBackFromDetail;
     hero.appendChild(back);
