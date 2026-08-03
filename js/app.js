@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v54';
+  const APP_VERSION = 'v55';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -831,13 +831,47 @@
   }
   function tickBeep() {
     ensureAudio();
-    try { tone(660, 0, 0.13, 0.35); } catch { /* best-effort */ }
+    try { tone(660, 0, 0.13, 0.5); } catch { /* best-effort */ }
   }
+  /* pre-rendered beep clip — second audio path for when WebAudio is blocked */
+  let beepAudio = null;
+  (function buildBeepAudio() {
+    try {
+      const sr = 22050, n = Math.floor(sr * 1.2);
+      const bytes = new Uint8Array(44 + n * 2);
+      const dv = new DataView(bytes.buffer);
+      const ws = (o, s) => { for (let i = 0; i < s.length; i++) bytes[o + i] = s.charCodeAt(i); };
+      ws(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); ws(8, 'WAVEfmt ');
+      dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+      dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true);
+      dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+      ws(36, 'data'); dv.setUint32(40, n * 2, true);
+      const pcm = new Int16Array(bytes.buffer, 44);
+      [[880, 0, .26], [1175, .3, .26], [880, .6, .26], [1175, .9, .26]].forEach(([f, t0, d]) => {
+        const s0 = Math.floor(t0 * sr), s1 = Math.min(n, Math.floor((t0 + d) * sr));
+        for (let i = s0; i < s1; i++) {
+          const env = Math.max(0, Math.min(1, (i - s0) / 200, (s1 - i) / 400));
+          pcm[i] = Math.round(Math.sin(2 * Math.PI * f * (i / sr)) * 32767 * 0.85 * env);
+        }
+      });
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+      beepAudio = new Audio('data:audio/wav;base64,' + btoa(bin));
+      beepAudio.preload = 'auto';
+    } catch { beepAudio = null; }
+  })();
   function beep() {
     ensureAudio();
+    let ok = false;
     try {
-      [880, 1175, 880, 1175].forEach((f, i) => tone(f, i * 0.3, 0.26, 0.55));
+      if (audioCtx && audioCtx.state === 'running') {
+        [880, 1175, 880, 1175].forEach((f, i) => tone(f, i * 0.3, 0.26, 0.85));
+        ok = true;
+      }
     } catch { /* audio best-effort */ }
+    if (!ok && beepAudio) {
+      try { beepAudio.currentTime = 0; beepAudio.play().catch(() => {}); } catch { /* blocked */ }
+    }
   }
   function startRest(len) {
     ensureAudio();
@@ -849,6 +883,16 @@
       src.connect(audioCtx.destination);
       src.start(0);
     } catch { /* no audio */ }
+    if (beepAudio && !startRest.primed) {
+      // unlock the media-element path inside the same gesture
+      beepAudio.muted = true;
+      beepAudio.play().then(() => {
+        beepAudio.pause();
+        beepAudio.currentTime = 0;
+        beepAudio.muted = false;
+        startRest.primed = true;
+      }).catch(() => { /* try again next set */ });
+    }
     restTick.last = 0;
     const lw = live.get();
     if (!lw) return;
