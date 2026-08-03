@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v48';
+  const APP_VERSION = 'v49';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -576,9 +576,11 @@
     ['#', 'Kg', cur.timed ? 'Seconds' : 'Reps', 'Log'].forEach(t => gh.appendChild(el('span', null, t)));
     card.appendChild(gh);
 
-    // set rows
+    // set rows — the first pending set is active; later ones stay faded
+    const firstPending = cur.sets.findIndex(s => !s.done);
     cur.sets.forEach((set, si) => {
-      const r = el('div', 'w-set' + (set.done ? ' logged' : '') + (cur.timed ? ' timed' : ''));
+      const r = el('div', 'w-set' + (set.done ? ' logged' : '') + (cur.timed ? ' timed' : '')
+        + (!set.done && firstPending >= 0 && si > firstPending ? ' upcoming' : ''));
       r.appendChild(el('div', 'sn num', String(si + 1)));
       r.appendChild(stepper(set, 'kg', 2.5, () => {
         // the new weight carries forward to the remaining unlogged sets

@@ -246,6 +246,7 @@ body { font-size: 14px; }
   background: var(--sunken); border: 1px solid var(--hair);
 }
 .w-set.logged { background: rgba(200,255,46,.07); border-color: rgba(200,255,46,.3); }
+.w-set.upcoming { opacity: .45; }
 .w-set .sn { font-family: var(--cond); font-size: 15px; font-weight: 700; color: var(--t6); text-align: center; }
 .w-set.logged .sn { color: var(--lime); }
 .stepper { display: flex; align-items: center; justify-content: center; gap: 2px; min-width: 0; }
