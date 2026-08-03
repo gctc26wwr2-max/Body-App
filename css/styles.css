@@ -233,7 +233,7 @@ body { font-size: 14px; }
 .plate-strip .side { font-size: 12px; color: var(--t5); }
 
 .set-grid-head {
-  display: grid; grid-template-columns: 16px minmax(0,1fr) minmax(0,1fr) 42px; gap: 6px;
+  display: grid; grid-template-columns: 16px minmax(0,1fr) minmax(0,1fr) 42px; gap: 4px;
   padding: 0 7px;   /* mirror the set rows' padding + border so columns line up */
   font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--t6);
 }
@@ -241,7 +241,7 @@ body { font-size: 14px; }
 .set-grid-head span:first-child { transform: translateX(3px); }
 
 .w-set {
-  display: grid; grid-template-columns: 16px minmax(0,1fr) minmax(0,1fr) 42px; gap: 6px; align-items: center;
+  display: grid; grid-template-columns: 16px minmax(0,1fr) minmax(0,1fr) 42px; gap: 4px; align-items: center;
   padding: 6px; border-radius: 14px;
   background: var(--sunken); border: 1px solid var(--hair);
 }
@@ -249,7 +249,7 @@ body { font-size: 14px; }
 .w-set.upcoming { opacity: .45; }
 .w-set .sn { font-family: var(--cond); font-size: 15px; font-weight: 700; color: var(--t6); text-align: center; }
 .w-set.logged .sn { color: var(--lime); }
-.stepper { display: flex; align-items: center; justify-content: center; gap: 2px; min-width: 0; }
+.stepper { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 0; }
 .stepper button {
   width: 31px; height: 42px; border-radius: 10px; background: var(--ctrl);
   border: none; color: var(--t2); font-size: 16px; font-weight: 600; flex: 0 0 auto;
