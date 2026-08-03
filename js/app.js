@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v52';
+  const APP_VERSION = 'v53';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -739,14 +739,16 @@
     let phase = 0;
     holdIdx = si;
     holdEndTs = Date.now() + phases[0].dur * 1000;
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-    } catch { /* no audio */ }
+    ensureAudio();
+    let lastHoldTick = 0;
     holdInt = setInterval(() => {
       const left = Math.ceil((holdEndTs - Date.now()) / 1000);
       const btn = $('#hold-' + si);
       if (left > 0) {
+        if (left <= 3 && lastHoldTick !== phase * 1000 + left) {
+          lastHoldTick = phase * 1000 + left;
+          tickBeep();
+        }
         if (btn) {
           btn.classList.add('on');
           btn.textContent = (phases[phase].label ? phases[phase].label + ' ' : '') + fmtClock(left);
@@ -811,26 +813,43 @@
   /* ---------------- rest timer ---------------- */
   let restInt = null, audioCtx = null;
 
-  function beep() {
-    try {
-      if (!audioCtx) return;
-      for (let i = 0; i < 3; i++) {
-        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-        o.frequency.value = 880;
-        o.connect(g); g.connect(audioCtx.destination);
-        const t = audioCtx.currentTime + i * 0.35;
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.4, t + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
-        o.start(t); o.stop(t + 0.3);
-      }
-    } catch { /* audio best-effort */ }
-  }
-  function startRest(len) {
+  function ensureAudio() {
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') audioCtx.resume();
     } catch { /* no audio */ }
+  }
+  function tone(freq, at, dur, gain) {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.frequency.value = freq;
+    o.connect(g); g.connect(audioCtx.destination);
+    const t = audioCtx.currentTime + at;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur - 0.02);
+    o.start(t); o.stop(t + dur);
+  }
+  function tickBeep() {
+    ensureAudio();
+    try { tone(660, 0, 0.13, 0.35); } catch { /* best-effort */ }
+  }
+  function beep() {
+    ensureAudio();
+    try {
+      [880, 1175, 880, 1175].forEach((f, i) => tone(f, i * 0.3, 0.26, 0.55));
+    } catch { /* audio best-effort */ }
+  }
+  function startRest(len) {
+    ensureAudio();
+    try {
+      // prime the context inside the user gesture so later beeps are allowed
+      const buf = audioCtx.createBuffer(1, 1, 22050);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioCtx.destination);
+      src.start(0);
+    } catch { /* no audio */ }
+    restTick.last = 0;
     const lw = live.get();
     if (!lw) return;
     lw.restLen = len;
@@ -874,6 +893,11 @@
       if (!$('#view-workout').hidden) renderWorkout();
       updatePill(true);
       return;
+    }
+    // 3-2-1 warning ticks before GO
+    if (left <= 3 && left >= 1 && restTick.last !== left) {
+      restTick.last = left;
+      tickBeep();
     }
     // update in-place
     const t = $('#rest-time-live');
