@@ -167,18 +167,6 @@ window.EXERCISE_LIBRARY.forEach(item => {
   if (d) item.demo = d;
 });
 
-/* Slugs with a real demo video in demos/videos/<slug>.mp4
-   (wger.de community, CC-BY-SA 4.0). */
-window.EXERCISE_VIDEOS = [
-  'assisted-pull-up', 'barbell-curl', 'bench-press', 'calf-raise', 'chest-dip',
-  'dumbbell-curl', 'dumbbell-shoulder-press', 'face-pull', 'front-squat',
-  'hammer-curl', 'hip-thrust', 'incline-dumbbell-press', 'lateral-raise',
-  'leg-curl', 'leg-press', 'lunge', 'machine-shoulder-press',
-  'overhead-triceps-extension', 'preacher-curl', 'pull-up', 'rear-delt-fly',
-  'romanian-deadlift', 'seated-cable-row', 'shrug', 'skull-crusher',
-  'triceps-pushdown'
-];
-
 /* Additional exercises used by the starter block */
 [
   { name: 'Chest-Supported Row', group: 'Back', notes: 'Chest stays on the pad the whole set — zero spinal load. Drive elbows back, squeeze mid-back.', demo: 'chest-supported-row' },
