@@ -440,6 +440,23 @@ body { font-size: 14px; }
 }
 .prog-day-row.done .n { color: var(--lime); }
 .prog-day-row.done .go { background: var(--ctrl); color: var(--lime); }
+.prog-day-row.open .m { color: var(--lime); }
+.day-preview {
+  border-radius: 14px; background: var(--sunken); border: 1px solid var(--hair);
+  padding: 4px 12px; margin-bottom: 10px;
+}
+.pv-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 0; border-bottom: 1px solid var(--hair-8);
+}
+.pv-row:last-child { border-bottom: none; }
+.pv-thumb {
+  width: 44px; height: 44px; border-radius: 10px; overflow: hidden; flex: 0 0 auto;
+  position: relative;
+}
+.pv-name { font-size: 14px; font-weight: 600; }
+.pv-meta { font-size: 12px; color: var(--t5); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.pv-go { margin-left: auto; color: var(--t6); font-size: 16px; padding-right: 2px; }
 
 /* ============ STATS ============ */
 .lift-chips { display: flex; gap: 8px; flex-wrap: wrap; }
