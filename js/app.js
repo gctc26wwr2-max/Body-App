@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v66';
+  const APP_VERSION = 'v67';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -564,9 +564,10 @@
     // ---- all exercises on one scrolling page ----
     lw.exercises.forEach((cur2, ei) => {
       root.appendChild(exerciseCard(lw, cur2, ei, sessions));
-      // the rest timer docks under the exercise you're currently on
-      if (ei === lw.exIndex) root.appendChild(restCard(lw, cur2));
     });
+
+    // the rest timer floats fixed at the bottom of the screen
+    root.appendChild(restCard(lw, lw.exercises[lw.exIndex]));
 
     if (scrollToEx) {
       // only when you tap a progress bar to jump — never on logging or advancing
@@ -1013,16 +1014,16 @@
     const pill = $('#timer-pill');
     const lw = live.get();
     const inWorkout = !$('#view-workout').hidden;
-    // on the exercise page the demo fills the top, and in the workout the header
-    // sits up top — dock the pill at the bottom there so it floats while scrolling
-    pill.classList.toggle('bottom', !$('#view-detail').hidden || inWorkout);
-    if (justDone) {
+    // the workout has its own floating timer panel; on the exercise page the
+    // demo fills the top so the pill docks at the bottom there
+    pill.classList.toggle('bottom', !$('#view-detail').hidden);
+    if (justDone && !inWorkout) {
       pill.hidden = false;
       $('#pill-time').textContent = 'GO! 💪';
       setTimeout(() => { pill.hidden = true; updatePill(); }, 4000);
       return;
     }
-    if (lw && lw.restEndsAt) {
+    if (lw && lw.restEndsAt && !inWorkout) {
       pill.hidden = false;
       $('#pill-time').textContent = fmtClock(Math.max(0, Math.ceil((lw.restEndsAt - Date.now()) / 1000)));
     } else pill.hidden = true;
