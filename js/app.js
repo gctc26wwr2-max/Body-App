@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v70';
+  const APP_VERSION = 'v71';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -65,8 +65,10 @@
     sets.forEach(s => { if (!s.done) s.kg = nextKg; });
   }
   function repTone(set) {
-    if (!set.done) return 'pending';
-    return set.reps >= set.targetLo ? 'inrange' : 'below';
+    // colour code vs the target range (e.g. 8-10): under / in / above
+    if (set.reps < set.targetLo) return 'below';
+    if (set.reps > set.targetHi) return 'above';
+    return 'inrange';
   }
   function plateMath(totalKg, barKg = 20) {
     const plates = [25, 20, 15, 10, 5, 2.5, 1.25];
@@ -624,7 +626,7 @@
         const rv = $('#val-reps-' + ei + '-' + i);
         if (rv) {
           rv.textContent = String(s.reps);
-          rv.classList.remove('pending', 'inrange', 'below');
+          rv.classList.remove('pending', 'inrange', 'below', 'above');
           rv.classList.add(repTone(s));
         }
         const hb = $('#hold-' + ei + '-' + i);
