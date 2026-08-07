@@ -272,6 +272,8 @@ body { font-size: 14px; }
   display: inline-flex; align-items: center; justify-content: center;
 }
 .w-chip svg { display: block; }
+.btn-cta.back-sign { display: flex; align-items: center; justify-content: center; }
+.btn-cta.back-sign svg { display: block; }
 .w-chip.fin { background: var(--lime); color: var(--on-accent); }
 .ex-progress { display: flex; gap: 4px; width: 100%; }
 .ex-progress span { flex: 1; height: 4px; border-radius: 3px; background: rgba(255,255,255,.10); cursor: pointer; }

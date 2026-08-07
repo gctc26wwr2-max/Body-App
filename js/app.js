@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v105';
+  const APP_VERSION = 'v106';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2711,7 +2711,9 @@
     }
 
     const acts = el('div', 'det-actions');
-    const backBtn = el('button', 'btn-cta', detailReturn === 'workout' ? 'Back to workout' : 'Back');
+    const backBtn = el('button', 'btn-cta back-sign');
+    backBtn.innerHTML = '<svg viewBox="0 0 16 14" width="18" height="16"><path d="M7 1.5 L1.5 7 L7 12.5 M2 7 H14.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    backBtn.title = detailReturn === 'workout' ? 'Back to workout' : 'Back';
     backBtn.onclick = goBackFromDetail;
     acts.appendChild(backBtn);
     const editBtn = el('button', 'btn-ghost', 'Edit');
