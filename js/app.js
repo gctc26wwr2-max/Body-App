@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v96';
+  const APP_VERSION = 'v97';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2408,39 +2408,33 @@
         ? Math.max(...s.sets.map(x => x.weight || 0))
         : Math.max(...s.sets.map(x => x.reps || 0))).filter(v => v > 0);
       if (!series.length) continue;
-      const lastFeel = [...arr].reverse().map(s => s.feel).find(Boolean);
-      lifts.push({ ex, series, hasW, lastTs: arr[arr.length - 1].ts, lastFeel });
+      lifts.push({ ex, series, hasW, count: arr.length });
     }
-    lifts.sort((a, b) => b.lastTs - a.lastTs);
+    // the four most-trained lifts, as graphs
+    lifts.sort((a, b) => b.count - a.count);
 
     if (lifts.length) {
-      const lbl = el('div', 'micro', 'Lifts · trend, current, change');
-      root.appendChild(lbl);
-      const list = el('div', 'lift-list');
-      for (const L of lifts.slice(0, 14)) {
-        const r = el('div', 'lift-row');
-        const nameCol = el('div', 'lr-namecol');
-        nameCol.appendChild(el('div', 'lr-name2', L.ex.name));
-        if (L.lastFeel) nameCol.appendChild(el('span', 'hd-feel ' + L.lastFeel, L.lastFeel));
-        r.appendChild(nameCol);
-        const spark = el('div', 'lr-spark');
-        spark.innerHTML = sparkSVG(L.series);
-        r.appendChild(spark);
-        const kgCol = el('div', 'lr-kg');
+      root.appendChild(el('div', 'micro', 'Main lifts · weight over time'));
+      const grid = el('div', 'stat-graphs');
+      for (const L of lifts.slice(0, 4)) {
+        const cell = el('div', 'sg-cell');
+        cell.appendChild(el('div', 'sg-name', L.ex.name));
+        const row = el('div', 'sg-valrow');
         const curV = L.series[L.series.length - 1];
-        kgCol.appendChild(el('div', 'v num', fmtKg(curV) + (L.hasW ? ' kg' : ' reps')));
+        row.appendChild(el('span', 'sg-val num', fmtKg(curV) + (L.hasW ? ' kg' : '')));
         const d = +(curV - L.series[0]).toFixed(1);
         if (L.series.length >= 2 && d !== 0) {
-          kgCol.appendChild(el('div', 'd num' + (d > 0 ? ' up' : ' down'),
-            (d > 0 ? '+' : '−') + Math.abs(d) + (L.hasW ? ' kg' : '')));
-        } else {
-          kgCol.appendChild(el('div', 'd num same', L.series.length < 2 ? 'first log' : 'holding'));
+          row.appendChild(el('span', 'sg-d num' + (d > 0 ? ' up' : ' down'),
+            (d > 0 ? '+' : '−') + Math.abs(d)));
         }
-        r.appendChild(kgCol);
-        r.onclick = () => openDetail(L.ex.id, 'stats');
-        list.appendChild(r);
+        cell.appendChild(row);
+        const g = el('div', 'sg-graph');
+        g.innerHTML = sparkSVG(L.series, 150, 54);
+        cell.appendChild(g);
+        cell.onclick = () => openDetail(L.ex.id, 'stats');
+        grid.appendChild(cell);
       }
-      root.appendChild(list);
+      root.appendChild(grid);
     }
 
     // ---- consistency: last 8 weeks vs the plan ----
@@ -2498,19 +2492,21 @@
     }
   }
 
-  /* tiny inline trend line for the lift list */
+  /* compact trend graph for the stat tiles */
   function sparkSVG(vals, w = 68, h = 24) {
     if (vals.length < 2) {
-      return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">` +
-        `<circle cx="${w - 4}" cy="${h / 2}" r="2.5" fill="#CE6B3D"/></svg>`;
+      return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">` +
+        `<circle cx="${w - 6}" cy="${h / 2}" r="3" fill="#CE6B3D"/></svg>`;
     }
     const lo = Math.min(...vals), hi = Math.max(...vals);
-    const X = i => 2 + i / (vals.length - 1) * (w - 8);
-    const Y = v => hi === lo ? h / 2 : 3 + (hi - v) / (hi - lo) * (h - 8);
+    const X = i => 3 + i / (vals.length - 1) * (w - 10);
+    const Y = v => hi === lo ? h / 2 : 4 + (hi - v) / (hi - lo) * (h - 10);
     const d = vals.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join(' ');
-    return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">` +
-      `<path d="${d}" fill="none" stroke="#CE6B3D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>` +
-      `<circle cx="${X(vals.length - 1).toFixed(1)}" cy="${Y(vals[vals.length - 1]).toFixed(1)}" r="2.6" fill="#CE6B3D"/></svg>`;
+    const area = d + ` L${X(vals.length - 1).toFixed(1)} ${h - 2} L${X(0).toFixed(1)} ${h - 2} Z`;
+    return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">` +
+      `<path d="${area}" fill="rgba(206,107,61,.12)"/>` +
+      `<path d="${d}" fill="none" stroke="#CE6B3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` +
+      `<circle cx="${X(vals.length - 1).toFixed(1)}" cy="${Y(vals[vals.length - 1]).toFixed(1)}" r="3" fill="#CE6B3D" stroke="#151110" stroke-width="1.5"/></svg>`;
   }
 
   /* ============================================================
