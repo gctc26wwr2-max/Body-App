@@ -535,15 +535,19 @@ body { font-size: 14px; }
 /* ---------- Plan: flat v5 block section ---------- */
 .plan-block { display: flex; flex-direction: column; gap: 13px; }
 .pb-week { font-size: 15px; font-weight: 800; letter-spacing: -.02em; margin-top: 4px; }
-/* the block's days thread on the same rail as history; past days half-tone */
-.pday-rail { position: relative; display: flex; flex-direction: column; }
-.pday-rail::before {
+/* days + history share ONE timeline — a single rail runs through both */
+.plan-rail { position: relative; display: flex; flex-direction: column; gap: 12px; }
+.plan-rail::before {
   content: ''; position: absolute; left: 10px; top: 14px; bottom: 14px; width: 2px;
   background: linear-gradient(to bottom, rgba(206,107,61,.5), rgba(255,255,255,.08) 60%, rgba(255,255,255,.06));
 }
+.plan-rail .month-label { padding-left: 32px; position: relative; z-index: 1; }
+.plan-rail .text-links.inset { justify-content: flex-start; padding-left: 32px; position: relative; z-index: 1; }
+.plan-rail .hist-detail { margin-left: 32px; margin-top: 8px; }
+.plan-rail .day-preview { margin-left: 32px; margin-bottom: 4px; }
 .pday-row {
   position: relative; display: flex; align-items: center; gap: 12px;
-  padding: 9px 0 9px 32px; cursor: pointer;
+  padding: 4px 0 4px 32px; cursor: pointer;
 }
 .pday-row .ex-node { top: 50%; margin-top: -9px; }
 .pday-row.done { opacity: .5; }
@@ -562,13 +566,7 @@ body { font-size: 14px; }
 .pday-row.done .pd-go { background: var(--ctrl); color: var(--lime); }
 .plan-block .day-preview { margin-bottom: 2px; }
 
-/* history threaded on a rail */
-.hist-rail { position: relative; display: flex; flex-direction: column; gap: 16px; }
-.hist-rail::before {
-  content: ''; position: absolute; left: 10px; top: 8px; bottom: 8px; width: 2px;
-  background: linear-gradient(to bottom, rgba(206,107,61,.5), rgba(255,255,255,.08) 55%, rgba(255,255,255,.06));
-}
-.hist-rail .month-label { padding-left: 32px; position: relative; z-index: 1; }
+/* history rows on the timeline */
 .hrow { position: relative; padding-left: 32px; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
 .hrow.old { opacity: .8; }
 .ex-node.small { width: 18px; height: 18px; border-radius: 10px; top: 6px; }
