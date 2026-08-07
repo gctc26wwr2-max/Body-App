@@ -159,16 +159,16 @@ body { font-size: 14px; }
 #view-today {
   background-image: radial-gradient(circle 380px at 50% -120px, rgba(206,107,61,.16), transparent 66%);
   background-repeat: no-repeat;
-  gap: 12px;   /* tighter than other tabs — the page fits one screen */
+  gap: 16px;   /* slightly tighter than the other tabs */
 }
-#view-today .day-strip .cell { padding: 8px 0; }
+#view-today .day-strip .cell { padding: 10px 0; }
 .block-actions { display: flex; gap: 10px; }
 .block-actions .btn-ghost { flex: 1; height: 46px; }
 .meta-row { display: flex; justify-content: space-between; align-items: baseline; }
 .meta-row .date { font-size: 10px; font-weight: 800; letter-spacing: .24em; text-transform: uppercase; color: var(--t5); }
 .meta-row .streak .l { font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--t6); margin-right: 7px; }
 .meta-row .streak .v { font-size: 15px; font-weight: 800; letter-spacing: -.02em; color: var(--lime); }
-.arc-wrap { position: relative; width: 100%; max-width: 312px; margin: 0 auto -4px; }
+.arc-wrap { position: relative; width: 100%; max-width: 348px; margin: 0 auto -4px; }
 .arc-title { position: absolute; top: 44%; left: 0; right: 0; text-align: center; pointer-events: none; }
 .arc-sess { font-size: 9.5px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; color: var(--lime); margin-bottom: 4px; }
 .arc-day { font-size: 60px; font-weight: 800; line-height: .88; letter-spacing: -.05em; text-transform: uppercase; color: var(--t1); }
@@ -177,7 +177,7 @@ body { font-size: 14px; }
 .ex-index { display: flex; flex-direction: column; }
 .ex-index .exi-row {
   display: flex; align-items: center; gap: 12px;
-  padding: 8px 0; border-top: 1px solid var(--hair-8);
+  padding: 10px 0; border-top: 1px solid var(--hair-8);
 }
 .ex-index .exi-row:last-child { border-bottom: 1px solid var(--hair-8); }
 .exi-num { width: 16px; font-size: 10px; font-weight: 800; color: var(--t7); font-variant-numeric: tabular-nums; }
@@ -192,7 +192,7 @@ body { font-size: 14px; }
 .base-stat.earn .l { color: #A0754F; }
 .btn-cta.big {
   height: 46px; border-radius: 15px; padding: 0 26px;
-  align-self: center; width: auto; margin-top: 10px;
+  align-self: center; width: auto; margin-top: 18px;
   box-shadow: 0 8px 22px rgba(206,107,61,.24);
   font-size: 13px; letter-spacing: .12em;
   display: flex; align-items: center; justify-content: center; gap: 8px;
