@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v108';
+  const APP_VERSION = 'v109';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1768,9 +1768,11 @@
     hl.appendChild(el('div', 't-date', `${workouts.length} session${workouts.length === 1 ? '' : 's'}${plan ? ' · Block ' + blockNumber(plan) : ''}`));
     hl.appendChild(el('h1', 't-title', 'Plan'));
     head.appendChild(hl);
-    const nb = el('button', 'chip-btn', '＋ New block');
-    nb.onclick = () => openPlanForm(null);
-    head.appendChild(nb);
+    if (!plan) {
+      const nb = el('button', 'chip-btn', '＋ New block');
+      nb.onclick = () => openPlanForm(null);
+      head.appendChild(nb);
+    }
     root.appendChild(head);
 
     // installable starter block (until a copy of it exists)
@@ -1997,6 +1999,13 @@
       };
       delRow.appendChild(delB);
       root.appendChild(delRow);
+
+      // start a fresh block — centred, below the block actions
+      const nbRow = el('div', 'new-block-row');
+      const nb = el('button', 'chip-btn', '＋ New block');
+      nb.onclick = () => openPlanForm(null);
+      nbRow.appendChild(nb);
+      root.appendChild(nbRow);
     }
 
     if (!workouts.length && !plan) {
