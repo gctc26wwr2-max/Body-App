@@ -269,7 +269,9 @@ body { font-size: 14px; }
   height: 38px; min-width: 38px; padding: 0 12px; border-radius: 13px;
   background: rgba(255,255,255,.07); border: none; color: var(--t2);
   font-size: 11.5px; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center;
 }
+.w-chip svg { display: block; }
 .w-chip.fin { background: var(--lime); color: var(--on-accent); }
 .ex-progress { display: flex; gap: 4px; width: 100%; }
 .ex-progress span { flex: 1; height: 4px; border-radius: 3px; background: rgba(255,255,255,.10); cursor: pointer; }
@@ -447,10 +449,11 @@ body { font-size: 14px; }
 .w-set .reps-val.inrange { color: var(--lime); }
 .w-set .reps-val.above { color: var(--amber); }
 .log-btn {
-  width: 44px; height: 44px; border-radius: 14px; justify-self: end;
+  width: 44px; height: 44px; border-radius: 14px; justify-self: end; padding: 0;
   background: var(--ctrl); border: 1px solid var(--hair-8); color: #5C544C;
   display: flex; align-items: center; justify-content: center;
 }
+.log-btn svg { display: block; }
 .log-btn.on { background: var(--lime); border-color: transparent; color: var(--on-accent); }
 
 /* progression strip — no box, a 2pt left border carries the tone */
