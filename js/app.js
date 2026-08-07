@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v62';
+  const APP_VERSION = 'v63';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -751,7 +751,7 @@
     const secs = exRef.sets[si].reps;
     // two-sided holds run the timer once per side with a short switch break
     const phases = exRef.perSide
-      ? [{ label: 'L', dur: secs }, { label: '⇆', dur: 5 }, { label: 'R', dur: secs }]
+      ? [{ label: 'L', dur: secs }, { label: '⇆', dur: 10 }, { label: 'R', dur: secs }]
       : [{ label: '', dur: secs }];
     let phase = 0;
     holdIdx = si;
