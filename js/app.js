@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v95';
+  const APP_VERSION = 'v96';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2355,11 +2355,14 @@
   async function renderStats() {
     const root = $('#view-stats');
     root.innerHTML = '';
-    const sessions = await DB.all('sessions');
+    const [sessions, workouts, bw] = await Promise.all([
+      DB.all('sessions'), DB.all('workouts'), DB.all('bodyweight')
+    ]);
+    const plan = activePlan();
 
     const head = el('header', 't-head');
     const hl = el('div');
-    hl.appendChild(el('div', 't-date', 'Last 12 weeks'));
+    hl.appendChild(el('div', 't-date', `${workouts.length} session${workouts.length === 1 ? '' : 's'} logged`));
     hl.appendChild(el('h1', 't-title', 'Progress'));
     head.appendChild(hl);
     root.appendChild(head);
@@ -2367,99 +2370,147 @@
     if (!sessions.length) {
       const emp = el('div', 'empty-state');
       emp.appendChild(el('div', 'e-icon', '📈'));
-      emp.appendChild(el('p', null, 'Log workouts and your progress charts appear here.'));
+      emp.appendChild(el('p', null, 'Log workouts and your progress appears here.'));
       root.appendChild(emp);
       return;
     }
 
-    // top lifts by frequency
-    const byEx = new Map();
-    sessions.forEach(s => byEx.set(s.exerciseId, (byEx.get(s.exerciseId) || 0) + 1));
-    const topIds = [...byEx.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(x => x[0]);
-    if (!statsLift || !topIds.includes(statsLift)) statsLift = topIds[0];
+    // baseline numbers
+    const totVol = workouts.reduce((a, w) => a + (w.volume || 0), 0);
+    const totPRs = workouts.reduce((a, w) => a + ((w.prs && w.prs.length) || 0), 0);
+    const base = el('div', 'base-row');
+    const bs = (v, l, cls) => {
+      const d = el('div', 'base-stat' + (cls ? ' ' + cls : ''));
+      d.appendChild(el('div', 'v num', v));
+      d.appendChild(el('div', 'l', l));
+      return d;
+    };
+    base.appendChild(bs(String(workouts.length), 'Sessions'));
+    base.appendChild(bs(fmtKg(totVol), 'Kg lifted'));
+    base.appendChild(bs(weekStreak(workouts) + 'w', 'Streak'));
+    base.appendChild(bs(String(totPRs), 'Records', 'earn'));
+    root.appendChild(base);
 
-    const chips = el('div', 'lift-chips');
-    for (const id of topIds) {
+    // ---- every lift: trend sparkline, current weight, change ----
+    const byEx = new Map();
+    for (const s of sessions) {
+      const arr = byEx.get(s.exerciseId) || [];
+      arr.push(s);
+      byEx.set(s.exerciseId, arr);
+    }
+    const lifts = [];
+    for (const [id, arr] of byEx) {
       const ex = exercises.find(e => e.id === id);
       if (!ex) continue;
-      const b = el('button', id === statsLift ? 'sel' : '', ex.name);
-      b.onclick = () => { statsLift = id; renderStats(); };
-      chips.appendChild(b);
+      arr.sort((a, b) => a.ts - b.ts);
+      const hasW = arr.some(s => s.sets.some(x => (x.weight || 0) > 0));
+      const series = arr.map(s => hasW
+        ? Math.max(...s.sets.map(x => x.weight || 0))
+        : Math.max(...s.sets.map(x => x.reps || 0))).filter(v => v > 0);
+      if (!series.length) continue;
+      const lastFeel = [...arr].reverse().map(s => s.feel).find(Boolean);
+      lifts.push({ ex, series, hasW, lastTs: arr[arr.length - 1].ts, lastFeel });
     }
-    root.appendChild(chips);
+    lifts.sort((a, b) => b.lastTs - a.lastTs);
 
-    // est 1RM over 12 weeks
-    const liftSess = sessions.filter(s => s.exerciseId === statsLift).sort((a, b) => a.ts - b.ts);
-    const weeksArr = Array.from({ length: 12 }, () => 0);
-    const now = Date.now();
-    for (const s of liftSess) {
-      const wAgo = Math.floor((now - s.ts) / (7 * 86400000));
-      if (wAgo >= 0 && wAgo < 12) {
-        const best = Math.max(...s.sets.map(x => est1RM(x.weight || 0, x.reps)));
-        const idx = 11 - wAgo;
-        weeksArr[idx] = Math.max(weeksArr[idx], best);
+    if (lifts.length) {
+      const lbl = el('div', 'micro', 'Lifts · trend, current, change');
+      root.appendChild(lbl);
+      const list = el('div', 'lift-list');
+      for (const L of lifts.slice(0, 14)) {
+        const r = el('div', 'lift-row');
+        const nameCol = el('div', 'lr-namecol');
+        nameCol.appendChild(el('div', 'lr-name2', L.ex.name));
+        if (L.lastFeel) nameCol.appendChild(el('span', 'hd-feel ' + L.lastFeel, L.lastFeel));
+        r.appendChild(nameCol);
+        const spark = el('div', 'lr-spark');
+        spark.innerHTML = sparkSVG(L.series);
+        r.appendChild(spark);
+        const kgCol = el('div', 'lr-kg');
+        const curV = L.series[L.series.length - 1];
+        kgCol.appendChild(el('div', 'v num', fmtKg(curV) + (L.hasW ? ' kg' : ' reps')));
+        const d = +(curV - L.series[0]).toFixed(1);
+        if (L.series.length >= 2 && d !== 0) {
+          kgCol.appendChild(el('div', 'd num' + (d > 0 ? ' up' : ' down'),
+            (d > 0 ? '+' : '−') + Math.abs(d) + (L.hasW ? ' kg' : '')));
+        } else {
+          kgCol.appendChild(el('div', 'd num same', L.series.length < 2 ? 'first log' : 'holding'));
+        }
+        r.appendChild(kgCol);
+        r.onclick = () => openDetail(L.ex.id, 'stats');
+        list.appendChild(r);
       }
+      root.appendChild(list);
     }
-    const curRM = Math.round(Math.max(...weeksArr, 0));
-    const firstRM = weeksArr.find(v => v > 0) || 0;
-    const delta = firstRM ? Math.round((curRM - firstRM) / firstRM * 100) : 0;
 
-    const rm = el('div', 'rm-card');
-    rm.appendChild(el('div', 'rm-label', 'Estimated 1RM'));
-    const row = el('div', 'rm-row');
-    const v = el('div', 'rm-val num', curRM ? String(curRM) + ' ' : '— ');
-    v.appendChild(el('small', null, 'kg'));
-    row.appendChild(v);
-    if (delta) row.appendChild(el('div', 'rm-delta num', (delta > 0 ? '+' : '') + delta + '% · 12w'));
-    rm.appendChild(row);
-    const chart = el('div', 'rm-chart');
-    const maxV = Math.max(...weeksArr, 1);
-    const ramp = ['#2A211C', '#8E5330', '#B0663A', '#CE6B3D'];
-    weeksArr.forEach((val, i) => {
-      const bar = el('span');
-      bar.style.height = Math.max(3, Math.round(val / maxV * 100)) + '%';
-      bar.style.background = ramp[Math.min(3, Math.floor(i / 3))];
-      chart.appendChild(bar);
+    // ---- consistency: last 8 weeks vs the plan ----
+    const target = plan && plan.days ? plan.days.length : 3;
+    const now = new Date();
+    const dow = (now.getDay() + 6) % 7;
+    const monday = new Date(now); monday.setDate(now.getDate() - dow); monday.setHours(0, 0, 0, 0);
+    const weeksN = 8;
+    const counts = Array.from({ length: weeksN }, (_, i) => {
+      const ws = new Date(monday.getTime() - (weeksN - 1 - i) * 7 * 86400000);
+      const we = new Date(ws.getTime() + 7 * 86400000);
+      return workouts.filter(w => { const d = dateOf(w.date); return d >= ws && d < we; }).length;
     });
-    rm.appendChild(chart);
-    const axis = el('div', 'rm-axis');
-    ['W1', 'W4', 'W8', 'W12'].forEach(t => axis.appendChild(el('span', null, t)));
-    rm.appendChild(axis);
-    root.appendChild(rm);
-
-    // weekly volume (all lifts, last 6 weeks)
-    const volWeeks = Array.from({ length: 6 }, () => ({ vol: 0, sets: 0 }));
-    for (const s of sessions) {
-      const wAgo = Math.floor((now - s.ts) / (7 * 86400000));
-      if (wAgo >= 0 && wAgo < 6) {
-        const idx = 5 - wAgo;
-        volWeeks[idx].vol += s.sets.reduce((a, x) => a + (x.weight || 0) * x.reps, 0);
-        volWeeks[idx].sets += s.sets.length;
+    root.appendChild(el('div', 'micro', `Consistency · target ${target}× / week`));
+    const cg = el('div', 'cons-grid');
+    counts.forEach((n, i) => {
+      const col = el('div', 'cons-col' + (i === weeksN - 1 ? ' cur' : ''));
+      const dots = el('div', 'cons-dots');
+      for (let k = Math.max(target, n) - 1; k >= 0; k--) {
+        dots.appendChild(el('i', k < n ? 'on' : ''));
       }
-    }
-    const maxVol = Math.max(...volWeeks.map(x => x.vol), 1);
-    const vc = el('div', 'vol-card');
-    vc.appendChild(el('div', 'rm-label', 'Weekly volume'));
-    volWeeks.forEach((x, i) => {
-      const r = el('div', 'vol-row' + (i === 5 ? ' cur' : ''));
-      r.appendChild(el('div', 'wl', i === 5 ? 'Now' : `-${5 - i}w`));
-      const track = el('div', 'track');
-      const fill = el('div');
-      fill.style.width = Math.round(x.vol / maxVol * 100) + '%';
-      track.appendChild(fill);
-      r.appendChild(track);
-      r.appendChild(el('div', 'sc num', x.sets + ' sets'));
-      vc.appendChild(r);
+      col.appendChild(dots);
+      col.appendChild(el('span', 'num', i === weeksN - 1 ? 'now' : `-${weeksN - 1 - i}w`));
+      cg.appendChild(col);
     });
-    root.appendChild(vc);
+    root.appendChild(cg);
 
-    // coach note
-    const liftName = (exercises.find(e => e.id === statsLift) || {}).name || 'this lift';
-    const note = el('div', 'coach-note');
-    note.innerHTML = `<b>Coach note ·</b> ` + (delta > 0
-      ? `${liftName} est. 1RM is up ${delta}% in 12 weeks. Keep hitting the top of your rep range to earn the next +2.5 kg.`
-      : `Log ${liftName} consistently — hit the top of the rep range and the app will tell you when to add weight.`);
-    root.appendChild(note);
+    // ---- recent records ----
+    const prList = [];
+    for (const w of [...workouts].sort((a, b) => b.ts - a.ts)) {
+      for (const p of (w.prs || [])) prList.push({ date: w.date, ...p });
+      if (prList.length >= 6) break;
+    }
+    if (prList.length) {
+      root.appendChild(el('div', 'micro', 'Recent records'));
+      const pl = el('div', 'pr-list');
+      for (const p of prList.slice(0, 6)) {
+        const r = el('div', 'pr-row');
+        r.appendChild(el('div', 'pr-date', dateOf(p.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })));
+        r.appendChild(el('div', 'pr-name', p.name));
+        r.appendChild(el('div', 'pr-jump num', `${p.before} → ${p.after} kg`));
+        pl.appendChild(r);
+      }
+      root.appendChild(pl);
+    }
+
+    // body weight one-liner, linking the two halves of training
+    if (bw.length >= 2) {
+      const sorted = [...bw].sort((a, b) => a.ts - b.ts);
+      const d30 = sorted[sorted.length - 1].kg - (sorted.filter(x => Date.now() - x.ts >= 25 * 86400000).pop() || sorted[0]).kg;
+      const note = el('div', 'coach-note');
+      note.innerHTML = `<b>Body weight ·</b> ${sorted[sorted.length - 1].kg.toFixed(1)} kg now, ` +
+        `${d30 >= 0 ? '+' : '−'}${Math.abs(d30).toFixed(1)} kg over ~30 days. The graph lives in Profile.`;
+      root.appendChild(note);
+    }
+  }
+
+  /* tiny inline trend line for the lift list */
+  function sparkSVG(vals, w = 68, h = 24) {
+    if (vals.length < 2) {
+      return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">` +
+        `<circle cx="${w - 4}" cy="${h / 2}" r="2.5" fill="#CE6B3D"/></svg>`;
+    }
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const X = i => 2 + i / (vals.length - 1) * (w - 8);
+    const Y = v => hi === lo ? h / 2 : 3 + (hi - v) / (hi - lo) * (h - 8);
+    const d = vals.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join(' ');
+    return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">` +
+      `<path d="${d}" fill="none" stroke="#CE6B3D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>` +
+      `<circle cx="${X(vals.length - 1).toFixed(1)}" cy="${Y(vals[vals.length - 1]).toFixed(1)}" r="2.6" fill="#CE6B3D"/></svg>`;
   }
 
   /* ============================================================
@@ -2721,6 +2772,7 @@
   function goBackFromDetail() {
     if (detailReturn === 'workout' && live.get()) { show('workout'); renderWorkout(); }
     else if (detailReturn === 'plan') { show('plan'); renderTab(); }
+    else if (detailReturn === 'stats') { show('stats'); renderTab(); }
     else { show('library'); renderTab(); }
   }
 
