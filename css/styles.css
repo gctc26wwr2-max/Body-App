@@ -384,26 +384,29 @@ body { font-size: 14px; }
 }
 .rep-cell .reps-val { font-size: 19px; font-weight: 800; letter-spacing: -.02em; }
 
-/* vertical rep wheel — styled like the system picker */
+/* vertical rep wheel — the weight ruler's graphics, turned upright */
 .rep-scale { padding: 2px 10px 12px; display: flex; flex-direction: column; gap: 7px; }
 .vs-ruler {
   position: relative; height: 170px; overflow: hidden; cursor: grab;
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 72%, transparent);
-  mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 72%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
 }
 .vs-ruler:active { cursor: grabbing; }
 .vs-ind {
-  position: absolute; top: 50%; margin-top: -17px; left: 6%; right: 6%; height: 34px;
-  border-radius: 11px; background: rgba(255,255,255,.07); z-index: 0;
+  position: absolute; top: 50%; margin-top: -1px; left: 26%; width: 34px; height: 2px;
+  background: var(--lime); z-index: 2;
 }
 .vs-strip { position: absolute; top: 50%; left: 0; right: 0; will-change: transform; z-index: 1; }
 .vs-tick {
-  height: 34px; width: 100%; background: none; border: none; padding: 0;
-  display: flex; align-items: center; justify-content: center;
+  height: 34px; width: 100%; background: none; border: none; padding: 0 0 0 26%;
+  display: flex; align-items: center;
 }
-.vs-tick span { font-size: 17px; font-weight: 600; color: var(--t6); font-variant-numeric: tabular-nums; }
+.vs-tick i { height: 2px; background: rgba(255,255,255,.18); display: block; flex: 0 0 auto; }
+.vs-tick i.w20 { width: 20px; } .vs-tick i.w15 { width: 15px; } .vs-tick i.w11 { width: 11px; }
+.vs-tick.sel i { width: 30px; background: var(--lime); }
+.vs-tick span { margin-left: 14px; font-size: 14px; font-weight: 600; color: var(--t6); font-variant-numeric: tabular-nums; }
 .vs-tick.inband span { color: var(--t3); }
-.vs-tick.sel span { font-size: 22px; font-weight: 800; color: var(--t1); }
+.vs-tick.sel span { font-size: 18px; font-weight: 800; color: var(--t1); }
 
 .ks-controls { display: flex; align-items: center; gap: 7px; }
 .ks-adj { width: 42px; height: 38px; border-radius: 12px; background: var(--ctrl); border: none; color: var(--t2); font-size: 15px; font-weight: 700; }
