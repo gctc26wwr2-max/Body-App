@@ -827,10 +827,10 @@ body { font-size: 14px; }
 .mine-tag { border-radius: 5px; background: rgba(206,107,61,.14); padding: 2px 6px; font-size: 10px; font-weight: 700; color: var(--lime); margin-left: 6px; }
 
 /* ============ EXERCISE DETAIL ============ */
-.det-hero { position: relative; height: 340px; background: var(--sunken); overflow: hidden; }
+.det-hero { position: relative; height: 340px; background: var(--sunken); overflow: hidden; margin-top: var(--safe-top); }
 .det-hero .demo-anim { width: 100%; height: 100%; border: none; border-radius: 0; }
 .det-back {
-  position: absolute; top: calc(20px + var(--safe-top)); left: 20px; z-index: 5;
+  position: absolute; top: 16px; left: 20px; z-index: 5;
   width: 38px; height: 38px; border-radius: 19px; border: none;
   background: rgba(11,9,8,.72); color: var(--t1); font-size: 16px;
 }
