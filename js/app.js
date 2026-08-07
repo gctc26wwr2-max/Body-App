@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v75';
+  const APP_VERSION = 'v76';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -391,7 +391,7 @@
         meta = 'Every session is banked. Renew the block to keep progressing.';
       }
       overlay.appendChild(el('div', 'arc-sess', sess));
-      const dn = el('div', 'arc-day', title);
+      const dn = el('div', 'arc-day' + (mode === 'next' || mode === 'live' ? '' : ' status'), title);
       if (title.length > 8) dn.style.fontSize = '34px';
       overlay.appendChild(dn);
       overlay.appendChild(el('div', 'arc-meta', meta));
