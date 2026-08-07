@@ -411,7 +411,7 @@ body { font-size: 14px; }
 
 .ks-controls { display: flex; align-items: center; gap: 7px; }
 .ks-adj { width: 42px; height: 38px; border-radius: 12px; background: var(--ctrl); border: none; color: var(--t2); font-size: 15px; font-weight: 700; }
-.ks-reset { background: none; border: 1px solid var(--amber-border); color: var(--amber); font-size: 12px; }
+.ks-reset { width: auto; min-width: 42px; padding: 0 10px; background: none; border: 1px solid var(--amber-border); color: var(--amber); font-size: 12px; white-space: nowrap; }
 .ks-plates { margin-left: auto; display: flex; gap: 6px; }
 .ks-plates button {
   height: 38px; padding: 0 9px; border-radius: 12px; background: none;
