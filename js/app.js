@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v81';
+  const APP_VERSION = 'v82';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1681,38 +1681,6 @@
         dRail.appendChild(pv);
       });
       c.appendChild(dRail);
-      const actions = el('div', 'text-links inset');
-      if (window.STARTER_BLOCK && plan.name === window.STARTER_BLOCK.name) {
-        const rst = el('button', null, 'Restore original days');
-        rst.onclick = async () => {
-          if (!confirm('Restore this block’s days and exercises to the original plan? Your history and week progress are kept.')) return;
-          const sb = window.STARTER_BLOCK;
-          const days = [];
-          for (const day of sb.days) {
-            const items = [];
-            for (const it of day.items) {
-              const libItem = (window.EXERCISE_LIBRARY || []).find(l => l.name === it.ex);
-              const ex = await ensureExercise(libItem || { name: it.ex, group: 'Other', notes: '' });
-              items.push({ exerciseId: ex.id, sets: it.sets, repLo: it.repLo, repHi: it.repHi, kg: 0 });
-            }
-            days.push({ name: day.name, items });
-          }
-          plan.days = days;
-          await DB.put('plans', plan);
-          alert('Plan restored: ' + days.map(d => d.name).join(', ') + '.');
-          renderTab();
-        };
-        actions.appendChild(rst);
-        actions.appendChild(el('i', null, '·'));
-      }
-      const delB = el('button', null, 'Delete block');
-      delB.onclick = async () => {
-        if (!confirm(`Delete "${plan.name}"? History is kept.`)) return;
-        await DB.del('plans', plan.id);
-        renderTab();
-      };
-      actions.appendChild(delB);
-      dRail.appendChild(actions);
       root.appendChild(c);
     }
 
@@ -1814,6 +1782,19 @@
         c2.appendChild(g);
         root.appendChild(c2);
       }
+    }
+
+    // delete block — quiet, at the very bottom of the page
+    if (plan) {
+      const delRow = el('div', 'text-links');
+      const delB = el('button', null, 'Delete block');
+      delB.onclick = async () => {
+        if (!confirm(`Delete "${plan.name}"? History is kept.`)) return;
+        await DB.del('plans', plan.id);
+        renderTab();
+      };
+      delRow.appendChild(delB);
+      root.appendChild(delRow);
     }
 
     if (!workouts.length && !plan) {
