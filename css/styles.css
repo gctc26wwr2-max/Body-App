@@ -529,6 +529,51 @@ body { font-size: 14px; }
 
 /* ============ PLAN TAB / HISTORY ============ */
 .compare-card { background: var(--grad-hero); border: 1px solid rgba(206,107,61,.22); border-radius: 22px; padding: 18px; }
+
+.rest-edit { font-size: 12px; font-weight: 800; color: var(--lime); background: none; border: none; }
+
+/* ---------- Plan: flat v5 block section ---------- */
+.plan-block { display: flex; flex-direction: column; gap: 13px; }
+.pb-week { font-size: 15px; font-weight: 800; letter-spacing: -.02em; margin-top: 4px; }
+.pday-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 0; border-top: 1px solid var(--hair-8); cursor: pointer;
+}
+.pday-row:last-of-type { border-bottom: 1px solid var(--hair-8); }
+.pd-name { flex: 1; font-size: 15px; font-weight: 800; letter-spacing: -.015em; text-transform: uppercase; }
+.pday-row.done .pd-name { color: var(--t5); }
+.pd-meta { font-size: 11.5px; font-weight: 600; color: var(--t6); }
+.pday-row.done .pd-meta { color: var(--lime); }
+.pd-go {
+  width: 44px; height: 38px; border-radius: 13px; border: none; flex: 0 0 auto;
+  background: var(--lime); color: var(--on-accent);
+  display: flex; align-items: center; justify-content: center; font-weight: 800;
+}
+.pday-row.done .pd-go { background: var(--ctrl); color: var(--lime); }
+.plan-block .day-preview { margin-bottom: 2px; }
+
+/* history threaded on a rail */
+.hist-rail { position: relative; display: flex; flex-direction: column; gap: 16px; }
+.hist-rail::before {
+  content: ''; position: absolute; left: 10px; top: 8px; bottom: 8px; width: 2px;
+  background: linear-gradient(to bottom, rgba(206,107,61,.5), rgba(255,255,255,.08) 55%, rgba(255,255,255,.06));
+}
+.hist-rail .month-label { padding-left: 32px; position: relative; z-index: 1; }
+.hrow { position: relative; padding-left: 32px; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.hrow.old { opacity: .8; }
+.ex-node.small { width: 18px; height: 18px; border-radius: 10px; top: 6px; }
+.hrow .ex-node { background: var(--lime); border-color: var(--lime); }
+.hrow .ex-node i { width: 5px; height: 5px; background: var(--on-accent); }
+.hrow-body { flex: 1; min-width: 0; }
+.hrow-date { font-size: 9.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--t6); }
+.hrow-name { font-size: 16px; font-weight: 800; letter-spacing: -.02em; text-transform: uppercase; margin-top: 2px; display: flex; align-items: center; gap: 7px; }
+.hrow-meta { font-size: 11.5px; font-weight: 600; color: var(--t5); margin-top: 2px; }
+.hist-rail .hist-detail { margin-left: 32px; margin-top: 8px; }
+.hrow .hist-del { align-self: center; }
+
+/* flat comparison table */
+.cmp-flat { display: flex; flex-direction: column; }
+
 .cmp-head { display: flex; justify-content: space-between; margin-bottom: 12px; }
 .cmp-head .a { font-size: 11px; font-weight: 700; letter-spacing: .16em; color: var(--lime); text-transform: uppercase; }
 .cmp-head .b { font-size: 12px; color: var(--t5); font-variant-numeric: tabular-nums; }
