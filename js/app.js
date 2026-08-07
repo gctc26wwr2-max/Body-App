@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v71';
+  const APP_VERSION = 'v72';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -204,17 +204,17 @@
     const plan = activePlan();
     const workouts = (await DB.all('workouts')).sort((a, b) => b.ts - a.ts);
 
-    // header
-    const head = el('header', 't-head');
-    const hl = el('div');
+    // meta row: date left, streak right
+    const head = el('header', 'meta-row');
     const now = new Date();
-    hl.appendChild(el('div', 't-date', now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })));
-    const w = plan ? (weekOf(plan) || 0) : 0;
-    hl.appendChild(el('h1', 't-title', plan
-      ? `Block ${blockNumber(plan)}${w ? ` · Week ${w} of ${plan.weeks || 4}` : ''}`
-      : 'Rackside'));
-    head.appendChild(hl);
+    head.appendChild(el('div', 'date', now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })));
+    const stk = el('div', 'streak');
+    const streakN = weekStreak(workouts);
+    stk.appendChild(el('span', 'l', 'Streak'));
+    stk.appendChild(el('span', 'v num', streakN + 'w'));
+    head.appendChild(stk);
     root.appendChild(head);
+    if (!plan) root.appendChild(el('h1', 't-title', 'Rackside'));
 
     // running in the browser tab (not installed) — layout loses the bottom strip to Safari
     const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
@@ -253,6 +253,13 @@
     const finished = planFinished(plan);
     const behind = started && !finished && (planWeek(plan) || 1) > progressWeek(plan);
 
+    // does today call for the arc "up next" layout?
+    const lwEarly = live.get();
+    const dtwSet = new Set((plan.completed || []).filter(c => c.week === (curWeek || 1)).map(c => c.day));
+    const nextIdxArc = (!finished && plan.days && plan.days.length) ? plan.days.findIndex((_, i) => !dtwSet.has(i)) : -1;
+    const showArc = !finished && !lwEarly && nextIdxArc >= 0 && !workouts.some(x => x.date === todayStr());
+
+    if (!showArc || behind) {
     // ---- block card ----
     const bc = el('div', 'card');
     const bh = el('div', 'block-head');
@@ -280,6 +287,7 @@
     }
     bc.appendChild(seg);
     root.appendChild(bc);
+    }
 
     // ---- renewal card (final week or finished) ----
     if (finished || (started && curWeek === weeks)) {
@@ -334,10 +342,80 @@
     });
     root.appendChild(strip);
 
-    // ---- up next hero ----
+    // ---- up next: the v5 arc layout ----
+    if (showArc) {
+      const day = plan.days[nextIdxArc];
+      const totalSess = weeks * plan.days.length;
+      const doneSess = Math.min((plan.completed || []).length, totalSess - 1);
+      const wrap = el('div', 'arc-wrap');
+      wrap.innerHTML = blockArcSVG(totalSess, doneSess, weeks);
+      const overlay = el('div', 'arc-title');
+      overlay.appendChild(el('div', 'arc-sess', `Session ${doneSess + 1} of ${totalSess}`));
+      const dn = el('div', 'arc-day', day.name);
+      if (day.name.length > 8) dn.style.fontSize = '34px';
+      overlay.appendChild(dn);
+      const lastDoneC = (plan.completed || []).filter(c => c.day === nextIdxArc && c.duration).pop();
+      const totalSets = day.items.reduce((a, it) => a + (it.sets || 3), 0);
+      const prefD = plan.prefDays || [];
+      const todayIdx = (now.getDay() + 6) % 7;
+      const doneThisWk = workouts.filter(x => sameWeek(x.date)).length;
+      const due = prefD.length && doneThisWk < prefD.filter(x => x <= todayIdx).length;
+      overlay.appendChild(el('div', 'arc-meta',
+        `${day.items.length} exercises · ~${lastDoneC ? lastDoneC.duration : Math.round(totalSets * 2.5)} min${due ? ' · due today' : ''}`));
+      wrap.appendChild(overlay);
+      root.appendChild(wrap);
+
+      // numbered exercise index
+      const idx = el('div', 'ex-index');
+      day.items.forEach((it, i) => {
+        const ex = exercises.find(e => e.id === it.exerciseId);
+        const r = el('div', 'exi-row');
+        r.appendChild(el('div', 'exi-num', String(i + 1).padStart(2, '0')));
+        r.appendChild(el('div', 'exi-name', ex ? ex.name : '(deleted)'));
+        r.appendChild(el('div', 'exi-scheme', `${it.sets || 3} × ${it.repLo || 8}–${it.repHi || 12}${it.kg ? ' · ' + fmtKg(it.kg) + ' kg' : ''}`));
+        if (ex) r.onclick = () => openDetail(ex.id, 'library');
+        idx.appendChild(r);
+      });
+      root.appendChild(idx);
+
+      // stats baseline row
+      const base = el('div', 'base-row');
+      const bs = (v, l, cls) => {
+        const d = el('div', 'base-stat' + (cls ? ' ' + cls : ''));
+        d.appendChild(el('div', 'v num', v));
+        d.appendChild(el('div', 'l', l));
+        return d;
+      };
+      base.appendChild(bs(String(totalSets), 'Sets'));
+      const lastW0 = workouts[0];
+      base.appendChild(bs(lastW0 ? String(lastW0.duration) : '—', 'Last min'));
+      const wkVol0 = workouts.filter(x => sameWeek(x.date)).reduce((a, x) => a + (x.volume || 0), 0);
+      base.appendChild(bs(fmtKg(wkVol0), 'Kg this week', 'earn'));
+      root.appendChild(base);
+
+      // primary CTA + text links
+      const cta = el('button', 'btn-cta big');
+      cta.appendChild(svgIcon(PLAY, 13));
+      cta.appendChild(document.createTextNode(' Start ' + day.name));
+      cta.onclick = () => startWorkout(plan, nextIdxArc);
+      root.appendChild(cta);
+      const links = el('div', 'text-links');
+      const mkLink = (t, fn) => { const b = el('button', null, t); b.onclick = fn; return b; };
+      links.appendChild(mkLink('Edit block', () => openPlanForm(plan)));
+      links.appendChild(el('i', null, '·'));
+      links.appendChild(mkLink('Log body weight', () => { show('profile'); renderTab(); }));
+      links.appendChild(el('i', null, '·'));
+      links.appendChild(mkLink('History', () => { show('plan'); renderTab(); }));
+      root.appendChild(links);
+    }
+
+    // ---- other states keep the hero card ----
     const lw = live.get();
     const hero = el('div', 'card hero');
-    if (lw) {
+    let useHero = true;
+    if (showArc) {
+      useHero = false;
+    } else if (lw) {
       hero.appendChild(heroTop('IN PROGRESS', fmtClock(Math.floor((Date.now() - lw.startedAt) / 1000)) + ' elapsed'));
       hero.appendChild(el('div', 'hero-title', lw.dayName));
       hero.appendChild(el('div', 'hero-sub', 'Your session is still running — jump back in.'));
@@ -362,45 +440,6 @@
         sub = `Recovery is part of the program. Next up: ${plan.days[nIdx].name}${planned}.`;
       }
       hero.appendChild(el('div', 'hero-sub', sub));
-    } else if (!finished && plan.days && plan.days.length &&
-               plan.days.every && (() => {
-                 const dtw = new Set((plan.completed || []).filter(c => c.week === (curWeek || 1)).map(c => c.day));
-                 return plan.days.some((_, i) => !dtw.has(i));
-               })()) {
-      const doneThisWeek = new Set((plan.completed || []).filter(c => c.week === (curWeek || 1)).map(c => c.day));
-      const nextIdx = plan.days.findIndex((_, i) => !doneThisWeek.has(i));
-      const day = plan.days[nextIdx];
-      const names = day.items.map(it => (exercises.find(e => e.id === it.exerciseId) || {}).name).filter(Boolean);
-      const totalSets = day.items.reduce((a, it) => a + (it.sets || 3), 0);
-      const lastDone = (plan.completed || []).filter(c => c.day === nextIdx && c.duration).pop();
-      const prefD = plan.prefDays || [];
-      const todayIdx = (now.getDay() + 6) % 7;
-      const doneThisWk = workouts.filter(x => sameWeek(x.date)).length;
-      const dueSlots = prefD.filter(x => x <= todayIdx).length;
-      let planned = '';
-      if (prefD.length) {
-        if (doneThisWk < dueSlots) {
-          // a scheduled session was missed (or is today) — it rolls over daily
-          planned = ' · due today';
-        } else if (!prefD.includes(todayIdx)) {
-          for (let k = 1; k <= 6; k++) {
-            const idx = (todayIdx + k) % 7;
-            if (prefD.includes(idx)) { planned = ' · planned ' + ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx]; break; }
-          }
-        }
-      }
-      hero.appendChild(heroTop('UP NEXT', `${day.items.length} exercises · ~${lastDone ? lastDone.duration : Math.round(totalSets * 2.5)} min${planned}`));
-      hero.appendChild(el('div', 'hero-title', day.name));
-      hero.appendChild(el('div', 'hero-sub', names.join(' · ')));
-      const stats = el('div', 'hero-stats');
-      stats.appendChild(heroStat(String(totalSets), 'sets', 'Working sets'));
-      stats.appendChild(el('div', 'divider'));
-      const wkVol = workouts.filter(x => sameWeek(x.date)).reduce((a, x) => a + (x.volume || 0), 0);
-      stats.appendChild(heroStat(fmtKg(wkVol), 'kg', 'Volume this week'));
-      hero.appendChild(stats);
-      const cta = el('button', 'btn-cta', 'Start workout');
-      cta.onclick = () => startWorkout(plan, nextIdx);
-      hero.appendChild(cta);
     } else if (finished) {
       hero.appendChild(heroTop('DONE', ''));
       hero.appendChild(el('div', 'hero-title', 'Block complete'));
@@ -410,7 +449,7 @@
       hero.appendChild(el('div', 'hero-title', 'All sessions banked'));
       hero.appendChild(el('div', 'hero-sub', `Every training day of week ${curWeek || 1} is done. Rest up — week ${Math.min((curWeek || 1) + 1, weeks)} unlocks as the calendar rolls over.`));
     }
-    root.appendChild(hero);
+    if (useHero) root.appendChild(hero);
 
     // ---- readiness / week stats ----
     const pair = el('div', 'stat-pair');
@@ -431,6 +470,58 @@
       note.appendChild(b);
       root.appendChild(note);
     }
+  }
+
+  /* Block arc — N session dots on a semicircle, today at the crest (v5 handoff) */
+  function blockArcSVG(total, doneCount, weeks) {
+    const R = 150, CX = 170, CY = 190;
+    const pt = i => {
+      const a = Math.PI - i * (Math.PI / Math.max(1, total - 1));
+      return [CX + R * Math.cos(a), CY - R * Math.sin(a)];
+    };
+    const ramp = ['#8E5330', '#A05E36', '#B0663A', '#BF6E3E', '#CE6B3D'];
+    let dots = '';
+    for (let i = 0; i < total; i++) {
+      const [x, y] = pt(i);
+      const X = x.toFixed(1), Y = y.toFixed(1);
+      if (i < doneCount) {
+        const c = ramp[Math.min(ramp.length - 1, Math.floor(i / Math.max(1, total - 1) * ramp.length))];
+        dots += `<circle cx="${X}" cy="${Y}" r="4" fill="${c}"/>`;
+      } else if (i === doneCount) {
+        dots += `<circle cx="${X}" cy="${Y}" r="13" fill="#0B0908" stroke="#CE6B3D" stroke-width="2"/>`
+              + `<circle cx="${X}" cy="${Y}" r="6" fill="#CE6B3D"/>`;
+      } else {
+        const op = Math.max(.10, .20 - (i - doneCount) * .015);
+        dots += `<circle cx="${X}" cy="${Y}" r="3.5" fill="rgba(255,255,255,${op.toFixed(3)})"/>`;
+      }
+    }
+    const [px, py] = pt(Math.min(doneCount, total - 1));
+    const prog = doneCount > 0
+      ? `<path d="M20 190 A150 150 0 0 1 ${px.toFixed(1)} ${py.toFixed(1)}" fill="none" stroke="#CE6B3D" stroke-width="2" stroke-linecap="round"/>`
+      : '';
+    return `<svg viewBox="0 0 340 208" style="width:100%;height:auto;display:block" role="img" aria-label="Block progress">
+      <path d="M20 190 A150 150 0 0 1 320 190" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5" stroke-dasharray="3 6"/>
+      ${prog}${dots}
+      <text x="20" y="205" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W1</text>
+      <text x="320" y="205" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W${weeks}</text>
+    </svg>`;
+  }
+
+  /* consecutive weeks (incl. this one) with at least one session */
+  function weekStreak(workouts) {
+    const has = ws => workouts.some(x => {
+      const d = dateOf(x.date);
+      return d >= ws && d < new Date(ws.getTime() + 7 * 86400000);
+    });
+    const now = new Date();
+    const dow = (now.getDay() + 6) % 7;
+    let ws = new Date(now); ws.setDate(now.getDate() - dow); ws.setHours(0, 0, 0, 0);
+    let n = has(ws) ? 1 : 0;
+    for (;;) {
+      ws = new Date(ws.getTime() - 7 * 86400000);
+      if (has(ws)) n++; else break;
+    }
+    return n;
   }
 
   function heroTop(tag, meta) {
@@ -519,19 +610,32 @@
     if (!lw) { show('today'); renderTab(); return; }
     const sessions = await DB.all('sessions');
 
-    // ---- header ----
+    // ---- fixed glass header: live dot + clock · sets banked · actions · track ----
     const head = el('div', 'w-head');
-    const hl = el('div');
-    hl.appendChild(el('div', 'w-live', `${lw.dayName} · Live`));
+    const hl = el('div', 'w-left');
+    const liveRow = el('div', 'w-live');
+    liveRow.appendChild(el('i', 'live-dot'));
+    liveRow.appendChild(document.createTextNode(` Live · ${lw.dayName}`));
+    hl.appendChild(liveRow);
     const clock = el('div', 'w-clock num', '0:00');
     hl.appendChild(clock);
     head.appendChild(hl);
+
+    const banked = lw.exercises.reduce((a, e2) => a + e2.sets.filter(x => x.done).length, 0);
+    const totSets = lw.exercises.reduce((a, e2) => a + e2.sets.length, 0);
+    const bank = el('div', 'w-banked');
+    bank.appendChild(el('div', 'v num', `${banked}/${totSets}`));
+    bank.appendChild(el('div', 'l', 'Sets banked'));
+    head.appendChild(bank);
+
     const btns = el('div', 'w-btns');
-    const pause = el('button');
-    pause.appendChild(svgIcon(PAUSE, 13));
+    const fin = el('button', 'w-chip fin', 'Finish');
+    fin.onclick = () => finishWorkout();
+    const pause = el('button', 'w-chip');
+    pause.appendChild(svgIcon(PAUSE, 11));
     pause.title = 'Pause — resume from Today';
     pause.onclick = () => { show('today'); renderTab(); };
-    const quit = el('button', null, '✕');
+    const quit = el('button', 'w-chip', '✕');
     quit.onclick = async () => {
       if (!await appConfirm({
         title: 'Discard session?', body: 'Logged sets will not be saved.',
@@ -541,18 +645,10 @@
       stopRest();
       show('today'); renderTab();
     };
-    const fin = el('button', 'fin-btn', '✓');
-    fin.title = 'Finish workout';
-    fin.onclick = () => finishWorkout();
     btns.append(fin, pause, quit);
     head.appendChild(btns);
-    root.appendChild(head);
-    clearInterval(elapsedInt);
-    const tickClock = () => clock.textContent = fmtClock(Math.floor((Date.now() - lw.startedAt) / 1000));
-    tickClock();
-    elapsedInt = setInterval(tickClock, 1000);
 
-    // ---- progress bars ----
+    // one 4pt bar per exercise
     const prog = el('div', 'ex-progress');
     lw.exercises.forEach((e2, i) => {
       const allDone = e2.sets.length > 0 && e2.sets.every(x => x.done);
@@ -561,21 +657,29 @@
       s.onclick = () => { lw.exIndex = i; lw.advanceAfterRest = false; live.set(lw); scrollToEx = true; renderWorkout(); };
       prog.appendChild(s);
     });
-    root.appendChild(prog);
+    head.appendChild(prog);
+    root.appendChild(head);
+    clearInterval(elapsedInt);
+    const tickClock = () => clock.textContent = fmtClock(Math.floor((Date.now() - lw.startedAt) / 1000));
+    tickClock();
+    elapsedInt = setInterval(tickClock, 1000);
 
-    // ---- all exercises on one scrolling page ----
+    // ---- the rail: every exercise threaded on one line ----
+    const rail = el('div', 'rail');
     lw.exercises.forEach((cur2, ei) => {
-      root.appendChild(exerciseCard(lw, cur2, ei, sessions));
+      rail.appendChild(exerciseCard(lw, cur2, ei, sessions));
     });
+    rail.appendChild(el('div', 'end-label', 'End of session'));
+    root.appendChild(rail);
 
-    // the rest timer floats fixed at the bottom of the screen
-    root.appendChild(restCard(lw, lw.exercises[lw.exIndex]));
+    // docked rest bar — only while resting
+    if (lw.restEndsAt) root.appendChild(dockedRestBar(lw));
 
     if (scrollToEx) {
       // only when you tap a progress bar to jump — never on logging or advancing
       scrollToEx = false;
       requestAnimationFrame(() => {
-        const t = root.querySelector('.ex-card.cur-ex');
+        const t = root.querySelector('.exx.active');
         if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     } else {
@@ -585,28 +689,59 @@
 
   function exerciseCard(lw, cur, ei, sessions) {
     const ex = exercises.find(e => e.id === cur.exerciseId);
-    const card = el('div', 'ex-card' + (ei === lw.exIndex ? ' cur-ex' : ''));
-    const row = el('div', 'ex-row');
-    const th = el('div', 'ex-thumb');
+    const allDone = cur.sets.length > 0 && cur.sets.every(s => s.done);
+    const active = ei === lw.exIndex;
+    const card = el('div', 'exx' + (active ? ' active' : '') + (allDone ? ' is-done' : ''));
+
+    // node on the rail
+    const node = el('i', 'ex-node');
+    node.appendChild(el('i'));
+    card.appendChild(node);
+
+    // header — always visible; tap to focus this exercise
+    const hd = el('div', 'exx-head');
+    const th = el('div', 'exx-thumb');
     th.appendChild(thumbFor(ex));
-    th.onclick = () => openDetail(ex.id, 'workout');
-    row.appendChild(th);
-    const col = el('div');
-    col.appendChild(el('div', 'ex-name', cur.name));
-    col.appendChild(el('div', 'ex-meta', `Exercise ${ei + 1} of ${lw.exercises.length} · ${cur.sets.length} × ${cur.repLo}-${cur.repHi}`
-      + (cur.timed ? (cur.perSide ? ' s / side' : ' s') : '')));
+    th.onclick = e => { e.stopPropagation(); if (ex) openDetail(ex.id, 'workout'); };
+    hd.appendChild(th);
+    const col = el('div', 'exx-col');
+    col.appendChild(el('div', 'exx-name', cur.name));
+    col.appendChild(el('div', 'exx-meta',
+      `${(ex && ex.group) ? ex.group + ' · ' : ''}${cur.sets.length} × ${cur.repLo}–${cur.repHi}${cur.timed ? (cur.perSide ? ' s / side' : ' s') : ''}`));
+    hd.appendChild(col);
+    const doneN = cur.sets.filter(s => s.done).length;
+    hd.appendChild(el('div', 'exx-count num', `${doneN}/${cur.sets.length}`));
+    hd.onclick = () => {
+      if (lw.exIndex === ei) return;
+      lw.exIndex = ei;
+      lw.advanceAfterRest = false;
+      live.set(lw);
+      renderWorkout();
+    };
+    card.appendChild(hd);
+
+    // collapsed: a finished exercise is one line of numbers; a pending one just its header
+    if (!active) {
+      if (allDone) {
+        const sum = el('div', 'exx-sum num',
+          cur.sets.map(s => cur.timed ? `${s.reps}s` : `${fmtKg(s.kg)} × ${s.reps}`).join('  ·  '));
+        if (cur.feel) sum.appendChild(el('span', 'hd-feel ' + cur.feel, cur.feel));
+        card.appendChild(sum);
+      }
+      return card;
+    }
+
+    // --- expanded (active exercise) ---
     const watch = el('div', 'ex-watch');
     watch.appendChild(svgIcon(PLAY, 10));
     watch.appendChild(document.createTextNode(' Watch the movement'));
-    watch.onclick = () => openDetail(ex.id, 'workout');
-    col.appendChild(watch);
-    row.appendChild(col);
-    card.appendChild(row);
+    watch.onclick = () => { if (ex) openDetail(ex.id, 'workout'); };
+    card.appendChild(watch);
 
     // plate math
     if (ex && isBarbell(ex)) {
-      const firstPending = cur.sets.find(s => !s.done) || cur.sets[cur.sets.length - 1];
-      const plates = plateMath(firstPending.kg);
+      const firstPendingSet = cur.sets.find(s => !s.done) || cur.sets[cur.sets.length - 1];
+      const plates = plateMath(firstPendingSet.kg);
       if (plates.length) {
         const ps = el('div', 'plate-strip');
         ps.appendChild(el('span', 'bar', 'BAR'));
@@ -644,28 +779,30 @@
       }
     };
 
-    // column headers
-    const gh = el('div', 'set-grid-head' + (cur.timed ? ' timed' : ''));
-    ['#', 'Kg', cur.timed ? 'Seconds' : 'Reps', 'Log'].forEach(t => gh.appendChild(el('span', null, t)));
+    // column headers — the rep range lives here, never inline in a row
+    const gh = el('div', 'set-grid-head');
+    ['#', 'Kg', `${cur.timed ? 'Sec' : 'Reps'} · ${cur.repLo}–${cur.repHi}`, 'Log'].forEach(t => gh.appendChild(el('span', null, t)));
     card.appendChild(gh);
 
-    // set rows — the first pending set is active; later ones stay faded
-    const firstPending = cur.sets.findIndex(s => !s.done);
+    // set rows — weight is a tap target that opens the scale inside the row
     cur.sets.forEach((set, si) => {
-      const r = el('div', 'w-set' + (set.done ? ' logged' : '') + (cur.timed ? ' timed' : '')
-        + (!set.done && firstPending >= 0 && si > firstPending ? ' upcoming' : ''));
-      r.appendChild(el('div', 'sn num', String(si + 1)));
-      const kgStep = stepper(set, 'kg', 2.5, () => {
-        // the new weight carries forward to the remaining unlogged sets
-        for (let j = si + 1; j < cur.sets.length; j++) {
-          if (!cur.sets[j].done) cur.sets[j].kg = set.kg;
-        }
+      const r = el('div', 'w-set' + (set.done ? ' logged' : ''));
+      const inner = el('div', 'w-set-row');
+      inner.appendChild(el('div', 'sn num', String(si + 1)));
+
+      const kgCell = el('button', 'kg-cell');
+      const kv = el('span', 'kv num', String(set.kg));
+      kv.id = 'val-kg-' + ei + '-' + si;
+      kgCell.appendChild(kv);
+      kgCell.appendChild(el('small', null, ' kg'));
+      kgCell.onclick = () => {
+        const key = ei + ':' + si;
+        lw.scaleOpenAt = lw.scaleOpenAt === key ? null : key;
         live.set(lw);
-        if (set.done) { renderWorkout(); return; }   // edits to logged sets refresh the suggestion
-        updateVals();
-      });
-      kgStep.querySelector('.val').id = 'val-kg-' + ei + '-' + si;
-      r.appendChild(kgStep);
+        renderWorkout();
+      };
+      inner.appendChild(kgCell);
+
       if (cur.timed) {
         const wrap = el('div', 'stepper');
         const minus = el('button', null, '−');
@@ -678,7 +815,7 @@
         const plus = el('button', null, '+');
         plus.onclick = () => { set.reps += 5; live.set(lw); updateVals(); };
         wrap.append(minus, mid, plus);
-        r.appendChild(wrap);
+        inner.appendChild(wrap);
       } else {
         const repsStep = stepper(set, 'reps', 1, () => {
           live.set(lw);
@@ -688,9 +825,10 @@
         const rv = repsStep.querySelector('.val');
         rv.id = 'val-reps-' + ei + '-' + si;
         rv.classList.add('reps-val', repTone(set));
-        r.appendChild(repsStep);
+        inner.appendChild(repsStep);
       }
-      const log = el('button', 'log-btn', set.done ? '✓' : '○');
+      const log = el('button', 'log-btn' + (set.done ? ' on' : ''));
+      log.innerHTML = '<svg viewBox="0 0 14 14" width="14" height="14"><path d="M2 7.5 L5.5 11 L12 3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       log.onclick = () => {
         set.done = !set.done;
         if (set.done) { set.doneAt = Date.now(); lw.exIndex = ei; }   // you're working here now
@@ -700,7 +838,13 @@
         if (set.done) startRest(cur.rest);   // after save — startRest re-reads state
         renderWorkout();
       };
-      r.appendChild(log);
+      inner.appendChild(log);
+      r.appendChild(inner);
+
+      // the weight scale expands inside this row
+      if (lw.scaleOpenAt === ei + ':' + si) {
+        r.appendChild(weightScale(lw, cur, ei, si, updateVals));
+      }
       card.appendChild(r);
     });
 
@@ -763,6 +907,9 @@
       fw.appendChild(strip);
       card.appendChild(fw);
     }
+
+    // inline rest timer — lives at the bottom of the active exercise
+    card.appendChild(inlineRest(lw, cur));
 
     // last time line
     const hist = sessions.filter(s => s.exerciseId === cur.exerciseId && s.date !== todayStr()).sort((a, b) => b.ts - a.ts);
@@ -1027,6 +1174,8 @@
     // update in-place
     const t = $('#rest-time-live');
     if (t) t.textContent = fmtClock(left);
+    const dt = $('#dock-time');
+    if (dt) dt.textContent = fmtClock(left);
     const bar = $('#rest-bar-fill');
     if (bar) bar.style.width = Math.max(0, Math.min(100, (left / lw.restLen) * 100)) + '%';
     updatePill();
@@ -1051,16 +1200,83 @@
   }
   $('#pill-cancel').onclick = stopRest;
 
-  function restCard(lw, cur) {
-    const c = el('div', 'rest-card');
-    const top = el('div', 'rest-top');
+  /* "+2.5 kg vs set 2" readout for the weight scale */
+  function setDelta(cur, si) {
+    if (si === 0) return 'Opening set';
+    const d = +(cur.sets[si].kg - cur.sets[si - 1].kg).toFixed(2);
+    if (d === 0) return `Same as set ${si}`;
+    return `${d > 0 ? '+' : '−'}${Math.abs(d)} kg vs set ${si}`;
+  }
+
+  /* The weight scale — a horizontal ruler that expands inside the set row */
+  function weightScale(lw, cur, ei, si, updateVals) {
+    const set = cur.sets[si];
+    const stepK = 2.5;
+    const box = el('div', 'kg-scale');
+    const render = () => {
+      box.innerHTML = '';
+      const top = el('div', 'ks-top');
+      const big = el('div', 'ks-val num', String(set.kg));
+      big.appendChild(el('small', null, ' kg'));
+      top.appendChild(big);
+      top.appendChild(el('div', 'ks-delta', setDelta(cur, si)));
+      box.appendChild(top);
+
+      // 11 ticks, selected centred under the indicator
+      const ruler = el('div', 'ks-ruler');
+      ruler.appendChild(el('i', 'ks-ind'));
+      const strip = el('div', 'ks-strip');
+      for (let d = -5; d <= 5; d++) {
+        const v = +(set.kg + d * stepK).toFixed(2);
+        const ok = v > 0;
+        const t = el('button', 'ks-tick' + (d === 0 ? ' sel' : ''));
+        t.appendChild(el('i', d === 0 ? 'h30' : (Math.abs(d) === 5 ? 'h20' : (Math.abs(d) % 2 ? 'h11' : 'h15'))));
+        t.appendChild(el('span', 'num', ok ? String(v) : '—'));
+        if (ok && d !== 0) t.onclick = () => setKg(v);
+        strip.appendChild(t);
+      }
+      ruler.appendChild(strip);
+      box.appendChild(ruler);
+
+      const ctr = el('div', 'ks-controls');
+      const minus = el('button', 'ks-adj num', '−');
+      minus.onclick = () => setKg(Math.max(0, +(set.kg - stepK).toFixed(2)));
+      const plus = el('button', 'ks-adj num', '+');
+      plus.onclick = () => setKg(+(set.kg + stepK).toFixed(2));
+      ctr.append(minus, plus);
+      const plates = el('div', 'ks-plates');
+      [1.25, 2.5, 5, 10].forEach(p => {
+        const b = el('button', 'num', '+' + p);
+        b.onclick = () => setKg(+(set.kg + p).toFixed(2));
+        plates.appendChild(b);
+      });
+      ctr.appendChild(plates);
+      box.appendChild(ctr);
+    };
+    const setKg = v => {
+      set.kg = v;
+      // the new weight carries forward to the remaining unlogged sets
+      for (let j = si + 1; j < cur.sets.length; j++) {
+        if (!cur.sets[j].done) cur.sets[j].kg = v;
+      }
+      live.set(lw);
+      updateVals();
+      render();
+    };
+    render();
+    return box;
+  }
+
+  /* Inline rest timer at the bottom of the active exercise — presets always visible */
+  function inlineRest(lw, cur) {
     const resting = !!lw.restEndsAt;
+    const c = el('div', 'rest-inline' + (resting ? ' on' : ''));
+    const top = el('div', 'ri-state' + (resting ? ' on' : ''));
+    top.appendChild(el('i', 'live-dot' + (resting ? '' : ' idle')));
     const nextEx = lw.advanceAfterRest && lw.exercises[lw.exIndex + 1];
-    top.appendChild(el('div', 'rest-state' + (resting ? ' on' : ''),
-      resting ? (nextEx ? 'Resting · next: ' + nextEx.name : 'Resting') : 'Rest timer · ready'));
-    const edit = el('button', 'rest-edit', lw.pickerOpen ? 'Close' : 'Edit');
-    edit.onclick = () => { lw.pickerOpen = !lw.pickerOpen; live.set(lw); renderWorkout(); };
-    top.appendChild(edit);
+    top.appendChild(document.createTextNode(resting
+      ? (nextEx ? ' Resting · next: ' + nextEx.name : ' Resting')
+      : ' Rest timer · ready'));
     c.appendChild(top);
 
     const mid = el('div', 'rest-mid');
@@ -1081,9 +1297,12 @@
       lw.restEndsAt += 15000;
       live.set(lw); restTick();
     };
-    const skip = el('button', 'skip', 'Skip');
-    skip.onclick = () => { stopRest(); renderWorkout(); };
-    mid.append(m15, p15, skip);
+    const act = el('button', 'skip', resting ? 'Skip' : 'Start');
+    act.onclick = () => {
+      if (resting) { stopRest(); renderWorkout(); }
+      else { startRest(cur.rest); renderWorkout(); }
+    };
+    mid.append(m15, p15, act);
     c.appendChild(mid);
 
     const bar = el('div', 'rest-bar');
@@ -1093,25 +1312,43 @@
     bar.appendChild(fill);
     c.appendChild(bar);
 
-    if (lw.pickerOpen) {
-      c.appendChild(el('div', 'micro', 'Rest length for this exercise'));
-      const pick = el('div', 'rest-picker');
-      [60, 90, 120, 150, 180, 240].forEach(sec => {
-        const b = el('button', 'num' + (cur.rest === sec ? ' sel' : ''), fmtClock(sec));
-        b.onclick = async () => {
-          cur.rest = sec;
-          const exRec = await DB.get('exercises', cur.exerciseId);
-          if (exRec) { exRec.rest = sec; await DB.put('exercises', exRec); }
-          if (lw.restEndsAt) { lw.restLen = sec; lw.restEndsAt = Date.now() + sec * 1000; }
-          live.set(lw);
-          renderWorkout();
-        };
-        pick.appendChild(b);
-      });
-      c.appendChild(pick);
-    }
+    // six length presets, always visible; rest length is per exercise
+    const pick = el('div', 'rest-picker');
+    [60, 90, 120, 150, 180, 240].forEach(sec => {
+      const b = el('button', 'num' + (cur.rest === sec ? ' sel' : ''), fmtClock(sec));
+      b.onclick = async () => {
+        cur.rest = sec;
+        const exRec = await DB.get('exercises', cur.exerciseId);
+        if (exRec) { exRec.rest = sec; await DB.put('exercises', exRec); }
+        if (lw.restEndsAt) { lw.restLen = sec; lw.restEndsAt = Date.now() + sec * 1000; }
+        live.set(lw);
+        renderWorkout();
+      };
+      pick.appendChild(b);
+    });
+    c.appendChild(pick);
+
     if (resting) armRestTick();
     return c;
+  }
+
+  /* Docked rest bar — a slim glass strip over the page while resting */
+  function dockedRestBar(lw) {
+    const outer = el('div', 'dock-rest');
+    const bar = el('div', 'dock-inner');
+    bar.appendChild(el('i', 'live-dot'));
+    const t = el('span', 'dock-time num', fmtClock(Math.max(0, Math.ceil((lw.restEndsAt - Date.now()) / 1000))));
+    t.id = 'dock-time';
+    bar.appendChild(t);
+    const nextEx = lw.advanceAfterRest && lw.exercises[lw.exIndex + 1];
+    bar.appendChild(el('span', 'dock-next', nextEx ? 'Next · ' + nextEx.name : lw.exercises[lw.exIndex].name));
+    const p15 = el('button', 'dock-btn num', '+15');
+    p15.onclick = () => { lw.restEndsAt += 15000; live.set(lw); restTick(); };
+    const skip = el('button', 'dock-skip', 'Skip');
+    skip.onclick = () => { stopRest(); renderWorkout(); };
+    bar.append(p15, skip);
+    outer.appendChild(bar);
+    return outer;
   }
 
   /* ---------------- finish workout ---------------- */
@@ -1668,18 +1905,18 @@
     const fmtD = ts => new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     const grid = [hi, (hi + lo) / 2, lo].map(v =>
       `<line x1="${padL}" y1="${Y(v).toFixed(1)}" x2="${W - padR}" y2="${Y(v).toFixed(1)}" stroke="rgba(255,255,255,.06)" stroke-width="1"/>` +
-      `<text x="${padL - 5}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end" fill="#6E7278" font-size="9" font-family="Barlow, sans-serif">${(Math.round(v * 10) / 10)}</text>`
+      `<text x="${padL - 5}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end" fill="#6A625A" font-size="9" font-family="Archivo, sans-serif">${(Math.round(v * 10) / 10)}</text>`
     ).join('');
     const dots = P.map((p, i) =>
-      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i === P.length - 1 ? 4 : 3}" fill="#C8FF2E" stroke="#14161A" stroke-width="2"/>`
+      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i === P.length - 1 ? 4 : 3}" fill="#CE6B3D" stroke="#151110" stroke-width="2"/>`
     ).join('');
     return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;margin-top:12px" role="img" aria-label="Body weight over time">
       ${grid}
-      <path d="${area}" fill="rgba(200,255,46,.10)"/>
-      <path d="${line}" fill="none" stroke="#C8FF2E" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="${area}" fill="rgba(206,107,61,.12)"/>
+      <path d="${line}" fill="none" stroke="#CE6B3D" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       ${dots}
-      <text x="${padL}" y="${H - 6}" fill="#6E7278" font-size="9" font-family="Barlow, sans-serif">${fmtD(x0)}</text>
-      <text x="${W - padR}" y="${H - 6}" text-anchor="end" fill="#6E7278" font-size="9" font-family="Barlow, sans-serif">${fmtD(x1)}</text>
+      <text x="${padL}" y="${H - 6}" fill="#6A625A" font-size="9" font-family="Archivo, sans-serif">${fmtD(x0)}</text>
+      <text x="${W - padR}" y="${H - 6}" text-anchor="end" fill="#6A625A" font-size="9" font-family="Archivo, sans-serif">${fmtD(x1)}</text>
     </svg>`;
   }
 
@@ -1872,7 +2109,7 @@
     rm.appendChild(row);
     const chart = el('div', 'rm-chart');
     const maxV = Math.max(...weeksArr, 1);
-    const ramp = ['#2B2F35', '#3A4029', '#7E9C2A', '#C8FF2E'];
+    const ramp = ['#2A211C', '#8E5330', '#B0663A', '#CE6B3D'];
     weeksArr.forEach((val, i) => {
       const bar = el('span');
       bar.style.height = Math.max(3, Math.round(val / maxV * 100)) + '%';
