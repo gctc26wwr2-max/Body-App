@@ -275,9 +275,9 @@ body { font-size: 14px; }
 /* timed rows: kg column narrower, seconds column wider */
 .w-set.timed, .set-grid-head.timed { grid-template-columns: 16px minmax(0,0.7fr) minmax(0,1.3fr) 42px; }
 .w-set.timed .stepper .val { min-width: 24px; }
-.w-set .reps-val.pending { color: var(--lime-pale); }
+.w-set .reps-val.below { color: #FF8B8B; }
 .w-set .reps-val.inrange { color: var(--lime); }
-.w-set .reps-val.below { color: var(--amber); }
+.w-set .reps-val.above { color: var(--amber); }
 .log-btn {
   width: 42px; height: 42px; border-radius: 12px; border: none;
   background: var(--ctrl); color: #8A8E94; font-size: 16px; justify-self: end;
