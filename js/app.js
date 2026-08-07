@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v106';
+  const APP_VERSION = 'v107';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -707,11 +707,12 @@
     if (lw.restEndsAt) root.appendChild(dockedRestBar(lw));
 
     if (scrollToEx) {
-      // only when you tap a progress bar to jump — never on logging or advancing
+      // only on a deliberate tap (progress bar or exercise header) —
+      // never on logging or auto-advancing. Centre the sets on screen.
       scrollToEx = false;
       requestAnimationFrame(() => {
-        const t = root.querySelector('.exx.active');
-        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const t = root.querySelector('.exx.active .w-set') || root.querySelector('.exx.active');
+        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
     } else {
       requestAnimationFrame(() => window.scrollTo(0, keepY));
@@ -747,6 +748,7 @@
       lw.exIndex = ei;
       lw.advanceAfterRest = false;
       live.set(lw);
+      scrollToEx = true;   // you asked for it — bring its sets to centre
       renderWorkout();
     };
     card.appendChild(hd);
