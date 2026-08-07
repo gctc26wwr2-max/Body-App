@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v73';
+  const APP_VERSION = 'v74';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -796,10 +796,12 @@
       inner.appendChild(el('div', 'sn num', String(si + 1)));
 
       const kgCell = el('button', 'kg-cell');
+      const kvWrap = el('span', 'kv-wrap');
       const kv = el('span', 'kv num', String(set.kg));
       kv.id = 'val-kg-' + ei + '-' + si;
-      kgCell.appendChild(kv);
-      kgCell.appendChild(el('small', null, ' kg'));
+      kvWrap.appendChild(kv);
+      kvWrap.appendChild(el('small', null, 'kg'));
+      kgCell.appendChild(kvWrap);
       kgCell.onclick = () => {
         const key = ei + ':' + si;
         lw.scaleOpenAt = lw.scaleOpenAt === key ? null : key;
