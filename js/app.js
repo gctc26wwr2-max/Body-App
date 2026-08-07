@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v61';
+  const APP_VERSION = 'v62';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1245,7 +1245,7 @@
       (plan.days || []).forEach((day, i) => {
         const r = el('div', 'prog-day-row' + (doneThisWeek.has(i) ? ' done' : ''));
         r.appendChild(el('div', 'n', (doneThisWeek.has(i) ? '✓ ' : '') + day.name));
-        r.appendChild(el('div', 'm', day.items.length + ' exercises'));
+        r.appendChild(el('div', 'm num', day.items.length + ' exercises ▾'));
         const go = el('button', 'go');
         if (doneThisWeek.has(i)) {
           go.textContent = '✓ Done';
@@ -1254,10 +1254,41 @@
         } else {
           go.appendChild(svgIcon(PLAY, 10));
           go.appendChild(document.createTextNode(' Start'));
-          go.onclick = () => startWorkout(plan, i);
+          go.onclick = e => { e.stopPropagation(); startWorkout(plan, i); };
         }
         r.appendChild(go);
         c.appendChild(r);
+
+        // tap the day to preview the exercises you'll go through
+        const pv = el('div', 'day-preview');
+        pv.hidden = true;
+        r.onclick = () => {
+          if (pv.hidden && !pv.dataset.built) {
+            day.items.forEach(it => {
+              const ex2 = exercises.find(x => x.id === it.exerciseId);
+              const row = el('div', 'pv-row');
+              const th = el('div', 'pv-thumb');
+              th.appendChild(thumbFor(ex2));
+              row.appendChild(th);
+              const cc = el('div');
+              cc.appendChild(el('div', 'pv-name', ex2 ? ex2.name : '(deleted)'));
+              const timed = /second/i.test((ex2 && ex2.notes) || '');
+              cc.appendChild(el('div', 'pv-meta num',
+                `${it.sets} × ${it.repLo}-${it.repHi}${timed ? ' s' : ' reps'}`
+                + (it.kg ? ` · ${fmtKg(it.kg)} kg` : '')));
+              row.appendChild(cc);
+              if (ex2) {
+                row.appendChild(el('div', 'pv-go', '›'));
+                row.onclick = () => openDetail(ex2.id, 'plan');
+              }
+              pv.appendChild(row);
+            });
+            pv.dataset.built = '1';
+          }
+          pv.hidden = !pv.hidden;
+          r.classList.toggle('open', !pv.hidden);
+        };
+        c.appendChild(pv);
       });
       if (window.STARTER_BLOCK && plan.name === window.STARTER_BLOCK.name) {
         const rst = el('button', 'btn-ghost', 'Restore original days');
@@ -2073,6 +2104,7 @@
   }
   function goBackFromDetail() {
     if (detailReturn === 'workout' && live.get()) { show('workout'); renderWorkout(); }
+    else if (detailReturn === 'plan') { show('plan'); renderTab(); }
     else { show('library'); renderTab(); }
   }
 
