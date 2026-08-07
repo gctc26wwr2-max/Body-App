@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v65';
+  const APP_VERSION = 'v66';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -139,6 +139,26 @@
     if (ex && ex.demo) return demoEl(ex.demo, extra);
     const ph = el('div', 'demo-anim ph' + (extra ? ' ' + extra : ''), '🏋️');
     return ph;
+  }
+
+  /* ---------------- themed confirm dialog ---------------- */
+  function appConfirm({ title, body, ok = 'OK', cancel = 'Cancel', warn = false }) {
+    return new Promise(res => {
+      const back = el('div', 'modal-back');
+      const m = el('div', 'modal' + (warn ? ' warn' : ''));
+      m.appendChild(el('div', 'modal-title', title));
+      if (body) m.appendChild(el('div', 'modal-body', body));
+      const acts = el('div', 'modal-acts');
+      const no = el('button', 'btn-ghost', cancel);
+      no.onclick = () => { back.remove(); res(false); };
+      const yes = el('button', 'btn-lime', ok);
+      yes.onclick = () => { back.remove(); res(true); };
+      acts.append(no, yes);
+      m.appendChild(acts);
+      back.appendChild(m);
+      back.onclick = e => { if (e.target === back) { back.remove(); res(false); } };
+      document.body.appendChild(back);
+    });
   }
 
   /* ---------------- sheets ---------------- */
@@ -511,7 +531,10 @@
     pause.onclick = () => { show('today'); renderTab(); };
     const quit = el('button', null, '✕');
     quit.onclick = async () => {
-      if (!confirm('Discard this session? Logged sets will not be saved.')) return;
+      if (!await appConfirm({
+        title: 'Discard session?', body: 'Logged sets will not be saved.',
+        ok: 'Discard', cancel: 'Keep training', warn: true
+      })) return;
       live.set(null);
       stopRest();
       show('today'); renderTab();
@@ -990,15 +1013,16 @@
     const pill = $('#timer-pill');
     const lw = live.get();
     const inWorkout = !$('#view-workout').hidden;
-    // on the exercise page the demo fills the top — dock the pill at the bottom
-    pill.classList.toggle('bottom', !$('#view-detail').hidden);
-    if (justDone && !inWorkout) {
+    // on the exercise page the demo fills the top, and in the workout the header
+    // sits up top — dock the pill at the bottom there so it floats while scrolling
+    pill.classList.toggle('bottom', !$('#view-detail').hidden || inWorkout);
+    if (justDone) {
       pill.hidden = false;
       $('#pill-time').textContent = 'GO! 💪';
-      setTimeout(() => { pill.hidden = true; }, 4000);
+      setTimeout(() => { pill.hidden = true; updatePill(); }, 4000);
       return;
     }
-    if (lw && lw.restEndsAt && !inWorkout) {
+    if (lw && lw.restEndsAt) {
       pill.hidden = false;
       $('#pill-time').textContent = fmtClock(Math.max(0, Math.ceil((lw.restEndsAt - Date.now()) / 1000)));
     } else pill.hidden = true;
@@ -1074,18 +1098,24 @@
     if (!lw) return;
     const loggedEx = lw.exercises.filter(e => e.sets.some(s => s.done));
     if (!loggedEx.length) {
-      if (!confirm('No sets logged. Finish anyway?')) return;
+      if (!await appConfirm({
+        title: 'Finish workout?', body: 'No sets were logged — nothing will be saved.',
+        ok: 'Finish anyway', cancel: 'Keep training', warn: true
+      })) return;
     } else {
       const missed = lw.exercises.filter(e => !e.sets.some(s => s.done));
       const partial = lw.exercises.filter(e => e.sets.some(s => s.done) && !e.sets.every(s => s.done));
-      let msg = 'Are you finished? The session will be saved.';
+      let opts = { title: 'Finished?', body: 'The session will be saved.', ok: 'Save session', cancel: 'Keep training' };
       if (missed.length || partial.length) {
         const parts = [];
-        if (missed.length) parts.push('⚠️ Not logged: ' + missed.map(e => e.name).join(', '));
-        if (partial.length) parts.push('⚠️ Sets left open: ' + partial.map(e => e.name).join(', '));
-        msg = parts.join('\n') + '\n\nFinish anyway? These will not be saved.';
+        if (missed.length) parts.push('Not logged: ' + missed.map(e => e.name).join(', '));
+        if (partial.length) parts.push('Sets left open: ' + partial.map(e => e.name).join(', '));
+        opts = {
+          title: 'Finish anyway?', body: parts.join('\n') + '\n\nUnlogged sets will not be saved.',
+          ok: 'Finish anyway', cancel: 'Keep training', warn: true
+        };
       }
-      if (!confirm(msg)) return;
+      if (!await appConfirm(opts)) return;
     }
 
     const sessionsAll = await DB.all('sessions');
