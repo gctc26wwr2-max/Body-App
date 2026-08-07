@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v110';
+  const APP_VERSION = 'v111';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2002,7 +2002,7 @@
 
       // start a fresh block — centred, below the block actions
       const nbRow = el('div', 'new-block-row');
-      const nb = el('button', 'chip-btn', '＋ New block');
+      const nb = el('button', 'btn-ghost new-block-btn', '＋ New block');
       nb.onclick = () => openPlanForm(null);
       nbRow.appendChild(nb);
       root.appendChild(nbRow);
