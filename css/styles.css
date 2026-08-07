@@ -332,11 +332,12 @@ body { font-size: 14px; }
 .w-set .sn { font-size: 13px; font-weight: 800; color: var(--t7); text-align: center; }
 .w-set.logged .sn { color: var(--lime); }
 .kg-cell {
-  height: 38px; background: none; border: none; color: var(--t1);
+  height: 38px; width: 100%; padding: 0; background: none; border: none; color: var(--t1);
   display: flex; align-items: baseline; justify-content: center; gap: 3px;
 }
 .kg-cell .kv { font-size: 19px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.kg-cell small { font-size: 10px; font-weight: 700; color: var(--t6); }
+.kg-cell small { font-size: 10px; font-weight: 700; color: var(--t6); width: 16px; margin-left: -1px; text-align: left; flex: 0 0 auto; }
+.kg-cell::before { content: ''; width: 15px; flex: 0 0 auto; }  /* balances the "kg" suffix so the number sits dead-centre */
 
 /* the weight scale — expands inside the set row */
 .kg-scale { padding: 2px 10px 12px; display: flex; flex-direction: column; gap: 7px; }
@@ -344,20 +345,27 @@ body { font-size: 14px; }
 .ks-val { font-size: 30px; font-weight: 800; letter-spacing: -.04em; }
 .ks-val small { font-size: 12px; font-weight: 700; color: var(--t5); letter-spacing: 0; }
 .ks-delta { font-size: 9px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--t6); }
-.ks-ruler { position: relative; height: 52px; overflow: hidden; }
+.ks-ruler { position: relative; height: 52px; overflow: hidden; cursor: grab; }
+.ks-ruler:active { cursor: grabbing; }
 .ks-ind { position: absolute; left: 50%; margin-left: -1px; top: 0; width: 2px; height: 30px; background: var(--lime); z-index: 2; }
-.ks-strip { position: absolute; left: 50%; top: 0; display: flex; transform: translateX(-253px); }
+.ks-strip { position: absolute; left: 50%; top: 0; display: flex; will-change: transform; }
 .ks-tick {
-  width: 46px; flex: 0 0 auto; background: none; border: none; padding: 0;
+  flex: 0 0 auto; background: none; border: none; padding: 0;
   display: flex; flex-direction: column; align-items: center; gap: 4px;
 }
 .ks-tick i { width: 2px; background: rgba(255,255,255,.18); display: block; }
-.ks-tick i.h30 { height: 30px; } .ks-tick i.h20 { height: 20px; }
-.ks-tick i.h15 { height: 15px; margin-top: 15px; } .ks-tick i.h11 { height: 11px; margin-top: 19px; }
-.ks-tick i.h20 { margin-top: 10px; }
-.ks-tick.sel i { background: var(--lime); }
-.ks-tick span { font-size: 10.5px; font-weight: 600; color: var(--t6); }
+.ks-tick i.h20 { height: 20px; margin-top: 10px; }
+.ks-tick i.h15 { height: 15px; margin-top: 15px; }
+.ks-tick i.h11 { height: 11px; margin-top: 19px; }
+.ks-tick.sel i { background: var(--lime); height: 30px !important; margin-top: 0 !important; }
+.ks-tick span { font-size: 10.5px; font-weight: 600; color: var(--t6); min-height: 13px; }
 .ks-tick.sel span { color: var(--t1); font-weight: 800; }
+/* fine variant for body weight — taller, denser ticks */
+.ks-ruler.fine { height: 68px; }
+.ks-ruler.fine .ks-ind { height: 34px; }
+.ks-ruler.fine .ks-tick i.h20 { height: 22px; margin-top: 12px; }
+.ks-ruler.fine .ks-tick i.h15, .ks-ruler.fine .ks-tick i.h11 { height: 12px; margin-top: 22px; }
+.ks-ruler.fine .ks-tick.sel i { height: 34px !important; }
 .ks-controls { display: flex; align-items: center; gap: 7px; }
 .ks-adj { width: 42px; height: 38px; border-radius: 12px; background: var(--ctrl); border: none; color: var(--t2); font-size: 15px; font-weight: 700; }
 .ks-plates { margin-left: auto; display: flex; gap: 6px; }
@@ -627,14 +635,32 @@ body { font-size: 14px; }
   padding: 16px; font-size: 13px; line-height: 1.45; color: var(--t2); text-wrap: pretty;
 }
 .coach-note b { color: var(--lime); font-weight: 700; }
-.bw-input { display: flex; gap: 8px; margin-top: 12px; }
-.bw-input input {
-  flex: 0 0 104px; width: 104px; height: 48px; padding: 0 10px;
-  border-radius: 12px; border: 1px solid var(--hair-8);
-  background: var(--sunken); color: var(--t1); font-size: 26px; text-align: center;
-  font-family: var(--cond); font-weight: 700;
+/* body weight — v5 reading + scale */
+.bwv-card { display: flex; flex-direction: column; gap: 13px; }
+.bwv-head { display: flex; justify-content: space-between; align-items: baseline; }
+.bwv-head .trend-d { color: var(--lime); }
+.bwv-read { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.bwv-val { font-size: 64px; font-weight: 800; line-height: .84; letter-spacing: -.055em; }
+.bwv-val small { font-size: 17px; font-weight: 700; color: var(--t5); letter-spacing: 0; }
+.bwv-delta { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding-bottom: 3px; }
+.bwv-delta.down { color: var(--lime); }
+.bwv-delta.up { color: var(--amber); }
+.bwv-delta.same { color: var(--t6); }
+.bw-steps { margin-left: auto; display: flex; gap: 6px; }
+.bw-steps button {
+  width: 44px; height: 38px; border-radius: 13px; background: none;
+  border: 1px solid var(--hair-strong); color: var(--t2); font-size: 11px; font-weight: 800;
 }
-.bw-input .btn-lime { flex: 1; height: 48px; }
+.bw-steps button.sel { background: var(--lime); border-color: transparent; color: var(--on-accent); }
+.bwv-log {
+  height: 62px; border-radius: 20px; border: none; background: var(--lime);
+  box-shadow: 0 12px 30px rgba(206,107,61,.3);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-size: 15px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--on-accent);
+}
+.bwv-log small { font-size: 12px; font-weight: 700; color: rgba(23,10,4,.6); letter-spacing: .02em; }
+.bwv-log.logged { background: var(--surface); box-shadow: none; color: var(--t5); border: 1px solid var(--hair-8); }
+.bwv-log.logged small { color: var(--t6); }
 
 /* ============ LIBRARY ============ */
 .search-input {
