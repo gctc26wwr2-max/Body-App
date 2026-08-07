@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v99';
+  const APP_VERSION = 'v100';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -651,7 +651,9 @@
     head.appendChild(bank);
 
     const btns = el('div', 'w-btns');
-    const fin = el('button', 'w-chip fin', 'Finish');
+    const fin = el('button', 'w-chip fin');
+    fin.innerHTML = '<svg viewBox="0 0 14 14" width="15" height="15"><path d="M2 7.5 L5.5 11 L12 3.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    fin.title = 'Finish workout';
     fin.onclick = () => finishWorkout();
     const pause = el('button', 'w-chip');
     pause.appendChild(svgIcon(PAUSE, 11));
@@ -1317,9 +1319,11 @@
       } else { mark(); slide(anim); }
     };
 
-    // drag like a real scale — a haptic tick per detent
+    // drag like a real scale — a haptic tick per detent.
+    // touch-action none: the browser must never hesitate between our drag
+    // and a page scroll, which is what made horizontal drags laggy.
     let sx = null, so = 0, lastN = 0;
-    wrap.style.touchAction = 'pan-y';
+    wrap.style.touchAction = 'none';
     wrap.addEventListener('pointerdown', e => {
       sx = e.clientX; so = offFor(st.val); lastN = 0;
       strip.style.transition = 'none';
@@ -1359,10 +1363,11 @@
     return { el: wrap, setVal: v => setVal(v, true), get: () => st.val };
   }
 
-  /* The weight scale — expands inside the set row */
+  /* The weight scale — expands inside the set row.
+     0.5 kg per notch, long labelled lines at whole kilos. */
   function weightScale(lw, cur, ei, si, updateVals) {
     const set = cur.sets[si];
-    const stepK = 2.5;
+    const stepK = 0.5;
     const box = el('div', 'kg-scale');
 
     const top = el('div', 'ks-top');
@@ -1384,7 +1389,7 @@
       big.firstChild.nodeValue = String(v);
       deltaEl.textContent = setDelta(cur, si);
     };
-    const ruler = rulerScale({ value: set.kg, step: stepK, tickW: 46, span: 8, min: 0, onChange: commit });
+    const ruler = rulerScale({ value: set.kg, step: stepK, tickW: 30, span: 14, min: 0, labelEvery: 2, majorEvery: 2, onChange: commit });
     box.appendChild(ruler.el);
 
     const ctr = el('div', 'ks-controls');
