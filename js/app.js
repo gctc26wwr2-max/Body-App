@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v92';
+  const APP_VERSION = 'v93';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -842,23 +842,19 @@
         wrap.append(minus, mid, plus);
         inner.appendChild(wrap);
       } else {
-        const repsStep = stepper(set, 'reps', 1, () => {
-          live.set(lw);
-          if (set.done) { renderWorkout(); return; }
-          updateVals();
-        });
-        const rv = repsStep.querySelector('.val');
+        // the rep number is a tap target — it opens the vertical wheel
+        const repBtn = el('button', 'rep-cell');
+        const rv = el('span', 'reps-val num ' + repTone(set), String(set.reps));
         rv.id = 'val-reps-' + ei + '-' + si;
-        rv.classList.add('reps-val', repTone(set));
-        // tap the number to open the vertical rep scale
-        rv.onclick = () => {
+        repBtn.appendChild(rv);
+        repBtn.onclick = () => {
           const key = ei + ':' + si;
           lw.repScaleAt = lw.repScaleAt === key ? null : key;
           lw.scaleOpenAt = null;
           live.set(lw);
           renderWorkout();
         };
-        inner.appendChild(repsStep);
+        inner.appendChild(repBtn);
       }
       const log = el('button', 'log-btn' + (set.done ? ' on' : ''));
       log.innerHTML = '<svg viewBox="0 0 14 14" width="14" height="14"><path d="M2 7.5 L5.5 11 L12 3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -1391,14 +1387,10 @@
     box.appendChild(ruler.el);
 
     const ctr = el('div', 'ks-controls');
-    const minus = el('button', 'ks-adj num', '−');
-    minus.onclick = () => ruler.setVal(ruler.get() - stepK);
-    const plus = el('button', 'ks-adj num', '+');
-    plus.onclick = () => ruler.setVal(ruler.get() + stepK);
     const reset = el('button', 'ks-adj ks-reset num', '0');
     reset.title = 'Reset to 0';
     reset.onclick = () => ruler.setVal(0);
-    ctr.append(minus, plus, reset);
+    ctr.append(reset);
     const plates = el('div', 'ks-plates');
     [2.5, 5, 10].forEach(p => {
       const b = el('button', 'num', '+' + p);
