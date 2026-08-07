@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v100';
+  const APP_VERSION = 'v101';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2066,14 +2066,6 @@
       labelEvery: 2, majorEvery: 2, decimals: 1, cls: 'fine', onChange: commitBw
     });
     bwCard.appendChild(bwRuler.el);
-
-    const bwCtr = el('div', 'ks-controls');
-    const bm = el('button', 'ks-adj num', '−');
-    bm.onclick = () => bwRuler.setVal(bwRuler.get() - bwStep);
-    const bp = el('button', 'ks-adj num', '+');
-    bp.onclick = () => bwRuler.setVal(bwRuler.get() + bwStep);
-    bwCtr.append(bm, bp);
-    bwCard.appendChild(bwCtr);
 
     // 30-day trend
     {
