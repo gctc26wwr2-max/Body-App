@@ -441,6 +441,8 @@ body { font-size: 14px; }
 .prog-day-row.done .n { color: var(--lime); }
 .prog-day-row.done .go { background: var(--ctrl); color: var(--lime); }
 .prog-day-row.open .m { color: var(--lime); }
+.ex-card.cur-ex { border-color: rgba(200,255,46,.35); }
+#view-workout .ex-card:not(.cur-ex) { opacity: .82; }
 .day-preview {
   border-radius: 14px; background: var(--sunken); border: 1px solid var(--hair);
   padding: 4px 12px; margin-bottom: 10px;

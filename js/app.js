@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v63';
+  const APP_VERSION = 'v64';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -495,8 +495,6 @@
     root.innerHTML = '';
     if (!lw) { show('today'); renderTab(); return; }
     const sessions = await DB.all('sessions');
-    const cur = lw.exercises[lw.exIndex];
-    const ex = exercises.find(e => e.id === cur.exerciseId);
 
     // ---- header ----
     const head = el('div', 'w-head');
@@ -534,13 +532,30 @@
       const allDone = e2.sets.length > 0 && e2.sets.every(x => x.done);
       const someDone = !allDone && e2.sets.some(x => x.done);
       const s = el('span', (allDone ? 'done' : (someDone ? 'part' : '')) + (i === lw.exIndex ? ' cur' : ''));
-      s.onclick = () => { lw.exIndex = i; lw.advanceAfterRest = false; live.set(lw); renderWorkout(); };
+      s.onclick = () => { lw.exIndex = i; lw.advanceAfterRest = false; live.set(lw); scrollToEx = true; renderWorkout(); };
       prog.appendChild(s);
     });
     root.appendChild(prog);
 
-    // ---- current exercise card ----
-    const card = el('div', 'ex-card');
+    // ---- all exercises on one scrolling page ----
+    lw.exercises.forEach((cur2, ei) => {
+      root.appendChild(exerciseCard(lw, cur2, ei, sessions));
+      // the rest timer docks under the exercise you're currently on
+      if (ei === lw.exIndex) root.appendChild(restCard(lw, cur2));
+    });
+
+    if (scrollToEx) {
+      scrollToEx = false;
+      requestAnimationFrame(() => {
+        const t = root.querySelector('.ex-card.cur-ex');
+        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }
+
+  function exerciseCard(lw, cur, ei, sessions) {
+    const ex = exercises.find(e => e.id === cur.exerciseId);
+    const card = el('div', 'ex-card' + (ei === lw.exIndex ? ' cur-ex' : ''));
     const row = el('div', 'ex-row');
     const th = el('div', 'ex-thumb');
     th.appendChild(thumbFor(ex));
@@ -548,7 +563,7 @@
     row.appendChild(th);
     const col = el('div');
     col.appendChild(el('div', 'ex-name', cur.name));
-    col.appendChild(el('div', 'ex-meta', `Exercise ${lw.exIndex + 1} of ${lw.exercises.length} · ${cur.sets.length} × ${cur.repLo}-${cur.repHi}`
+    col.appendChild(el('div', 'ex-meta', `Exercise ${ei + 1} of ${lw.exercises.length} · ${cur.sets.length} × ${cur.repLo}-${cur.repHi}`
       + (cur.timed ? (cur.perSide ? ' s / side' : ' s') : '')));
     const watch = el('div', 'ex-watch');
     watch.appendChild(svgIcon(PLAY, 10));
@@ -566,7 +581,7 @@
         const ps = el('div', 'plate-strip');
         ps.appendChild(el('span', 'bar', 'BAR'));
         const pSpan = el('span', 'plates num', '20 + ' + plates.join(' + '));
-        pSpan.id = 'plate-live';
+        pSpan.id = 'plate-live-' + ei;
         ps.appendChild(pSpan);
         ps.appendChild(el('span', 'side', 'per side'));
         card.appendChild(ps);
@@ -576,22 +591,22 @@
     // in-place refresh for value edits — avoids full re-render flicker
     const updateVals = () => {
       cur.sets.forEach((s, i) => {
-        const kv = $('#val-kg-' + i);
+        const kv = $('#val-kg-' + ei + '-' + i);
         if (kv) kv.textContent = String(s.kg);
-        const rv = $('#val-reps-' + i);
+        const rv = $('#val-reps-' + ei + '-' + i);
         if (rv) {
           rv.textContent = String(s.reps);
           rv.classList.remove('pending', 'inrange', 'below');
           rv.classList.add(repTone(s));
         }
-        const hb = $('#hold-' + i);
-        if (hb && !(holdInt && holdIdx === i)) {
+        const hb = $('#hold-' + ei + '-' + i);
+        if (hb && !(holdInt && holdExIdx === ei && holdIdx === i)) {
           hb.textContent = '';
           hb.appendChild(svgIcon(PLAY, 9));
           hb.appendChild(document.createTextNode(' ' + fmtClock(s.reps)));
         }
       });
-      const ps = $('#plate-live');
+      const ps = $('#plate-live-' + ei);
       if (ps) {
         const fp = cur.sets.find(s => !s.done) || cur.sets[cur.sets.length - 1];
         const plates = plateMath(fp.kg);
@@ -619,17 +634,17 @@
         if (set.done) { renderWorkout(); return; }   // edits to logged sets refresh the suggestion
         updateVals();
       });
-      kgStep.querySelector('.val').id = 'val-kg-' + si;
+      kgStep.querySelector('.val').id = 'val-kg-' + ei + '-' + si;
       r.appendChild(kgStep);
       if (cur.timed) {
         const wrap = el('div', 'stepper');
         const minus = el('button', null, '−');
         minus.onclick = () => { set.reps = Math.max(5, set.reps - 5); live.set(lw); updateVals(); };
-        const mid = el('button', 'hold-btn num' + (holdIdx === si && !$('#view-workout').hidden ? ' on' : ''));
-        mid.id = 'hold-' + si;
+        const mid = el('button', 'hold-btn num' + (holdInt && holdExIdx === ei && holdIdx === si ? ' on' : ''));
+        mid.id = 'hold-' + ei + '-' + si;
         mid.appendChild(svgIcon(PLAY, 9));
         mid.appendChild(document.createTextNode(' ' + fmtClock(set.reps)));
-        mid.onclick = () => toggleHold(lw.exIndex, si);
+        mid.onclick = () => toggleHold(ei, si);
         const plus = el('button', null, '+');
         plus.onclick = () => { set.reps += 5; live.set(lw); updateVals(); };
         wrap.append(minus, mid, plus);
@@ -641,16 +656,16 @@
           updateVals();
         });
         const rv = repsStep.querySelector('.val');
-        rv.id = 'val-reps-' + si;
+        rv.id = 'val-reps-' + ei + '-' + si;
         rv.classList.add('reps-val', repTone(set));
         r.appendChild(repsStep);
       }
       const log = el('button', 'log-btn', set.done ? '✓' : '○');
       log.onclick = () => {
         set.done = !set.done;
-        if (set.done) set.doneAt = Date.now();
+        if (set.done) { set.doneAt = Date.now(); lw.exIndex = ei; }   // you're working here now
         // last set banked -> advance AFTER the rest finishes, not abruptly now
-        lw.advanceAfterRest = set.done && cur.sets.every(s => s.done) && lw.exIndex < lw.exercises.length - 1;
+        lw.advanceAfterRest = set.done && cur.sets.every(s => s.done) && ei < lw.exercises.length - 1;
         live.set(lw);
         if (set.done) startRest(cur.rest);   // after save — startRest re-reads state
         renderWorkout();
@@ -727,23 +742,21 @@
         card.appendChild(g);
       }
     }
-    root.appendChild(card);
-
-    // ---- rest timer card ----
-    root.appendChild(restCard(lw, cur));
-
+    return card;
   }
 
   /* ---- live hold timer for timed exercises (plank etc.) ---- */
-  let holdInt = null, holdIdx = -1, holdEndTs = 0;
+  let holdInt = null, holdIdx = -1, holdExIdx = -1, holdEndTs = 0;
+  let scrollToEx = false;   // scroll the current exercise into view on next render
 
   function cancelHold() {
     clearInterval(holdInt);
     holdInt = null;
     holdIdx = -1;
+    holdExIdx = -1;
   }
   function toggleHold(exIdx, si) {
-    if (holdInt && holdIdx === si) { cancelHold(); renderWorkout(); return; }
+    if (holdInt && holdExIdx === exIdx && holdIdx === si) { cancelHold(); renderWorkout(); return; }
     cancelHold();
     const lw0 = live.get();
     if (!lw0) return;
@@ -755,12 +768,13 @@
       : [{ label: '', dur: secs }];
     let phase = 0;
     holdIdx = si;
+    holdExIdx = exIdx;
     holdEndTs = Date.now() + phases[0].dur * 1000;
     ensureAudio();
     let lastHoldTick = 0;
     holdInt = setInterval(() => {
       const left = Math.ceil((holdEndTs - Date.now()) / 1000);
-      const btn = $('#hold-' + si);
+      const btn = $('#hold-' + exIdx + '-' + si);
       if (left > 0) {
         if (left <= 5 && lastHoldTick !== phase * 1000 + left) {
           lastHoldTick = phase * 1000 + left;
@@ -786,7 +800,8 @@
       set.done = true;
       set.doneAt = Date.now();
       const curEx = fresh.exercises[exIdx];
-      fresh.advanceAfterRest = curEx.sets.every(s => s.done) && exIdx < fresh.exercises.length - 1 && fresh.exIndex === exIdx;
+      fresh.exIndex = exIdx;
+      fresh.advanceAfterRest = curEx.sets.every(s => s.done) && exIdx < fresh.exercises.length - 1;
       live.set(fresh);
       startRest(curEx.rest);
       if (!$('#view-workout').hidden) renderWorkout();
@@ -923,7 +938,7 @@
     if (lw) {
       if (lw.restEndsAt && lw.advanceAfterRest) {
         lw.advanceAfterRest = false;
-        if (lw.exIndex < lw.exercises.length - 1) lw.exIndex++;
+        if (lw.exIndex < lw.exercises.length - 1) { lw.exIndex++; scrollToEx = true; }
       }
       lw.restEndsAt = null;
       live.set(lw);
@@ -945,7 +960,7 @@
       lw.restEndsAt = null;
       if (lw.advanceAfterRest) {
         lw.advanceAfterRest = false;
-        if (lw.exIndex < lw.exercises.length - 1) lw.exIndex++;
+        if (lw.exIndex < lw.exercises.length - 1) { lw.exIndex++; scrollToEx = true; }
       }
       live.set(lw);
       clearInterval(restInt); restInt = null;
