@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v86';
+  const APP_VERSION = 'v87';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1810,10 +1810,10 @@
       }
     }
 
-    // pause / delete — quiet, at the very bottom of the page
+    // pause / delete — buttons at the very bottom of the page
     if (plan) {
-      const delRow = el('div', 'text-links');
-      const pauseB = el('button', null, plan.pausedAt ? 'Resume block' : 'Pause block');
+      const delRow = el('div', 'block-actions');
+      const pauseB = el('button', 'btn-ghost', plan.pausedAt ? 'Resume block' : 'Pause block');
       pauseB.onclick = async () => {
         if (plan.pausedAt) {
           await resumePlan(plan);
@@ -1829,8 +1829,7 @@
         renderTab();
       };
       delRow.appendChild(pauseB);
-      delRow.appendChild(el('i', null, '·'));
-      const delB = el('button', null, 'Delete block');
+      const delB = el('button', 'btn-ghost', 'Delete block');
       delB.onclick = async () => {
         if (!confirm(`Delete "${plan.name}"? History is kept.`)) return;
         await DB.del('plans', plan.id);
