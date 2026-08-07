@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v89';
+  const APP_VERSION = 'v90';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1350,7 +1350,10 @@
     minus.onclick = () => ruler.setVal(ruler.get() - stepK);
     const plus = el('button', 'ks-adj num', '+');
     plus.onclick = () => ruler.setVal(ruler.get() + stepK);
-    ctr.append(minus, plus);
+    const reset = el('button', 'ks-adj ks-reset num', '0');
+    reset.title = 'Reset to 0';
+    reset.onclick = () => ruler.setVal(0);
+    ctr.append(minus, plus, reset);
     const plates = el('div', 'ks-plates');
     [2.5, 5, 10].forEach(p => {
       const b = el('button', 'num', '+' + p);
