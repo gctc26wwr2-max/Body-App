@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v64';
+  const APP_VERSION = 'v65';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -492,6 +492,7 @@
   async function renderWorkout() {
     const lw = live.get();
     const root = $('#view-workout');
+    const keepY = window.scrollY;   // re-renders must not move the page
     root.innerHTML = '';
     if (!lw) { show('today'); renderTab(); return; }
     const sessions = await DB.all('sessions');
@@ -545,11 +546,14 @@
     });
 
     if (scrollToEx) {
+      // only when you tap a progress bar to jump — never on logging or advancing
       scrollToEx = false;
       requestAnimationFrame(() => {
         const t = root.querySelector('.ex-card.cur-ex');
         if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
+    } else {
+      requestAnimationFrame(() => window.scrollTo(0, keepY));
     }
   }
 
@@ -938,7 +942,7 @@
     if (lw) {
       if (lw.restEndsAt && lw.advanceAfterRest) {
         lw.advanceAfterRest = false;
-        if (lw.exIndex < lw.exercises.length - 1) { lw.exIndex++; scrollToEx = true; }
+        if (lw.exIndex < lw.exercises.length - 1) lw.exIndex++;
       }
       lw.restEndsAt = null;
       live.set(lw);
@@ -960,7 +964,7 @@
       lw.restEndsAt = null;
       if (lw.advanceAfterRest) {
         lw.advanceAfterRest = false;
-        if (lw.exIndex < lw.exercises.length - 1) { lw.exIndex++; scrollToEx = true; }
+        if (lw.exIndex < lw.exercises.length - 1) lw.exIndex++;
       }
       live.set(lw);
       clearInterval(restInt); restInt = null;
