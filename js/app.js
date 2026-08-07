@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v94';
+  const APP_VERSION = 'v95';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1433,7 +1433,9 @@
         const ok = v >= 0;
         const t = el('button', 'vs-tick');
         t.dataset.v = v;
-        t.appendChild(el('i', v % 5 === 0 ? 'w20' : (v % 2 ? 'w11' : 'w15')));
+        const slot = el('span', 'vs-slot');
+        slot.appendChild(el('i', v % 5 === 0 ? 'w20' : (v % 2 ? 'w11' : 'w15')));
+        t.appendChild(slot);
         t.appendChild(el('span', 'num', ok ? String(v) : ''));
         if (ok) t.onclick = () => { if (!suppress) setVal(v, true); };
         strip.appendChild(t);
