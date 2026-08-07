@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v76';
+  const APP_VERSION = 'v77';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -454,14 +454,6 @@
         cta.onclick = () => openPlanForm(null, plan);
         root.appendChild(cta);
       }
-      const links = el('div', 'text-links');
-      const mkLink = (t, fn) => { const b = el('button', null, t); b.onclick = fn; return b; };
-      links.appendChild(mkLink('Edit block', () => openPlanForm(plan)));
-      links.appendChild(el('i', null, '·'));
-      links.appendChild(mkLink('Log body weight', () => { show('profile'); renderTab(); }));
-      links.appendChild(el('i', null, '·'));
-      links.appendChild(mkLink('History', () => { show('plan'); renderTab(); }));
-      root.appendChild(links);
     }
 
     // ---- monthly backup reminder ----
