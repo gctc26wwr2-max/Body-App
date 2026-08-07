@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v67';
+  const APP_VERSION = 'v68';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -743,6 +743,25 @@
       card.appendChild(s);
     }
 
+    // difficulty feedback once every set is banked — stored for the next program
+    if (cur.sets.length && cur.sets.every(s => s.done)) {
+      const fw = el('div', 'feel-wrap');
+      fw.appendChild(el('div', 'micro', 'How was it?'));
+      const strip = el('div', 'feel-strip');
+      [['easy', 'Easy'], ['moderate', 'Moderate'], ['hard', 'Hard']].forEach(([k, label]) => {
+        const b = el('button', 'feel-btn ' + k + (cur.feel === k ? ' sel' : ''), label);
+        b.onclick = () => {
+          cur.feel = cur.feel === k ? null : k;
+          live.set(lw);
+          strip.querySelectorAll('.feel-btn').forEach(x => x.classList.remove('sel'));
+          if (cur.feel) b.classList.add('sel');
+        };
+        strip.appendChild(b);
+      });
+      fw.appendChild(strip);
+      card.appendChild(fw);
+    }
+
     // last time line
     const hist = sessions.filter(s => s.exerciseId === cur.exerciseId && s.date !== todayStr()).sort((a, b) => b.ts - a.ts);
     if (hist.length) {
@@ -1138,7 +1157,7 @@
       }
       await DB.put('sessions', {
         id: DB.uid(), exerciseId: e.exerciseId, date: todayStr(), ts: Date.now(),
-        planId: lw.planId, timed: !!e.timed,
+        planId: lw.planId, timed: !!e.timed, feel: e.feel || null,
         sets: done.map(s => ({ reps: s.reps, weight: s.kg }))
       });
     }
@@ -1456,7 +1475,9 @@
             const txt = s.sets.map(x => (x.weight || 0) > 0
               ? `${fmtKg(x.weight)}×${x.reps}`
               : `${x.reps}${s.timed ? 's' : ''}`).join(' · ');
-            dr.appendChild(el('div', 'hd-sets num', txt));
+            const hs = el('div', 'hd-sets num', txt);
+            if (s.feel) hs.appendChild(el('span', 'hd-feel ' + s.feel, s.feel));
+            dr.appendChild(hs);
             det2.appendChild(dr);
           }
           det2.dataset.built = '1';
@@ -1689,7 +1710,8 @@
       const sess = sessions.filter(s => s.date === w.date && s.planId === w.planId);
       for (const s of sess) {
         L.push(`  - ${exName(s.exerciseId)}: ` +
-          s.sets.map(x => x.weight ? `${fmtKg(x.weight)}×${x.reps}` : `${x.reps} reps`).join(', '));
+          s.sets.map(x => x.weight ? `${fmtKg(x.weight)}×${x.reps}` : `${x.reps} reps`).join(', ') +
+          (s.feel ? ` · felt ${s.feel}` : ''));
       }
     }
     // current strength numbers
