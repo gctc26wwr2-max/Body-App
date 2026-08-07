@@ -247,7 +247,7 @@ body { font-size: 14px; }
 }
 .w-set.logged { background: rgba(200,255,46,.07); border-color: rgba(200,255,46,.3); }
 .w-set.upcoming { opacity: .45; }
-.w-set .sn { font-family: var(--cond); font-size: 15px; font-weight: 700; color: var(--t6); text-align: center; }
+.w-set .sn { font-family: var(--cond); font-size: 15px; font-weight: 700; color: var(--lime-dim); text-align: center; }
 .w-set.logged .sn { color: var(--lime); }
 .stepper { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 0; }
 .stepper button {
@@ -275,7 +275,7 @@ body { font-size: 14px; }
 /* timed rows: kg column narrower, seconds column wider */
 .w-set.timed, .set-grid-head.timed { grid-template-columns: 16px minmax(0,0.7fr) minmax(0,1.3fr) 42px; }
 .w-set.timed .stepper .val { min-width: 24px; }
-.w-set .reps-val.pending { color: #7A7E84; }
+.w-set .reps-val.pending { color: var(--lime-pale); }
 .w-set .reps-val.inrange { color: var(--lime); }
 .w-set .reps-val.below { color: var(--amber); }
 .log-btn {
