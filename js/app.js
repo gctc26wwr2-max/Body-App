@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v91';
+  const APP_VERSION = 'v92';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1243,6 +1243,26 @@
     return `${d > 0 ? '+' : '−'}${Math.abs(d)} kg vs set ${si}`;
   }
 
+  /* Haptic tick — navigator.vibrate on Android; on iOS (no vibrate API)
+     programmatically toggling a hidden switch control fires the system
+     haptic in Safari 17.4+. */
+  const hapticSwitch = (() => {
+    const label = document.createElement('label');
+    label.style.cssText = 'position:fixed;left:-99px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+    label.setAttribute('aria-hidden', 'true');
+    const inp = document.createElement('input');
+    inp.type = 'checkbox';
+    inp.setAttribute('switch', '');
+    inp.tabIndex = -1;
+    label.appendChild(inp);
+    document.body.appendChild(label);
+    return inp;
+  })();
+  function haptic() {
+    if (navigator.vibrate) { navigator.vibrate(8); return; }
+    try { hapticSwitch.click(); } catch (e) { /* no haptics available */ }
+  }
+
   /* Sliding ruler — ticks glide left/right under a fixed indicator.
      Drag it like a real scale, or tap a tick / the ± buttons. */
   function rulerScale(opts) {
@@ -1291,6 +1311,7 @@
     };
     const setVal = (v, anim) => {
       v = Math.max(opts.min ?? 0, +v.toFixed(3));
+      if (v !== st.val) haptic();
       st.val = v;
       opts.onChange(v);
       // rebuild around the value when it drifts near the strip's edge
@@ -1299,17 +1320,20 @@
       } else { mark(); slide(anim); }
     };
 
-    // drag like a real scale
-    let sx = null, so = 0;
+    // drag like a real scale — a haptic tick per detent
+    let sx = null, so = 0, lastN = 0;
     wrap.style.touchAction = 'pan-y';
     wrap.addEventListener('pointerdown', e => {
-      sx = e.clientX; so = offFor(st.val);
+      sx = e.clientX; so = offFor(st.val); lastN = 0;
       strip.style.transition = 'none';
       wrap.setPointerCapture(e.pointerId);
     });
     wrap.addEventListener('pointermove', e => {
       if (sx === null) return;
-      strip.style.transform = `translateX(${so + e.clientX - sx}px)`;
+      const dx = e.clientX - sx;
+      strip.style.transform = `translateX(${so + dx}px)`;
+      const n = Math.round(dx / opts.tickW);
+      if (n !== lastN) { lastN = n; haptic(); }
     });
     const endDrag = e => {
       if (sx === null) return;
@@ -1436,6 +1460,7 @@
     };
     const setVal = (v, anim) => {
       v = Math.max(0, Math.round(v));
+      if (v !== set.reps) haptic();
       set.reps = v;
       live.set(lw);
       updateVals();
@@ -1444,17 +1469,20 @@
       else { mark(); slide(anim); }
     };
 
-    // vertical drag, snapping one rep per notch
-    let sy = null, so = 0;
+    // vertical drag, snapping one rep per notch — a haptic tick per detent
+    let sy = null, so = 0, lastN = 0;
     wrap.style.touchAction = 'none';
     wrap.addEventListener('pointerdown', e => {
-      sy = e.clientY; so = offFor(set.reps);
+      sy = e.clientY; so = offFor(set.reps); lastN = 0;
       strip.style.transition = 'none';
       wrap.setPointerCapture(e.pointerId);
     });
     wrap.addEventListener('pointermove', e => {
       if (sy === null) return;
-      strip.style.transform = `translateY(${so + e.clientY - sy}px)`;
+      const dy = e.clientY - sy;
+      strip.style.transform = `translateY(${so + dy}px)`;
+      const n = Math.round(dy / TICK);
+      if (n !== lastN) { lastN = n; haptic(); }
     });
     const endDrag = e => {
       if (sy === null) return;
