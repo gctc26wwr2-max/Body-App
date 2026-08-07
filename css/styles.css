@@ -675,13 +675,16 @@ body { font-size: 14px; }
 .feel-strip { display: flex; gap: 8px; }
 .feel-btn {
   flex: 1; height: 40px; border-radius: 12px;
-  background: var(--ctrl-alt); border: 1px solid var(--hair-8); color: var(--t3);
+  background: var(--ctrl-alt); border: 1px solid var(--hair-8);
   font-family: var(--cond); font-size: 14px; font-weight: 700;
   text-transform: uppercase; letter-spacing: .07em;
 }
-.feel-btn.easy.sel { background: rgba(200,255,46,.16); border-color: rgba(200,255,46,.5); color: var(--lime); }
-.feel-btn.moderate.sel { background: rgba(255,184,107,.14); border-color: var(--amber-border); color: var(--amber); }
-.feel-btn.hard.sel { background: rgba(255,107,107,.13); border-color: rgba(255,107,107,.45); color: #FF8B8B; }
+.feel-btn.easy { color: var(--lime); border-color: rgba(200,255,46,.3); }
+.feel-btn.moderate { color: var(--amber); border-color: rgba(255,184,107,.3); }
+.feel-btn.hard { color: #FF8B8B; border-color: rgba(255,107,107,.3); }
+.feel-btn.easy.sel { background: var(--lime); border-color: transparent; color: var(--canvas); }
+.feel-btn.moderate.sel { background: var(--amber); border-color: transparent; color: var(--canvas); }
+.feel-btn.hard.sel { background: #FF6B6B; border-color: transparent; color: var(--canvas); }
 .hd-feel {
   margin-left: 7px; padding: 2px 7px; border-radius: 6px;
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
