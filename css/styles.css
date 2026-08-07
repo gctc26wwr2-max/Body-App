@@ -172,10 +172,7 @@ body { font-size: 14px; }
 #view-today .day-strip .cell { padding: 10px 0; }
 .block-actions { display: flex; gap: 10px; }
 .new-block-row { display: flex; justify-content: center; margin-top: -4px; }
-.new-block-row .chip-btn {
-  font-size: 13px; font-weight: 700; letter-spacing: 0; text-transform: none;
-  font-family: inherit; height: 46px; padding: 0 22px; border-radius: 14px;
-}
+.new-block-btn { font-weight: 700; color: var(--lime); border-color: var(--lime-border); background: rgba(206,107,61,.06); height: 46px; }
 .block-actions .btn-ghost { flex: 1; height: 46px; font-weight: 700; }
 .block-actions .btn-ghost:first-child { color: var(--amber); border-color: var(--amber-border); background: rgba(203,190,171,.06); }
 .block-actions .btn-ghost:last-child { color: #D9825F; border-color: rgba(194,75,56,.4); background: rgba(142,58,44,.10); }
