@@ -393,20 +393,21 @@ body { font-size: 14px; }
 }
 .vs-ruler:active { cursor: grabbing; }
 .vs-ind {
-  position: absolute; top: 50%; margin-top: -1px; left: 26%; width: 34px; height: 2px;
+  position: absolute; top: 50%; margin-top: -1px; left: calc(50% - 46px); width: 34px; height: 2px;
   background: var(--lime); z-index: 2;
 }
 .vs-strip { position: absolute; top: 50%; left: 0; right: 0; will-change: transform; z-index: 1; }
 .vs-tick {
-  height: 34px; width: 100%; background: none; border: none; padding: 0 0 0 26%;
-  display: flex; align-items: center;
+  height: 34px; width: 100%; background: none; border: none; padding: 0;
+  display: flex; align-items: center; justify-content: center; gap: 14px;
 }
-.vs-tick i { height: 2px; background: rgba(255,255,255,.18); display: block; flex: 0 0 auto; }
+.vs-slot { width: 34px; display: flex; justify-content: flex-end; flex: 0 0 auto; }
+.vs-tick i { height: 2px; background: rgba(255,255,255,.18); display: block; }
 .vs-tick i.w20 { width: 20px; } .vs-tick i.w15 { width: 15px; } .vs-tick i.w11 { width: 11px; }
 .vs-tick.sel i { width: 30px; background: var(--lime); }
-.vs-tick span { margin-left: 14px; font-size: 14px; font-weight: 600; color: var(--t6); font-variant-numeric: tabular-nums; }
-.vs-tick.inband span { color: var(--t3); }
-.vs-tick.sel span { font-size: 18px; font-weight: 800; color: var(--t1); }
+.vs-tick .num { width: 44px; text-align: left; font-size: 14px; font-weight: 600; color: var(--t6); font-variant-numeric: tabular-nums; }
+.vs-tick.inband .num { color: var(--t3); }
+.vs-tick.sel .num { font-size: 18px; font-weight: 800; color: var(--t1); }
 
 .ks-controls { display: flex; align-items: center; gap: 7px; }
 .ks-adj { width: 42px; height: 38px; border-radius: 12px; background: var(--ctrl); border: none; color: var(--t2); font-size: 15px; font-weight: 700; }
