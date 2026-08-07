@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v74';
+  const APP_VERSION = 'v75';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -398,10 +398,18 @@
       wrap.appendChild(overlay);
       root.appendChild(wrap);
 
-      // numbered exercise index — when there is a session to show
+      // numbered exercise index — today's session, or a preview of the next one
+      let idxDay = null, idxLabel = '';
       if ((mode === 'next' || mode === 'live') && day.items.length) {
+        idxDay = day;
+      } else if ((mode === 'banked' || mode === 'weekdone') && plan.days && plan.days.length) {
+        idxDay = nextIdxArc >= 0 ? plan.days[nextIdxArc] : plan.days[0];
+        idxLabel = `Up next · ${idxDay.name}${nextPref ? ' · ' + nextPref : ''}`;
+      }
+      if (idxDay && idxDay.items.length) {
+        if (idxLabel) root.appendChild(el('div', 'micro', idxLabel));
         const idx = el('div', 'ex-index');
-        day.items.forEach((it, i) => {
+        idxDay.items.forEach((it, i) => {
           const ex = exercises.find(e => e.id === it.exerciseId);
           const r = el('div', 'exi-row');
           r.appendChild(el('div', 'exi-num', String(i + 1).padStart(2, '0')));
@@ -455,14 +463,6 @@
       links.appendChild(mkLink('History', () => { show('plan'); renderTab(); }));
       root.appendChild(links);
     }
-
-    // ---- readiness / week stats ----
-    const pair = el('div', 'stat-pair');
-    const wkCount = workouts.filter(x => sameWeek(x.date)).length;
-    pair.appendChild(pairCard(String(wkCount), 'Sessions this week'));
-    const lastW = workouts[0];
-    pair.appendChild(pairCard(lastW ? lastW.duration + ' min' : '—', 'Last session'));
-    root.appendChild(pair);
 
     // ---- monthly backup reminder ----
     const lb = Number(localStorage.getItem('lastBackup')) || 0;
