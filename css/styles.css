@@ -703,6 +703,37 @@ body { font-size: 14px; }
 .pv-meta { font-size: 12px; color: var(--t5); margin-top: 2px; font-variant-numeric: tabular-nums; }
 .pv-go { margin-left: auto; color: var(--t6); font-size: 16px; padding-right: 2px; }
 
+/* ============ STATS (v5) ============ */
+.lift-list { display: flex; flex-direction: column; }
+.lift-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0; border-top: 1px solid var(--hair-8); cursor: pointer;
+}
+.lift-list .lift-row:last-child { border-bottom: 1px solid var(--hair-8); }
+.lr-namecol { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.lr-name2 { font-size: 14px; font-weight: 700; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lr-spark { flex: 0 0 auto; display: flex; align-items: center; }
+.lr-kg { flex: 0 0 auto; text-align: right; min-width: 72px; }
+.lr-kg .v { font-size: 14.5px; font-weight: 800; letter-spacing: -.02em; }
+.lr-kg .d { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; margin-top: 1px; }
+.lr-kg .d.up { color: var(--lime); }
+.lr-kg .d.down { color: var(--amber); }
+.lr-kg .d.same { color: var(--t6); }
+.cons-grid { display: flex; gap: 8px; }
+.cons-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.cons-dots { display: flex; flex-direction: column; gap: 4px; }
+.cons-dots i { width: 9px; height: 9px; border-radius: 5px; border: 1.5px solid rgba(255,255,255,.14); }
+.cons-dots i.on { background: var(--lime); border-color: var(--lime); }
+.cons-col.cur .cons-dots i:not(.on) { border-color: rgba(206,107,61,.4); }
+.cons-col span { font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--t6); }
+.cons-col.cur span { color: var(--lime); }
+.pr-list { display: flex; flex-direction: column; }
+.pr-row { display: flex; align-items: baseline; gap: 12px; padding: 8px 0; border-top: 1px solid var(--hair-8); }
+.pr-list .pr-row:last-child { border-bottom: 1px solid var(--hair-8); }
+.pr-date { font-size: 9.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--t6); width: 52px; flex: 0 0 auto; }
+.pr-name { flex: 1; font-size: 13.5px; font-weight: 700; }
+.pr-jump { font-size: 12px; font-weight: 800; color: var(--lime); }
+
 /* ============ STATS ============ */
 .lift-chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .lift-chips button {
