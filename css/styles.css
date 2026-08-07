@@ -305,6 +305,15 @@ body { font-size: 14px; }
   border: 1px solid rgba(200,255,46,.24); border-radius: 22px;
   padding: 16px 18px; display: flex; flex-direction: column; gap: 13px;
 }
+/* in the workout the whole timer panel floats over the page */
+#view-workout .rest-card {
+  position: fixed; left: 12px; right: 12px; margin: 0 auto; max-width: 616px;
+  top: var(--winH); transform: translateY(calc(-100% - 10px - var(--safe-bottom)));
+  z-index: 60; background: #171B12;
+  box-shadow: 0 -10px 34px rgba(0,0,0,.55);
+}
+/* room so the last exercise can scroll above the floating panel */
+#view-workout.view { padding-bottom: calc(190px + var(--safe-bottom)); }
 .rest-top { display: flex; justify-content: space-between; align-items: center; }
 .rest-state { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--t5); }
 .rest-state.on { color: var(--lime); animation: restpulse 2s ease-in-out infinite; }
