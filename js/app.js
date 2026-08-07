@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v90';
+  const APP_VERSION = 'v91';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -822,6 +822,7 @@
       kgCell.onclick = () => {
         const key = ei + ':' + si;
         lw.scaleOpenAt = lw.scaleOpenAt === key ? null : key;
+        lw.repScaleAt = null;
         live.set(lw);
         renderWorkout();
       };
@@ -849,6 +850,14 @@
         const rv = repsStep.querySelector('.val');
         rv.id = 'val-reps-' + ei + '-' + si;
         rv.classList.add('reps-val', repTone(set));
+        // tap the number to open the vertical rep scale
+        rv.onclick = () => {
+          const key = ei + ':' + si;
+          lw.repScaleAt = lw.repScaleAt === key ? null : key;
+          lw.scaleOpenAt = null;
+          live.set(lw);
+          renderWorkout();
+        };
         inner.appendChild(repsStep);
       }
       const log = el('button', 'log-btn' + (set.done ? ' on' : ''));
@@ -865,9 +874,11 @@
       inner.appendChild(log);
       r.appendChild(inner);
 
-      // the weight scale expands inside this row
+      // the weight / rep scale expands inside this row
       if (lw.scaleOpenAt === ei + ':' + si) {
         r.appendChild(weightScale(lw, cur, ei, si, updateVals));
+      } else if (lw.repScaleAt === ei + ':' + si && !cur.timed) {
+        r.appendChild(repScale(lw, cur, ei, si, updateVals));
       }
       card.appendChild(r);
     });
@@ -1304,7 +1315,17 @@
       if (sx === null) return;
       const dx = e.clientX - sx;
       sx = null;
-      if (Math.abs(dx) < 5) { slide(false); return; }   // a tap — the tick's click handles it
+      if (Math.abs(dx) < 5) {
+        // a tap — pointer capture eats the click, so hit-test the tick ourselves
+        slide(false);
+        const t = document.elementFromPoint(e.clientX, e.clientY);
+        const tick = t && t.closest ? t.closest('.ks-tick') : null;
+        if (tick && tick.dataset.v !== undefined) {
+          const v = +tick.dataset.v;
+          if (v >= (opts.min ?? 0)) setVal(v, true);
+        }
+        return;
+      }
       suppress = true;
       setTimeout(() => { suppress = false; }, 350);
       setVal(st.val - Math.round(dx / opts.tickW) * opts.step, true);
@@ -1362,6 +1383,100 @@
     });
     ctr.appendChild(plates);
     box.appendChild(ctr);
+    return box;
+  }
+
+  /* The rep scale — a vertical wheel that expands inside the set row.
+     Drag up/down like a dial, or tap a number. */
+  function repScale(lw, cur, ei, si, updateVals) {
+    const set = cur.sets[si];
+    const TICK = 34, SPAN = 8;
+    let base = set.reps;
+    const box = el('div', 'rep-scale');
+
+    const top = el('div', 'ks-top');
+    const big = el('div', 'ks-val num', String(set.reps));
+    big.appendChild(el('small', null, ' reps'));
+    top.appendChild(big);
+    top.appendChild(el('div', 'ks-delta', `Target ${cur.repLo}–${cur.repHi}`));
+    box.appendChild(top);
+
+    const wrap = el('div', 'vs-ruler');
+    wrap.appendChild(el('i', 'vs-ind'));
+    const strip = el('div', 'vs-strip');
+    wrap.appendChild(strip);
+    box.appendChild(wrap);
+
+    const idxOf = v => Math.round(v - (base - SPAN));
+    const offFor = v => -(idxOf(v) * TICK + TICK / 2);
+    let suppress = false;
+    const build = () => {
+      strip.innerHTML = '';
+      for (let d = -SPAN; d <= SPAN; d++) {
+        const v = base + d;
+        const ok = v >= 0;
+        const t = el('button', 'vs-tick');
+        t.dataset.v = v;
+        t.appendChild(el('span', 'num', ok ? String(v) : ''));
+        if (ok) t.onclick = () => { if (!suppress) setVal(v, true); };
+        strip.appendChild(t);
+      }
+      mark();
+    };
+    const mark = () => {
+      [...strip.children].forEach(t => {
+        const v = +t.dataset.v;
+        t.classList.toggle('sel', v === set.reps);
+        t.classList.toggle('inband', v >= cur.repLo && v <= cur.repHi);
+      });
+    };
+    const slide = anim => {
+      strip.style.transition = anim ? 'transform .18s ease-out' : 'none';
+      strip.style.transform = `translateY(${offFor(set.reps)}px)`;
+    };
+    const setVal = (v, anim) => {
+      v = Math.max(0, Math.round(v));
+      set.reps = v;
+      live.set(lw);
+      updateVals();
+      big.firstChild.nodeValue = String(v);
+      if (idxOf(v) < 2 || idxOf(v) > 2 * SPAN - 2) { base = v; build(); slide(false); }
+      else { mark(); slide(anim); }
+    };
+
+    // vertical drag, snapping one rep per notch
+    let sy = null, so = 0;
+    wrap.style.touchAction = 'none';
+    wrap.addEventListener('pointerdown', e => {
+      sy = e.clientY; so = offFor(set.reps);
+      strip.style.transition = 'none';
+      wrap.setPointerCapture(e.pointerId);
+    });
+    wrap.addEventListener('pointermove', e => {
+      if (sy === null) return;
+      strip.style.transform = `translateY(${so + e.clientY - sy}px)`;
+    });
+    const endDrag = e => {
+      if (sy === null) return;
+      const dy = e.clientY - sy;
+      sy = null;
+      if (Math.abs(dy) < 5) {
+        // a tap — pointer capture eats the click, so hit-test the tick ourselves
+        slide(false);
+        const t = document.elementFromPoint(e.clientX, e.clientY);
+        const tick = t && t.closest ? t.closest('.vs-tick') : null;
+        if (tick && tick.dataset.v !== undefined && +tick.dataset.v >= 0) setVal(+tick.dataset.v, true);
+        return;
+      }
+      suppress = true;
+      setTimeout(() => { suppress = false; }, 350);
+      setVal(set.reps - Math.round(dy / TICK), true);
+    };
+    wrap.addEventListener('pointerup', endDrag);
+    wrap.addEventListener('pointercancel', () => { if (sy !== null) { sy = null; slide(false); } });
+
+    build();
+    slide(false);
     return box;
   }
 
