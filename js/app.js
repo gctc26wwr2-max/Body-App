@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v80';
+  const APP_VERSION = 'v81';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1576,6 +1576,7 @@
     const workouts = (await DB.all('workouts')).sort((a, b) => b.ts - a.ts);
     const sessions = await DB.all('sessions');
     const plan = activePlan();
+    let planRailShared = null;   // days + history share one timeline
 
     const head = el('header', 't-head');
     const hl = el('div');
@@ -1627,7 +1628,8 @@
       c.appendChild(wt);
       const doneThisWeek = new Set((plan.completed || []).filter(x => x.week === (curWeek || 1)).map(x => x.day));
       const firstPendingDay = (plan.days || []).findIndex((_, i) => !doneThisWeek.has(i));
-      const dRail = el('div', 'pday-rail');
+      const dRail = el('div', 'plan-rail');
+      planRailShared = dRail;   // history continues on this same line
       (plan.days || []).forEach((day, i) => {
         const done = doneThisWeek.has(i);
         const r = el('div', 'pday-row' + (done ? ' done' : ''));
@@ -1679,8 +1681,7 @@
         dRail.appendChild(pv);
       });
       c.appendChild(dRail);
-      const actions = el('div', 'text-links');
-      actions.style.marginTop = '4px';
+      const actions = el('div', 'text-links inset');
       if (window.STARTER_BLOCK && plan.name === window.STARTER_BLOCK.name) {
         const rst = el('button', null, 'Restore original days');
         rst.onclick = async () => {
@@ -1711,43 +1712,12 @@
         renderTab();
       };
       actions.appendChild(delB);
-      c.appendChild(actions);
+      dRail.appendChild(actions);
       root.appendChild(c);
     }
 
-    // last session comparison
-    if (workouts.length >= 2) {
-      const last = workouts[0];
-      const prev = workouts.find(x => x.name === last.name && x.id !== last.id);
-      if (prev) {
-        const c = el('div', 'cmp-flat');
-        const h = el('div', 'cmp-head');
-        h.appendChild(el('div', 'a', `Last ${last.name} · ${agoDays(last.date)}`));
-        h.appendChild(el('div', 'b', last.duration + ' min'));
-        c.appendChild(h);
-        const g = el('div', 'cmp-grid');
-        ['Exercise', 'Best set', 'Volume', 'Δ'].forEach(t => g.appendChild(el('div', 'h', t)));
-        const lastSess = sessions.filter(s => s.date === last.date && s.planId === last.planId);
-        const prevSess = sessions.filter(s => s.date === prev.date && s.planId === prev.planId);
-        for (const s of lastSess.slice(0, 6)) {
-          const ex = exercises.find(e => e.id === s.exerciseId);
-          const best = s.sets.reduce((a, x) => (x.weight || 0) > (a.weight || 0) ? x : a, s.sets[0]);
-          const vol = s.sets.reduce((a, x) => a + (x.weight || 0) * x.reps, 0);
-          const pv = prevSess.find(x => x.exerciseId === s.exerciseId);
-          const pvol = pv ? pv.sets.reduce((a, x) => a + (x.weight || 0) * x.reps, 0) : null;
-          g.appendChild(el('div', 'c name', ex ? ex.name : '—'));
-          g.appendChild(el('div', 'c best num', best.weight ? `${fmtKg(best.weight)} × ${best.reps}` : `${best.reps} reps`));
-          g.appendChild(el('div', 'c vol num', fmtKg(vol)));
-          const d = pvol !== null && pvol > 0 ? Math.round((vol - pvol) / pvol * 100) : null;
-          g.appendChild(el('div', 'c delta num' + (d === null || d === 0 ? ' none' : ''), d === null ? '—' : (d > 0 ? '+' + d + '%' : d + '%')));
-        }
-        c.appendChild(g);
-        root.appendChild(c);
-      }
-    }
-
-    // history — sessions threaded on a rail, newest first
-    const hRail = el('div', 'hist-rail');
+    // history — continues on the same timeline as the days, newest first
+    const hRail = planRailShared || el('div', 'plan-rail');
     let curMonth = '';
     workouts.forEach((w, i) => {
       const m = dateOf(w.date).toLocaleDateString('en-US', { month: 'long' });
@@ -1813,7 +1783,38 @@
       wrap.appendChild(det2);
       hRail.appendChild(wrap);
     });
-    if (workouts.length) root.appendChild(hRail);
+    if (!planRailShared && workouts.length) root.appendChild(hRail);
+
+    // last session comparison — closes the page
+    if (workouts.length >= 2) {
+      const last = workouts[0];
+      const prev = workouts.find(x => x.name === last.name && x.id !== last.id);
+      if (prev) {
+        const c2 = el('div', 'cmp-flat');
+        const h = el('div', 'cmp-head');
+        h.appendChild(el('div', 'a', `Last ${last.name} vs previous`));
+        h.appendChild(el('div', 'b', last.duration + ' min'));
+        c2.appendChild(h);
+        const g = el('div', 'cmp-grid');
+        ['Exercise', 'Best set', 'Volume', 'Δ'].forEach(t => g.appendChild(el('div', 'h', t)));
+        const lastSess = sessions.filter(s => s.date === last.date && s.planId === last.planId);
+        const prevSess = sessions.filter(s => s.date === prev.date && s.planId === prev.planId);
+        for (const s of lastSess.slice(0, 6)) {
+          const ex = exercises.find(e => e.id === s.exerciseId);
+          const best = s.sets.reduce((a, x) => (x.weight || 0) > (a.weight || 0) ? x : a, s.sets[0]);
+          const vol = s.sets.reduce((a, x) => a + (x.weight || 0) * x.reps, 0);
+          const pv = prevSess.find(x => x.exerciseId === s.exerciseId);
+          const pvol = pv ? pv.sets.reduce((a, x) => a + (x.weight || 0) * x.reps, 0) : null;
+          g.appendChild(el('div', 'c name', ex ? ex.name : '—'));
+          g.appendChild(el('div', 'c best num', best.weight ? `${fmtKg(best.weight)} × ${best.reps}` : `${best.reps} reps`));
+          g.appendChild(el('div', 'c vol num', fmtKg(vol)));
+          const d = pvol !== null && pvol > 0 ? Math.round((vol - pvol) / pvol * 100) : null;
+          g.appendChild(el('div', 'c delta num' + (d === null || d === 0 ? ' none' : ''), d === null ? '—' : (d > 0 ? '+' + d + '%' : d + '%')));
+        }
+        c2.appendChild(g);
+        root.appendChild(c2);
+      }
+    }
 
     if (!workouts.length && !plan) {
       const emp = el('div', 'empty-state');
