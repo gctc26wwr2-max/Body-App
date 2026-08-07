@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v97';
+  const APP_VERSION = 'v98';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2391,49 +2391,52 @@
     base.appendChild(bs(String(totPRs), 'Records', 'earn'));
     root.appendChild(base);
 
-    // ---- every lift: trend sparkline, current weight, change ----
-    const byEx = new Map();
-    for (const s of sessions) {
-      const arr = byEx.get(s.exerciseId) || [];
-      arr.push(s);
-      byEx.set(s.exerciseId, arr);
-    }
-    const lifts = [];
-    for (const [id, arr] of byEx) {
-      const ex = exercises.find(e => e.id === id);
-      if (!ex) continue;
-      arr.sort((a, b) => a.ts - b.ts);
-      const hasW = arr.some(s => s.sets.some(x => (x.weight || 0) > 0));
-      const series = arr.map(s => hasW
-        ? Math.max(...s.sets.map(x => x.weight || 0))
-        : Math.max(...s.sets.map(x => x.reps || 0))).filter(v => v > 0);
-      if (!series.length) continue;
-      lifts.push({ ex, series, hasW, count: arr.length });
-    }
-    // the four most-trained lifts, as graphs
-    lifts.sort((a, b) => b.count - a.count);
-
-    if (lifts.length) {
-      root.appendChild(el('div', 'micro', 'Main lifts · weight over time'));
-      const grid = el('div', 'stat-graphs');
-      for (const L of lifts.slice(0, 4)) {
+    // ---- four summary graphs: volume, time, sets, body weight ----
+    {
+      const weeksN = 8;
+      const nowD = new Date();
+      const dow0 = (nowD.getDay() + 6) % 7;
+      const mon = new Date(nowD); mon.setDate(nowD.getDate() - dow0); mon.setHours(0, 0, 0, 0);
+      const wk = Array.from({ length: weeksN }, (_, i) => {
+        const ws = new Date(mon.getTime() - (weeksN - 1 - i) * 7 * 86400000);
+        const we = new Date(ws.getTime() + 7 * 86400000);
+        const inWk = workouts.filter(w => { const d = dateOf(w.date); return d >= ws && d < we; });
+        return {
+          vol: inWk.reduce((a, w) => a + (w.volume || 0), 0),
+          min: inWk.reduce((a, w) => a + (w.duration || 0), 0),
+          sets: inWk.reduce((a, w) => a + (w.sets || 0), 0)
+        };
+      });
+      const tile = (label, series, val, delta) => {
         const cell = el('div', 'sg-cell');
-        cell.appendChild(el('div', 'sg-name', L.ex.name));
+        cell.appendChild(el('div', 'sg-name', label));
         const row = el('div', 'sg-valrow');
-        const curV = L.series[L.series.length - 1];
-        row.appendChild(el('span', 'sg-val num', fmtKg(curV) + (L.hasW ? ' kg' : '')));
-        const d = +(curV - L.series[0]).toFixed(1);
-        if (L.series.length >= 2 && d !== 0) {
-          row.appendChild(el('span', 'sg-d num' + (d > 0 ? ' up' : ' down'),
-            (d > 0 ? '+' : '−') + Math.abs(d)));
-        }
+        row.appendChild(el('span', 'sg-val num', val));
+        if (delta) row.appendChild(el('span', 'sg-d num' + (delta.startsWith('+') ? ' up' : ' down'), delta));
         cell.appendChild(row);
         const g = el('div', 'sg-graph');
-        g.innerHTML = sparkSVG(L.series, 150, 54);
+        g.innerHTML = sparkSVG(series, 150, 54);
         cell.appendChild(g);
-        cell.onclick = () => openDetail(L.ex.id, 'stats');
-        grid.appendChild(cell);
+        return cell;
+      };
+      const dTxt = (cur, prev, unit) => {
+        const d = Math.round((cur - prev) * 10) / 10;
+        return prev > 0 && d !== 0 ? `${d > 0 ? '+' : '−'}${Math.abs(d)}${unit}` : '';
+      };
+      const grid = el('div', 'stat-graphs');
+      const cur = wk[weeksN - 1], prev = wk[weeksN - 2];
+      grid.appendChild(tile('Volume · kg / week', wk.map(x => x.vol), fmtKg(cur.vol), dTxt(cur.vol, prev.vol, '')));
+      const hoursTot = Math.round(workouts.reduce((a, w) => a + (w.duration || 0), 0) / 6) / 10;
+      grid.appendChild(tile(`Time · ${hoursTot} h total`, wk.map(x => x.min), cur.min + ' min', dTxt(cur.min, prev.min, 'm')));
+      grid.appendChild(tile('Sets · per week', wk.map(x => x.sets), String(cur.sets), dTxt(cur.sets, prev.sets, '')));
+      if (bw.length >= 2) {
+        const sorted = [...bw].sort((a, b) => a.ts - b.ts);
+        const last = sorted[sorted.length - 1];
+        const past = sorted.filter(x => last.ts - x.ts >= 25 * 86400000).pop() || sorted[0];
+        grid.appendChild(tile('Body weight · kg', sorted.slice(-12).map(x => x.kg),
+          last.kg.toFixed(1), dTxt(last.kg, past.kg, '')));
       }
+      root.appendChild(el('div', 'micro', 'Last 8 weeks'));
       root.appendChild(grid);
     }
 
@@ -2481,15 +2484,6 @@
       root.appendChild(pl);
     }
 
-    // body weight one-liner, linking the two halves of training
-    if (bw.length >= 2) {
-      const sorted = [...bw].sort((a, b) => a.ts - b.ts);
-      const d30 = sorted[sorted.length - 1].kg - (sorted.filter(x => Date.now() - x.ts >= 25 * 86400000).pop() || sorted[0]).kg;
-      const note = el('div', 'coach-note');
-      note.innerHTML = `<b>Body weight ·</b> ${sorted[sorted.length - 1].kg.toFixed(1)} kg now, ` +
-        `${d30 >= 0 ? '+' : '−'}${Math.abs(d30).toFixed(1)} kg over ~30 days. The graph lives in Profile.`;
-      root.appendChild(note);
-    }
   }
 
   /* compact trend graph for the stat tiles */
