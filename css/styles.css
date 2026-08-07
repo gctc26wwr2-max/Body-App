@@ -378,6 +378,12 @@ body { font-size: 14px; }
 .ks-ruler.fine .ks-tick i.h20 { height: 22px; margin-top: 12px; }
 .ks-ruler.fine .ks-tick i.h15, .ks-ruler.fine .ks-tick i.h11 { height: 12px; margin-top: 22px; }
 .ks-ruler.fine .ks-tick.sel i { height: 34px !important; }
+.rep-cell {
+  height: 38px; width: 100%; padding: 0; background: none; border: none;
+  display: flex; align-items: center; justify-content: center;
+}
+.rep-cell .reps-val { font-size: 19px; font-weight: 800; letter-spacing: -.02em; }
+
 /* vertical rep wheel — styled like the system picker */
 .rep-scale { padding: 2px 10px 12px; display: flex; flex-direction: column; gap: 7px; }
 .vs-ruler {
