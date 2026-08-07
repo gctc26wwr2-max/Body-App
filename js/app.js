@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v98';
+  const APP_VERSION = 'v99';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1277,6 +1277,7 @@
 
     const build = () => {
       strip.innerHTML = '';
+      const majorEvery = opts.majorEvery || 5;
       for (let d = -opts.span; d <= opts.span; d++) {
         const v = +(st.base + d * opts.step).toFixed(3);
         const ok = v >= (opts.min ?? 0);
@@ -1284,7 +1285,7 @@
         const t = el('button', 'ks-tick');
         t.style.width = opts.tickW + 'px';
         t.dataset.v = v;
-        t.appendChild(el('i', stepsFromZero % 5 === 0 ? 'h20' : (stepsFromZero % 2 ? 'h11' : 'h15')));
+        t.appendChild(el('i', stepsFromZero % majorEvery === 0 ? 'h20' : (stepsFromZero % 2 ? 'h11' : 'h15')));
         const showLbl = ok && stepsFromZero % lblEvery === 0;
         t.dataset.lbl = ok ? (showLbl ? fmt(v) : '') : '—';
         t.appendChild(el('span', 'num', t.dataset.lbl));
@@ -2030,7 +2031,7 @@
     bwCard.appendChild(bwHead);
 
     let bwv = lastBw ? lastBw.kg : 80;
-    let bwStep = 0.1;
+    const bwStep = 0.5;   // fixed — main lines every 1 kg
     const read = el('div', 'bwv-read');
     const rv = el('div', 'bwv-val num', bwv.toFixed(1));
     rv.appendChild(el('small', null, ' kg'));
@@ -2054,39 +2055,19 @@
     };
     updDelta();
 
-    // fine scale — 0.1 steps by default, only every 5th tick labelled
-    let bwRuler;
-    const rulerHost = el('div');
-    const buildBwRuler = () => {
-      rulerHost.innerHTML = '';
-      bwRuler = rulerScale({
-        value: bwv, step: bwStep, tickW: 30, span: 14, min: 20,
-        labelEvery: 5, decimals: 1, cls: 'fine', onChange: commitBw
-      });
-      rulerHost.appendChild(bwRuler.el);
-    };
-    buildBwRuler();
-    bwCard.appendChild(rulerHost);
+    // fixed scale — 0.5 steps, main labelled lines at every 1 kg
+    const bwRuler = rulerScale({
+      value: bwv, step: bwStep, tickW: 30, span: 14, min: 20,
+      labelEvery: 2, majorEvery: 2, decimals: 1, cls: 'fine', onChange: commitBw
+    });
+    bwCard.appendChild(bwRuler.el);
 
-    // ± and the step picker — weighing yourself needs finer steps than plates
     const bwCtr = el('div', 'ks-controls');
     const bm = el('button', 'ks-adj num', '−');
     bm.onclick = () => bwRuler.setVal(bwRuler.get() - bwStep);
     const bp = el('button', 'ks-adj num', '+');
     bp.onclick = () => bwRuler.setVal(bwRuler.get() + bwStep);
     bwCtr.append(bm, bp);
-    const stepPick = el('div', 'bw-steps');
-    [0.1, 0.5, 1.0].forEach(sp => {
-      const b = el('button', 'num' + (bwStep === sp ? ' sel' : ''), sp.toFixed(1));
-      b.onclick = () => {
-        bwStep = sp;
-        stepPick.querySelectorAll('button').forEach(x => x.classList.remove('sel'));
-        b.classList.add('sel');
-        buildBwRuler();
-      };
-      stepPick.appendChild(b);
-    });
-    bwCtr.appendChild(stepPick);
     bwCard.appendChild(bwCtr);
 
     // 30-day trend
