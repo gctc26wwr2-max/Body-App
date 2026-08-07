@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v78';
+  const APP_VERSION = 'v79';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1604,34 +1604,39 @@
       root.appendChild(c);
     }
 
-    // active program card
+    // active program — flat v5 section, no card
     if (plan) {
       const weeks = plan.weeks || 4;
       const curWeek = plan.startDate ? weekOf(plan) : 0;
-      const c = el('div', 'card');
+      const c = el('div', 'plan-block');
       const bh = el('div', 'block-head');
-      bh.appendChild(el('div', 'micro', plan.name));
+      const bhl = el('div');
+      bhl.appendChild(el('div', 'micro', plan.name));
+      bhl.appendChild(el('div', 'pb-week num',
+        planFinished(plan) ? 'Complete' : (curWeek ? `Week ${curWeek} of ${weeks}` : 'Not started')));
+      bh.appendChild(bhl);
       const editB = el('button', 'rest-edit', 'Edit');
       editB.onclick = () => openPlanForm(plan);
       bh.appendChild(editB);
       c.appendChild(bh);
-      const st = el('div', 'block-note' + (curWeek === weeks ? ' final' : ''),
-        planFinished(plan) ? 'Complete 🎉' : (curWeek ? `Week ${curWeek} of ${weeks}` : 'Not started'));
-      st.style.marginBottom = '6px';
-      c.appendChild(st);
+      // week track — one bar per week, like the workout's exercise track
+      const wt = el('div', 'ex-progress');
+      for (let i = 1; i <= weeks; i++) {
+        wt.appendChild(el('span', i < (curWeek || 1) ? 'done' : (i === (curWeek || 1) && curWeek ? 'cur' : '')));
+      }
+      c.appendChild(wt);
       const doneThisWeek = new Set((plan.completed || []).filter(x => x.week === (curWeek || 1)).map(x => x.day));
       (plan.days || []).forEach((day, i) => {
-        const r = el('div', 'prog-day-row' + (doneThisWeek.has(i) ? ' done' : ''));
-        r.appendChild(el('div', 'n', (doneThisWeek.has(i) ? '✓ ' : '') + day.name));
-        r.appendChild(el('div', 'm num', day.items.length + ' exercises ▾'));
-        const go = el('button', 'go');
+        const r = el('div', 'pday-row' + (doneThisWeek.has(i) ? ' done' : ''));
+        r.appendChild(el('div', 'exi-num', String(i + 1).padStart(2, '0')));
+        r.appendChild(el('div', 'pd-name', day.name));
+        r.appendChild(el('div', 'pd-meta num', doneThisWeek.has(i) ? 'done ✓' : day.items.length + ' exercises ▾'));
+        const go = el('button', 'pd-go');
         if (doneThisWeek.has(i)) {
-          go.textContent = '✓ Done';
+          go.textContent = '✓';
           go.disabled = true;
-          go.style.opacity = '.55';
         } else {
           go.appendChild(svgIcon(PLAY, 10));
-          go.appendChild(document.createTextNode(' Start'));
           go.onclick = e => { e.stopPropagation(); startWorkout(plan, i); };
         }
         r.appendChild(go);
@@ -1668,9 +1673,10 @@
         };
         c.appendChild(pv);
       });
+      const actions = el('div', 'text-links');
+      actions.style.marginTop = '4px';
       if (window.STARTER_BLOCK && plan.name === window.STARTER_BLOCK.name) {
-        const rst = el('button', 'btn-ghost', 'Restore original days');
-        rst.style.cssText = 'margin-top:12px;width:100%;height:42px;color:var(--lime);border-color:var(--lime-border)';
+        const rst = el('button', null, 'Restore original days');
         rst.onclick = async () => {
           if (!confirm('Restore this block’s days and exercises to the original plan? Your history and week progress are kept.')) return;
           const sb = window.STARTER_BLOCK;
@@ -1689,16 +1695,17 @@
           alert('Plan restored: ' + days.map(d => d.name).join(', ') + '.');
           renderTab();
         };
-        c.appendChild(rst);
+        actions.appendChild(rst);
+        actions.appendChild(el('i', null, '·'));
       }
-      const delB = el('button', 'btn-ghost', 'Delete block');
-      delB.style.cssText = 'margin-top:12px;width:100%;height:42px';
+      const delB = el('button', null, 'Delete block');
       delB.onclick = async () => {
         if (!confirm(`Delete "${plan.name}"? History is kept.`)) return;
         await DB.del('plans', plan.id);
         renderTab();
       };
-      c.appendChild(delB);
+      actions.appendChild(delB);
+      c.appendChild(actions);
       root.appendChild(c);
     }
 
@@ -1707,7 +1714,7 @@
       const last = workouts[0];
       const prev = workouts.find(x => x.name === last.name && x.id !== last.id);
       if (prev) {
-        const c = el('div', 'compare-card');
+        const c = el('div', 'cmp-flat');
         const h = el('div', 'cmp-head');
         h.appendChild(el('div', 'a', `Last ${last.name} · ${agoDays(last.date)}`));
         h.appendChild(el('div', 'b', last.duration + ' min'));
@@ -1733,22 +1740,22 @@
       }
     }
 
-    // month-grouped history
+    // history — sessions threaded on a rail, newest first
+    const hRail = el('div', 'hist-rail');
     let curMonth = '';
     workouts.forEach((w, i) => {
       const m = dateOf(w.date).toLocaleDateString('en-US', { month: 'long' });
-      if (m !== curMonth) { curMonth = m; root.appendChild(el('div', 'month-label', m)); }
-      const r = el('div', 'hist-row' + (i > 4 ? ' old' : ''));
-      const d = el('div', 'hist-date');
-      d.appendChild(el('div', 'd num', String(dateOf(w.date).getDate())));
-      d.appendChild(el('div', 'w', dateOf(w.date).toLocaleDateString('en-US', { weekday: 'short' })));
-      r.appendChild(d);
-      r.appendChild(el('div', 'hist-div'));
-      const c = el('div');
-      const nm = el('div', 'hist-name', w.name);
+      if (m !== curMonth) { curMonth = m; hRail.appendChild(el('div', 'month-label', m)); }
+      const r = el('div', 'hrow' + (i > 4 ? ' old' : ''));
+      const node = el('i', 'ex-node small');
+      node.appendChild(el('i'));
+      r.appendChild(node);
+      const c = el('div', 'hrow-body');
+      c.appendChild(el('div', 'hrow-date', dateOf(w.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ` · ${w.duration} min`));
+      const nm = el('div', 'hrow-name', w.name);
       if (w.prs && w.prs.length) nm.appendChild(el('span', 'pr-chip', w.prs.length + ' PR'));
       c.appendChild(nm);
-      c.appendChild(el('div', 'hist-meta num', `${w.duration} min · ${fmtKg(w.volume)} kg · ${w.sets} sets${w.feel ? ' · ' + w.feel : ''}`));
+      c.appendChild(el('div', 'hrow-meta num', `${fmtKg(w.volume)} kg · ${w.sets} sets${w.feel ? ' · ' + w.feel : ''} ▾`));
       r.appendChild(c);
       const del = el('button', 'hist-del', '✕');
       del.title = 'Delete this session';
@@ -1798,8 +1805,9 @@
       const wrap = el('div', 'hist-wrap');
       wrap.appendChild(r);
       wrap.appendChild(det2);
-      root.appendChild(wrap);
+      hRail.appendChild(wrap);
     });
+    if (workouts.length) root.appendChild(hRail);
 
     if (!workouts.length && !plan) {
       const emp = el('div', 'empty-state');
