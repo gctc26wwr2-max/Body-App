@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v102';
+  const APP_VERSION = 'v103';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2036,7 +2036,6 @@
 
     const bwHead = el('div', 'bwv-head');
     bwHead.appendChild(el('div', 'micro', "Today's reading"));
-    bwHead.appendChild(el('div', 'micro', lastBw ? `Last: ${lastBw.kg.toFixed(1)} kg` : 'First reading'));
     bwCard.appendChild(bwHead);
 
     let bwv = lastBw ? lastBw.kg : 80;
