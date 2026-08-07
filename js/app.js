@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v79';
+  const APP_VERSION = 'v80';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1626,13 +1626,18 @@
       }
       c.appendChild(wt);
       const doneThisWeek = new Set((plan.completed || []).filter(x => x.week === (curWeek || 1)).map(x => x.day));
+      const firstPendingDay = (plan.days || []).findIndex((_, i) => !doneThisWeek.has(i));
+      const dRail = el('div', 'pday-rail');
       (plan.days || []).forEach((day, i) => {
-        const r = el('div', 'pday-row' + (doneThisWeek.has(i) ? ' done' : ''));
-        r.appendChild(el('div', 'exi-num', String(i + 1).padStart(2, '0')));
+        const done = doneThisWeek.has(i);
+        const r = el('div', 'pday-row' + (done ? ' done' : ''));
+        const node = el('i', 'ex-node small' + (done ? ' filled' : (i === firstPendingDay ? ' active' : '')));
+        node.appendChild(el('i'));
+        r.appendChild(node);
         r.appendChild(el('div', 'pd-name', day.name));
-        r.appendChild(el('div', 'pd-meta num', doneThisWeek.has(i) ? 'done ✓' : day.items.length + ' exercises ▾'));
+        r.appendChild(el('div', 'pd-meta num', done ? 'done ✓' : day.items.length + ' exercises ▾'));
         const go = el('button', 'pd-go');
-        if (doneThisWeek.has(i)) {
+        if (done) {
           go.textContent = '✓';
           go.disabled = true;
         } else {
@@ -1640,7 +1645,7 @@
           go.onclick = e => { e.stopPropagation(); startWorkout(plan, i); };
         }
         r.appendChild(go);
-        c.appendChild(r);
+        dRail.appendChild(r);
 
         // tap the day to preview the exercises you'll go through
         const pv = el('div', 'day-preview');
@@ -1671,8 +1676,9 @@
           pv.hidden = !pv.hidden;
           r.classList.toggle('open', !pv.hidden);
         };
-        c.appendChild(pv);
+        dRail.appendChild(pv);
       });
+      c.appendChild(dRail);
       const actions = el('div', 'text-links');
       actions.style.marginTop = '4px';
       if (window.STARTER_BLOCK && plan.name === window.STARTER_BLOCK.name) {

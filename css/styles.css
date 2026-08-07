@@ -535,15 +535,25 @@ body { font-size: 14px; }
 /* ---------- Plan: flat v5 block section ---------- */
 .plan-block { display: flex; flex-direction: column; gap: 13px; }
 .pb-week { font-size: 15px; font-weight: 800; letter-spacing: -.02em; margin-top: 4px; }
-.pday-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 11px 0; border-top: 1px solid var(--hair-8); cursor: pointer;
+/* the block's days thread on the same rail as history; past days half-tone */
+.pday-rail { position: relative; display: flex; flex-direction: column; }
+.pday-rail::before {
+  content: ''; position: absolute; left: 10px; top: 14px; bottom: 14px; width: 2px;
+  background: linear-gradient(to bottom, rgba(206,107,61,.5), rgba(255,255,255,.08) 60%, rgba(255,255,255,.06));
 }
-.pday-row:last-of-type { border-bottom: 1px solid var(--hair-8); }
+.pday-row {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  padding: 9px 0 9px 32px; cursor: pointer;
+}
+.pday-row .ex-node { top: 50%; margin-top: -9px; }
+.pday-row.done { opacity: .5; }
+.ex-node.filled { background: var(--lime); border-color: var(--lime); }
+.ex-node.filled i { background: var(--on-accent); }
+.ex-node.active { border-color: var(--lime); }
+.ex-node.active i { background: var(--lime); }
 .pd-name { flex: 1; font-size: 15px; font-weight: 800; letter-spacing: -.015em; text-transform: uppercase; }
-.pday-row.done .pd-name { color: var(--t5); }
 .pd-meta { font-size: 11.5px; font-weight: 600; color: var(--t6); }
-.pday-row.done .pd-meta { color: var(--lime); }
+.pday-rail .day-preview { margin-left: 32px; margin-bottom: 8px; }
 .pd-go {
   width: 44px; height: 38px; border-radius: 13px; border: none; flex: 0 0 auto;
   background: var(--lime); color: var(--on-accent);
