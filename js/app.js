@@ -1358,9 +1358,10 @@
     return { el: wrap, setVal: v => setVal(v, true), get: () => st.val };
   }
 
-  /* The weight scale — the same vertical wheel, stepping 2.5 kg */
+  /* The weight scale — expands inside the set row */
   function weightScale(lw, cur, ei, si, updateVals) {
     const set = cur.sets[si];
+    const stepK = 2.5;
     const box = el('div', 'kg-scale');
 
     const top = el('div', 'ks-top');
@@ -1371,31 +1372,29 @@
     top.appendChild(deltaEl);
     box.appendChild(top);
 
-    const wheel = vWheel({
-      value: set.kg, step: 2.5, min: 0,
-      onChange: v => {
-        set.kg = v;
-        // the new weight carries forward to the remaining unlogged sets
-        for (let j = si + 1; j < cur.sets.length; j++) {
-          if (!cur.sets[j].done) cur.sets[j].kg = v;
-        }
-        live.set(lw);
-        updateVals();
-        big.firstChild.nodeValue = String(v);
-        deltaEl.textContent = setDelta(cur, si);
+    const commit = v => {
+      set.kg = v;
+      // the new weight carries forward to the remaining unlogged sets
+      for (let j = si + 1; j < cur.sets.length; j++) {
+        if (!cur.sets[j].done) cur.sets[j].kg = v;
       }
-    });
-    box.appendChild(wheel.el);
+      live.set(lw);
+      updateVals();
+      big.firstChild.nodeValue = String(v);
+      deltaEl.textContent = setDelta(cur, si);
+    };
+    const ruler = rulerScale({ value: set.kg, step: stepK, tickW: 46, span: 8, min: 0, onChange: commit });
+    box.appendChild(ruler.el);
 
     const ctr = el('div', 'ks-controls');
     const reset = el('button', 'ks-adj ks-reset num', '0');
     reset.title = 'Reset to 0';
-    reset.onclick = () => wheel.setVal(0);
+    reset.onclick = () => ruler.setVal(0);
     ctr.append(reset);
     const plates = el('div', 'ks-plates');
     [2.5, 5, 10].forEach(p => {
       const b = el('button', 'num', '+' + p);
-      b.onclick = () => wheel.setVal(wheel.get() + p);
+      b.onclick = () => ruler.setVal(ruler.get() + p);
       plates.appendChild(b);
     });
     ctr.appendChild(plates);
@@ -1403,29 +1402,39 @@
     return box;
   }
 
-  /* Vertical wheel (system-picker style) — shared by reps and weight.
-     Drag up/down like a dial, or tap a value; haptic tick per detent. */
-  function vWheel(opts) {
-    // opts: value, step, min, decimals, band:[lo,hi], onChange(v)
+  /* The rep scale — a vertical wheel that expands inside the set row.
+     Drag up/down like a dial, or tap a number. */
+  function repScale(lw, cur, ei, si, updateVals) {
+    const set = cur.sets[si];
     const TICK = 34, SPAN = 8;
-    let base = opts.value, val = opts.value;
-    const fmt = v => opts.decimals ? v.toFixed(opts.decimals) : String(+v.toFixed(2));
+    let base = set.reps;
+    const box = el('div', 'rep-scale');
+
+    const top = el('div', 'ks-top');
+    const big = el('div', 'ks-val num', String(set.reps));
+    big.appendChild(el('small', null, ' reps'));
+    top.appendChild(big);
+    top.appendChild(el('div', 'ks-delta', `Target ${cur.repLo}–${cur.repHi}`));
+    box.appendChild(top);
+
     const wrap = el('div', 'vs-ruler');
     wrap.appendChild(el('i', 'vs-ind'));
     const strip = el('div', 'vs-strip');
     wrap.appendChild(strip);
+    box.appendChild(wrap);
 
-    const idxOf = v => Math.round((v - (base - SPAN * opts.step)) / opts.step);
+    const idxOf = v => Math.round(v - (base - SPAN));
     const offFor = v => -(idxOf(v) * TICK + TICK / 2);
     let suppress = false;
     const build = () => {
       strip.innerHTML = '';
       for (let d = -SPAN; d <= SPAN; d++) {
-        const v = +(base + d * opts.step).toFixed(3);
-        const ok = v >= (opts.min ?? 0);
+        const v = base + d;
+        const ok = v >= 0;
         const t = el('button', 'vs-tick');
         t.dataset.v = v;
-        t.appendChild(el('span', 'num', ok ? fmt(v) : ''));
+        t.appendChild(el('i', v % 5 === 0 ? 'w20' : (v % 2 ? 'w11' : 'w15')));
+        t.appendChild(el('span', 'num', ok ? String(v) : ''));
         if (ok) t.onclick = () => { if (!suppress) setVal(v, true); };
         strip.appendChild(t);
       }
@@ -1434,27 +1443,30 @@
     const mark = () => {
       [...strip.children].forEach(t => {
         const v = +t.dataset.v;
-        t.classList.toggle('sel', Math.abs(v - val) < opts.step / 2);
-        t.classList.toggle('inband', !!opts.band && v >= opts.band[0] && v <= opts.band[1]);
+        t.classList.toggle('sel', v === set.reps);
+        t.classList.toggle('inband', v >= cur.repLo && v <= cur.repHi);
       });
     };
     const slide = anim => {
       strip.style.transition = anim ? 'transform .18s ease-out' : 'none';
-      strip.style.transform = `translateY(${offFor(val)}px)`;
+      strip.style.transform = `translateY(${offFor(set.reps)}px)`;
     };
     const setVal = (v, anim) => {
-      v = Math.max(opts.min ?? 0, +v.toFixed(3));
-      if (v !== val) haptic();
-      val = v;
-      opts.onChange(v);
+      v = Math.max(0, Math.round(v));
+      if (v !== set.reps) haptic();
+      set.reps = v;
+      live.set(lw);
+      updateVals();
+      big.firstChild.nodeValue = String(v);
       if (idxOf(v) < 2 || idxOf(v) > 2 * SPAN - 2) { base = v; build(); slide(false); }
       else { mark(); slide(anim); }
     };
 
+    // vertical drag, snapping one rep per notch — a haptic tick per detent
     let sy = null, so = 0, lastN = 0;
     wrap.style.touchAction = 'none';
     wrap.addEventListener('pointerdown', e => {
-      sy = e.clientY; so = offFor(val); lastN = 0;
+      sy = e.clientY; so = offFor(set.reps); lastN = 0;
       strip.style.transition = 'none';
       wrap.setPointerCapture(e.pointerId);
     });
@@ -1474,41 +1486,18 @@
         slide(false);
         const t = document.elementFromPoint(e.clientX, e.clientY);
         const tick = t && t.closest ? t.closest('.vs-tick') : null;
-        if (tick && tick.dataset.v !== undefined && +tick.dataset.v >= (opts.min ?? 0)) setVal(+tick.dataset.v, true);
+        if (tick && tick.dataset.v !== undefined && +tick.dataset.v >= 0) setVal(+tick.dataset.v, true);
         return;
       }
       suppress = true;
       setTimeout(() => { suppress = false; }, 350);
-      setVal(val - Math.round(dy / TICK) * opts.step, true);
+      setVal(set.reps - Math.round(dy / TICK), true);
     };
     wrap.addEventListener('pointerup', endDrag);
     wrap.addEventListener('pointercancel', () => { if (sy !== null) { sy = null; slide(false); } });
 
     build();
     slide(false);
-    return { el: wrap, setVal: v => setVal(v, true), get: () => val };
-  }
-
-  /* The rep scale — the vertical wheel inside the set row */
-  function repScale(lw, cur, ei, si, updateVals) {
-    const set = cur.sets[si];
-    const box = el('div', 'rep-scale');
-    const top = el('div', 'ks-top');
-    const big = el('div', 'ks-val num', String(set.reps));
-    big.appendChild(el('small', null, ' reps'));
-    top.appendChild(big);
-    top.appendChild(el('div', 'ks-delta', `Target ${cur.repLo}–${cur.repHi}`));
-    box.appendChild(top);
-    const wheel = vWheel({
-      value: set.reps, step: 1, min: 0, band: [cur.repLo, cur.repHi],
-      onChange: v => {
-        set.reps = v;
-        live.set(lw);
-        updateVals();
-        big.firstChild.nodeValue = String(v);
-      }
-    });
-    box.appendChild(wheel.el);
     return box;
   }
 
