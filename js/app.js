@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v72';
+  const APP_VERSION = 'v73';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -253,13 +253,18 @@
     const finished = planFinished(plan);
     const behind = started && !finished && (planWeek(plan) || 1) > progressWeek(plan);
 
-    // does today call for the arc "up next" layout?
-    const lwEarly = live.get();
+    // today's state drives the arc layout — it renders in EVERY state
+    const lwNow = live.get();
+    const trainedToday = workouts.some(x => x.date === todayStr());
     const dtwSet = new Set((plan.completed || []).filter(c => c.week === (curWeek || 1)).map(c => c.day));
-    const nextIdxArc = (!finished && plan.days && plan.days.length) ? plan.days.findIndex((_, i) => !dtwSet.has(i)) : -1;
-    const showArc = !finished && !lwEarly && nextIdxArc >= 0 && !workouts.some(x => x.date === todayStr());
+    const nextIdxArc = (plan.days && plan.days.length) ? plan.days.findIndex((_, i) => !dtwSet.has(i)) : -1;
+    let mode = 'next';
+    if (lwNow) mode = 'live';
+    else if (finished) mode = 'complete';
+    else if (trainedToday) mode = 'banked';
+    else if (nextIdxArc < 0) mode = 'weekdone';
 
-    if (!showArc || behind) {
+    if (behind) {
     // ---- block card ----
     const bc = el('div', 'card');
     const bh = el('div', 'block-head');
@@ -342,41 +347,71 @@
     });
     root.appendChild(strip);
 
-    // ---- up next: the v5 arc layout ----
-    if (showArc) {
-      const day = plan.days[nextIdxArc];
-      const totalSess = weeks * plan.days.length;
-      const doneSess = Math.min((plan.completed || []).length, totalSess - 1);
+    // ---- the v5 arc layout, in every state ----
+    {
+      const dayIdx = mode === 'live' ? lwNow.dayIndex : (nextIdxArc >= 0 ? nextIdxArc : 0);
+      const day = (plan.days && plan.days[dayIdx]) || { name: plan.name, items: [] };
+      const totalSess = weeks * Math.max(1, (plan.days || []).length);
+      const doneSess = Math.min((plan.completed || []).length, totalSess);
       const wrap = el('div', 'arc-wrap');
       wrap.innerHTML = blockArcSVG(totalSess, doneSess, weeks);
       const overlay = el('div', 'arc-title');
-      overlay.appendChild(el('div', 'arc-sess', `Session ${doneSess + 1} of ${totalSess}`));
-      const dn = el('div', 'arc-day', day.name);
-      if (day.name.length > 8) dn.style.fontSize = '34px';
-      overlay.appendChild(dn);
-      const lastDoneC = (plan.completed || []).filter(c => c.day === nextIdxArc && c.duration).pop();
-      const totalSets = day.items.reduce((a, it) => a + (it.sets || 3), 0);
+
       const prefD = plan.prefDays || [];
       const todayIdx = (now.getDay() + 6) % 7;
       const doneThisWk = workouts.filter(x => sameWeek(x.date)).length;
-      const due = prefD.length && doneThisWk < prefD.filter(x => x <= todayIdx).length;
-      overlay.appendChild(el('div', 'arc-meta',
-        `${day.items.length} exercises · ~${lastDoneC ? lastDoneC.duration : Math.round(totalSets * 2.5)} min${due ? ' · due today' : ''}`));
+      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      let nextPref = '';
+      for (let k = 1; k <= 6; k++) {
+        const di = (todayIdx + k) % 7;
+        if (prefD.includes(di)) { nextPref = dayNames[di]; break; }
+      }
+
+      let title = day.name, meta = '', sess = `Session ${Math.min(doneSess + 1, totalSess)} of ${totalSess}`;
+      if (mode === 'next') {
+        const lastDoneC = (plan.completed || []).filter(c => c.day === dayIdx && c.duration).pop();
+        const totalSets = day.items.reduce((a, it) => a + (it.sets || 3), 0);
+        const due = prefD.length && doneThisWk < prefD.filter(x => x <= todayIdx).length;
+        meta = `${day.items.length} exercises · ~${lastDoneC ? lastDoneC.duration : Math.round(totalSets * 2.5)} min${due ? ' · due today' : ''}`;
+      } else if (mode === 'live') {
+        meta = `In progress · ${fmtClock(Math.floor((Date.now() - lwNow.startedAt) / 1000))} elapsed`;
+      } else if (mode === 'banked') {
+        sess = `Session ${doneSess} of ${totalSess} · done`;
+        title = 'Banked.';
+        meta = nextIdxArc >= 0
+          ? `Recovery is part of the program. Next: ${plan.days[nextIdxArc].name}${nextPref ? ' · ' + nextPref : ''}`
+          : 'Every day of this week is done — rest up.';
+      } else if (mode === 'weekdone') {
+        sess = `Week ${curWeek || 1} of ${weeks} · done`;
+        title = 'Rest';
+        meta = `All of week ${curWeek || 1} is banked. Week ${Math.min((curWeek || 1) + 1, weeks)} unlocks as the calendar rolls over.`;
+      } else if (mode === 'complete') {
+        sess = `Block ${blockNumber(plan)} · complete`;
+        title = 'Done';
+        meta = 'Every session is banked. Renew the block to keep progressing.';
+      }
+      overlay.appendChild(el('div', 'arc-sess', sess));
+      const dn = el('div', 'arc-day', title);
+      if (title.length > 8) dn.style.fontSize = '34px';
+      overlay.appendChild(dn);
+      overlay.appendChild(el('div', 'arc-meta', meta));
       wrap.appendChild(overlay);
       root.appendChild(wrap);
 
-      // numbered exercise index
-      const idx = el('div', 'ex-index');
-      day.items.forEach((it, i) => {
-        const ex = exercises.find(e => e.id === it.exerciseId);
-        const r = el('div', 'exi-row');
-        r.appendChild(el('div', 'exi-num', String(i + 1).padStart(2, '0')));
-        r.appendChild(el('div', 'exi-name', ex ? ex.name : '(deleted)'));
-        r.appendChild(el('div', 'exi-scheme', `${it.sets || 3} × ${it.repLo || 8}–${it.repHi || 12}${it.kg ? ' · ' + fmtKg(it.kg) + ' kg' : ''}`));
-        if (ex) r.onclick = () => openDetail(ex.id, 'library');
-        idx.appendChild(r);
-      });
-      root.appendChild(idx);
+      // numbered exercise index — when there is a session to show
+      if ((mode === 'next' || mode === 'live') && day.items.length) {
+        const idx = el('div', 'ex-index');
+        day.items.forEach((it, i) => {
+          const ex = exercises.find(e => e.id === it.exerciseId);
+          const r = el('div', 'exi-row');
+          r.appendChild(el('div', 'exi-num', String(i + 1).padStart(2, '0')));
+          r.appendChild(el('div', 'exi-name', ex ? ex.name : '(deleted)'));
+          r.appendChild(el('div', 'exi-scheme', `${it.sets || 3} × ${it.repLo || 8}–${it.repHi || 12}${it.kg ? ' · ' + fmtKg(it.kg) + ' kg' : ''}`));
+          if (ex) r.onclick = () => openDetail(ex.id, 'library');
+          idx.appendChild(r);
+        });
+        root.appendChild(idx);
+      }
 
       // stats baseline row
       const base = el('div', 'base-row');
@@ -386,19 +421,31 @@
         d.appendChild(el('div', 'l', l));
         return d;
       };
-      base.appendChild(bs(String(totalSets), 'Sets'));
+      base.appendChild(bs(String(doneThisWk), 'This week'));
       const lastW0 = workouts[0];
       base.appendChild(bs(lastW0 ? String(lastW0.duration) : '—', 'Last min'));
       const wkVol0 = workouts.filter(x => sameWeek(x.date)).reduce((a, x) => a + (x.volume || 0), 0);
       base.appendChild(bs(fmtKg(wkVol0), 'Kg this week', 'earn'));
       root.appendChild(base);
 
-      // primary CTA + text links
-      const cta = el('button', 'btn-cta big');
-      cta.appendChild(svgIcon(PLAY, 13));
-      cta.appendChild(document.createTextNode(' Start ' + day.name));
-      cta.onclick = () => startWorkout(plan, nextIdxArc);
-      root.appendChild(cta);
+      // primary CTA per state + text links
+      if (mode === 'next') {
+        const cta = el('button', 'btn-cta big');
+        cta.appendChild(svgIcon(PLAY, 13));
+        cta.appendChild(document.createTextNode(' Start ' + day.name));
+        cta.onclick = () => startWorkout(plan, dayIdx);
+        root.appendChild(cta);
+      } else if (mode === 'live') {
+        const cta = el('button', 'btn-cta big');
+        cta.appendChild(svgIcon(PLAY, 13));
+        cta.appendChild(document.createTextNode(' Resume ' + day.name));
+        cta.onclick = () => { show('workout'); renderWorkout(); };
+        root.appendChild(cta);
+      } else if (mode === 'complete') {
+        const cta = el('button', 'btn-cta big', 'Build Block ' + (blockNumber(plan) + 1));
+        cta.onclick = () => openPlanForm(null, plan);
+        root.appendChild(cta);
+      }
       const links = el('div', 'text-links');
       const mkLink = (t, fn) => { const b = el('button', null, t); b.onclick = fn; return b; };
       links.appendChild(mkLink('Edit block', () => openPlanForm(plan)));
@@ -408,48 +455,6 @@
       links.appendChild(mkLink('History', () => { show('plan'); renderTab(); }));
       root.appendChild(links);
     }
-
-    // ---- other states keep the hero card ----
-    const lw = live.get();
-    const hero = el('div', 'card hero');
-    let useHero = true;
-    if (showArc) {
-      useHero = false;
-    } else if (lw) {
-      hero.appendChild(heroTop('IN PROGRESS', fmtClock(Math.floor((Date.now() - lw.startedAt) / 1000)) + ' elapsed'));
-      hero.appendChild(el('div', 'hero-title', lw.dayName));
-      hero.appendChild(el('div', 'hero-sub', 'Your session is still running — jump back in.'));
-      const cta = el('button', 'btn-cta', 'Resume workout');
-      cta.onclick = () => { show('workout'); renderWorkout(); };
-      hero.appendChild(cta);
-    } else if (!finished && plan.days && plan.days.length && workouts.some(x => x.date === todayStr())) {
-      // already trained today — rest, don't offer another session
-      hero.appendChild(heroTop('DONE FOR TODAY', ''));
-      hero.appendChild(el('div', 'hero-title', 'Session banked'));
-      const dtw = new Set((plan.completed || []).filter(c => c.week === (curWeek || 1)).map(c => c.day));
-      const nIdx = plan.days.findIndex((_, i) => !dtw.has(i));
-      let sub = 'Every day of this week is done — rest up.';
-      if (nIdx >= 0) {
-        const prefD = plan.prefDays || [];
-        const todayIdx = (now.getDay() + 6) % 7;
-        let planned = '';
-        for (let k = 1; k <= 6; k++) {
-          const idx = (todayIdx + k) % 7;
-          if (prefD.includes(idx)) { planned = ' · ' + ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx]; break; }
-        }
-        sub = `Recovery is part of the program. Next up: ${plan.days[nIdx].name}${planned}.`;
-      }
-      hero.appendChild(el('div', 'hero-sub', sub));
-    } else if (finished) {
-      hero.appendChild(heroTop('DONE', ''));
-      hero.appendChild(el('div', 'hero-title', 'Block complete'));
-      hero.appendChild(el('div', 'hero-sub', 'Renew your plan above to keep progressing.'));
-    } else {
-      hero.appendChild(heroTop('WEEK DONE', ''));
-      hero.appendChild(el('div', 'hero-title', 'All sessions banked'));
-      hero.appendChild(el('div', 'hero-sub', `Every training day of week ${curWeek || 1} is done. Rest up — week ${Math.min((curWeek || 1) + 1, weeks)} unlocks as the calendar rolls over.`));
-    }
-    if (useHero) root.appendChild(hero);
 
     // ---- readiness / week stats ----
     const pair = el('div', 'stat-pair');
@@ -1208,52 +1213,106 @@
     return `${d > 0 ? '+' : '−'}${Math.abs(d)} kg vs set ${si}`;
   }
 
-  /* The weight scale — a horizontal ruler that expands inside the set row */
+  /* Sliding ruler — ticks glide left/right under a fixed indicator.
+     Drag it like a real scale, or tap a tick / the ± buttons. */
+  function rulerScale(opts) {
+    // opts: value, step, tickW, span, min, labelEvery, decimals, cls, onChange(v)
+    const st = { base: opts.value, val: opts.value };
+    const lblEvery = opts.labelEvery || 1;
+    const fmt = v => opts.decimals ? v.toFixed(opts.decimals) : String(+v.toFixed(2));
+    const wrap = el('div', 'ks-ruler' + (opts.cls ? ' ' + opts.cls : ''));
+    wrap.appendChild(el('i', 'ks-ind'));
+    const strip = el('div', 'ks-strip');
+    wrap.appendChild(strip);
+
+    const idxOf = v => Math.round((v - (st.base - opts.span * opts.step)) / opts.step);
+    const offFor = v => -(idxOf(v) * opts.tickW + opts.tickW / 2);
+    let suppress = false;
+
+    const build = () => {
+      strip.innerHTML = '';
+      for (let d = -opts.span; d <= opts.span; d++) {
+        const v = +(st.base + d * opts.step).toFixed(3);
+        const ok = v >= (opts.min ?? 0);
+        const stepsFromZero = Math.round(v / opts.step);
+        const t = el('button', 'ks-tick');
+        t.style.width = opts.tickW + 'px';
+        t.dataset.v = v;
+        t.appendChild(el('i', stepsFromZero % 5 === 0 ? 'h20' : (stepsFromZero % 2 ? 'h11' : 'h15')));
+        const showLbl = ok && stepsFromZero % lblEvery === 0;
+        t.dataset.lbl = ok ? (showLbl ? fmt(v) : '') : '—';
+        t.appendChild(el('span', 'num', t.dataset.lbl));
+        if (ok) t.onclick = () => { if (suppress) return; setVal(v, true); };
+        strip.appendChild(t);
+      }
+      mark();
+    };
+    const mark = () => {
+      [...strip.children].forEach(t => {
+        const sel = Math.abs(+t.dataset.v - st.val) < opts.step / 2;
+        t.classList.toggle('sel', sel);
+        // the selected tick is always labelled; others follow the every-Nth rule
+        t.lastChild.textContent = sel ? fmt(+t.dataset.v) : t.dataset.lbl;
+      });
+    };
+    const slide = anim => {
+      strip.style.transition = anim ? 'transform .18s ease-out' : 'none';
+      strip.style.transform = `translateX(${offFor(st.val)}px)`;
+    };
+    const setVal = (v, anim) => {
+      v = Math.max(opts.min ?? 0, +v.toFixed(3));
+      st.val = v;
+      opts.onChange(v);
+      // rebuild around the value when it drifts near the strip's edge
+      if (idxOf(v) < 2 || idxOf(v) > 2 * opts.span - 2) {
+        st.base = v; build(); slide(false);
+      } else { mark(); slide(anim); }
+    };
+
+    // drag like a real scale
+    let sx = null, so = 0;
+    wrap.style.touchAction = 'pan-y';
+    wrap.addEventListener('pointerdown', e => {
+      sx = e.clientX; so = offFor(st.val);
+      strip.style.transition = 'none';
+      wrap.setPointerCapture(e.pointerId);
+    });
+    wrap.addEventListener('pointermove', e => {
+      if (sx === null) return;
+      strip.style.transform = `translateX(${so + e.clientX - sx}px)`;
+    });
+    const endDrag = e => {
+      if (sx === null) return;
+      const dx = e.clientX - sx;
+      sx = null;
+      if (Math.abs(dx) < 5) { slide(false); return; }   // a tap — the tick's click handles it
+      suppress = true;
+      setTimeout(() => { suppress = false; }, 350);
+      setVal(st.val - Math.round(dx / opts.tickW) * opts.step, true);
+    };
+    wrap.addEventListener('pointerup', endDrag);
+    wrap.addEventListener('pointercancel', () => { if (sx !== null) { sx = null; slide(false); } });
+
+    build();
+    slide(false);
+    return { el: wrap, setVal: v => setVal(v, true), get: () => st.val };
+  }
+
+  /* The weight scale — expands inside the set row */
   function weightScale(lw, cur, ei, si, updateVals) {
     const set = cur.sets[si];
     const stepK = 2.5;
     const box = el('div', 'kg-scale');
-    const render = () => {
-      box.innerHTML = '';
-      const top = el('div', 'ks-top');
-      const big = el('div', 'ks-val num', String(set.kg));
-      big.appendChild(el('small', null, ' kg'));
-      top.appendChild(big);
-      top.appendChild(el('div', 'ks-delta', setDelta(cur, si)));
-      box.appendChild(top);
 
-      // 11 ticks, selected centred under the indicator
-      const ruler = el('div', 'ks-ruler');
-      ruler.appendChild(el('i', 'ks-ind'));
-      const strip = el('div', 'ks-strip');
-      for (let d = -5; d <= 5; d++) {
-        const v = +(set.kg + d * stepK).toFixed(2);
-        const ok = v > 0;
-        const t = el('button', 'ks-tick' + (d === 0 ? ' sel' : ''));
-        t.appendChild(el('i', d === 0 ? 'h30' : (Math.abs(d) === 5 ? 'h20' : (Math.abs(d) % 2 ? 'h11' : 'h15'))));
-        t.appendChild(el('span', 'num', ok ? String(v) : '—'));
-        if (ok && d !== 0) t.onclick = () => setKg(v);
-        strip.appendChild(t);
-      }
-      ruler.appendChild(strip);
-      box.appendChild(ruler);
+    const top = el('div', 'ks-top');
+    const big = el('div', 'ks-val num', String(set.kg));
+    big.appendChild(el('small', null, ' kg'));
+    top.appendChild(big);
+    const deltaEl = el('div', 'ks-delta', setDelta(cur, si));
+    top.appendChild(deltaEl);
+    box.appendChild(top);
 
-      const ctr = el('div', 'ks-controls');
-      const minus = el('button', 'ks-adj num', '−');
-      minus.onclick = () => setKg(Math.max(0, +(set.kg - stepK).toFixed(2)));
-      const plus = el('button', 'ks-adj num', '+');
-      plus.onclick = () => setKg(+(set.kg + stepK).toFixed(2));
-      ctr.append(minus, plus);
-      const plates = el('div', 'ks-plates');
-      [1.25, 2.5, 5, 10].forEach(p => {
-        const b = el('button', 'num', '+' + p);
-        b.onclick = () => setKg(+(set.kg + p).toFixed(2));
-        plates.appendChild(b);
-      });
-      ctr.appendChild(plates);
-      box.appendChild(ctr);
-    };
-    const setKg = v => {
+    const commit = v => {
       set.kg = v;
       // the new weight carries forward to the remaining unlogged sets
       for (let j = si + 1; j < cur.sets.length; j++) {
@@ -1261,9 +1320,26 @@
       }
       live.set(lw);
       updateVals();
-      render();
+      big.firstChild.nodeValue = String(v);
+      deltaEl.textContent = setDelta(cur, si);
     };
-    render();
+    const ruler = rulerScale({ value: set.kg, step: stepK, tickW: 46, span: 8, min: 0, onChange: commit });
+    box.appendChild(ruler.el);
+
+    const ctr = el('div', 'ks-controls');
+    const minus = el('button', 'ks-adj num', '−');
+    minus.onclick = () => ruler.setVal(ruler.get() - stepK);
+    const plus = el('button', 'ks-adj num', '+');
+    plus.onclick = () => ruler.setVal(ruler.get() + stepK);
+    ctr.append(minus, plus);
+    const plates = el('div', 'ks-plates');
+    [1.25, 2.5, 5, 10].forEach(p => {
+      const b = el('button', 'num', '+' + p);
+      b.onclick = () => ruler.setVal(ruler.get() + p);
+      plates.appendChild(b);
+    });
+    ctr.appendChild(plates);
+    box.appendChild(ctr);
     return box;
   }
 
@@ -1768,52 +1844,108 @@
     grid.appendChild(prC);
     root.appendChild(grid);
 
-    // body weight tracker
+    // body weight — v5: big reading, fine sliding scale, trend, log button
     root.appendChild(el('div', 'month-label', 'Body weight'));
     const bw = (await DB.all('bodyweight')).sort((a, b) => a.ts - b.ts);
-    const bwCard = el('div', 'card');
     const lastBw = bw[bw.length - 1];
-    bwCard.appendChild(el('div', 'rm-label', lastBw ? 'Logged ' + lastBw.date : 'Not logged yet'));
-    const bwRow = el('div', 'rm-row');
-    const bwVal = el('div', 'rm-val num', (lastBw ? fmtKg(lastBw.kg) : '—') + ' ');
-    bwVal.appendChild(el('small', null, 'kg'));
-    bwRow.appendChild(bwVal);
-    if (lastBw && bw.length > 1) {
-      const past = [...bw].reverse().find(x => lastBw.ts - x.ts >= 25 * 86400000) || bw[0];
-      const d = +(lastBw.kg - past.kg).toFixed(1);
-      if (d) bwRow.appendChild(el('div', 'rm-delta num', (d > 0 ? '+' : '') + d + ' kg'));
-    }
-    bwCard.appendChild(bwRow);
-    // line graph of the last ~90 days (all entries if fewer)
+    const loggedToday = !!bw.find(x => x.date === todayStr());
+    const bwCard = el('div', 'card bwv-card');
+
+    const bwHead = el('div', 'bwv-head');
+    bwHead.appendChild(el('div', 'micro', "Today's reading"));
+    bwHead.appendChild(el('div', 'micro', lastBw ? `Last: ${lastBw.kg.toFixed(1)} kg` : 'First reading'));
+    bwCard.appendChild(bwHead);
+
+    let bwv = lastBw ? lastBw.kg : 80;
+    let bwStep = 0.1;
+    const read = el('div', 'bwv-read');
+    const rv = el('div', 'bwv-val num', bwv.toFixed(1));
+    rv.appendChild(el('small', null, ' kg'));
+    read.appendChild(rv);
+    const dEl = el('div', 'bwv-delta num');
+    read.appendChild(dEl);
+    bwCard.appendChild(read);
+
+    let logBtn, logVal;
+    const updDelta = () => {
+      if (!lastBw) { dEl.textContent = ''; return; }
+      const d = +(bwv - lastBw.kg).toFixed(1);
+      dEl.className = 'bwv-delta num ' + (d < 0 ? 'down' : d > 0 ? 'up' : 'same');
+      dEl.textContent = d === 0 ? 'Same as last' : `${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)} kg`;
+    };
+    const commitBw = v => {
+      bwv = v;
+      rv.firstChild.nodeValue = v.toFixed(1);
+      updDelta();
+      if (logVal) logVal.textContent = v.toFixed(1) + ' kg';
+    };
+    updDelta();
+
+    // fine scale — 0.1 steps by default, only every 5th tick labelled
+    let bwRuler;
+    const rulerHost = el('div');
+    const buildBwRuler = () => {
+      rulerHost.innerHTML = '';
+      bwRuler = rulerScale({
+        value: bwv, step: bwStep, tickW: 30, span: 14, min: 20,
+        labelEvery: 5, decimals: 1, cls: 'fine', onChange: commitBw
+      });
+      rulerHost.appendChild(bwRuler.el);
+    };
+    buildBwRuler();
+    bwCard.appendChild(rulerHost);
+
+    // ± and the step picker — weighing yourself needs finer steps than plates
+    const bwCtr = el('div', 'ks-controls');
+    const bm = el('button', 'ks-adj num', '−');
+    bm.onclick = () => bwRuler.setVal(bwRuler.get() - bwStep);
+    const bp = el('button', 'ks-adj num', '+');
+    bp.onclick = () => bwRuler.setVal(bwRuler.get() + bwStep);
+    bwCtr.append(bm, bp);
+    const stepPick = el('div', 'bw-steps');
+    [0.1, 0.5, 1.0].forEach(sp => {
+      const b = el('button', 'num' + (bwStep === sp ? ' sel' : ''), sp.toFixed(1));
+      b.onclick = () => {
+        bwStep = sp;
+        stepPick.querySelectorAll('button').forEach(x => x.classList.remove('sel'));
+        b.classList.add('sel');
+        buildBwRuler();
+      };
+      stepPick.appendChild(b);
+    });
+    bwCtr.appendChild(stepPick);
+    bwCard.appendChild(bwCtr);
+
+    // 30-day trend
     {
-      let pts = bw.filter(e => Date.now() - e.ts < 90 * 86400000);
+      let pts = bw.filter(e => Date.now() - e.ts < 30 * 86400000);
       if (pts.length < 2) pts = bw;
       if (pts.length >= 2) {
+        const tHead = el('div', 'bwv-head');
+        tHead.appendChild(el('div', 'micro', 'Trend · 30 days'));
+        const td = +(pts[pts.length - 1].kg - pts[0].kg).toFixed(1);
+        tHead.appendChild(el('div', 'micro trend-d', `${td > 0 ? '+' : td < 0 ? '−' : ''}${Math.abs(td).toFixed(1)} kg`));
+        tHead.style.marginTop = '6px';
+        bwCard.appendChild(tHead);
         const wrap = el('div', 'bw-graph');
         wrap.innerHTML = bwGraphSVG(pts);
         bwCard.appendChild(wrap);
       }
     }
-    const bwIn = el('div', 'bw-input');
-    const bwInp = document.createElement('input');
-    bwInp.type = 'number';
-    bwInp.min = '20';
-    bwInp.step = '0.1';
-    bwInp.inputMode = 'decimal';
-    bwInp.placeholder = 'kg';
-    if (lastBw) bwInp.value = lastBw.kg;
-    const bwLog = el('button', 'btn-lime', 'Log today');
-    bwLog.onclick = async () => {
-      const kg = Number(bwInp.value);
-      if (!(kg > 20)) { alert('Enter your weight in kg.'); return; }
+
+    logBtn = el('button', 'bwv-log' + (loggedToday ? ' logged' : ''));
+    logBtn.appendChild(el('span', null, loggedToday ? 'Update today' : 'Log weight'));
+    logVal = el('small', null, bwv.toFixed(1) + ' kg');
+    logBtn.appendChild(logVal);
+    logBtn.onclick = async () => {
+      if (!(bwv > 20)) return;
       const today = bw.find(x => x.date === todayStr());
       await DB.put('bodyweight', today
-        ? { ...today, kg, ts: Date.now() }
-        : { id: DB.uid(), date: todayStr(), kg, ts: Date.now() });
+        ? { ...today, kg: bwv, ts: Date.now() }
+        : { id: DB.uid(), date: todayStr(), kg: bwv, ts: Date.now() });
       renderProfile();
     };
-    bwIn.append(bwInp, bwLog);
-    bwCard.appendChild(bwIn);
+    bwCard.appendChild(logBtn);
     root.appendChild(bwCard);
 
     // preferred training days
