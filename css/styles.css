@@ -862,6 +862,7 @@ body { font-size: 14px; }
   object-fit: cover; display: block;
 }
 .demo-anim img:last-child { opacity: 0; animation: demo-swap 1.7s steps(1) infinite; }
+.demo-anim.still img:last-child { opacity: 1; animation: none; }   /* thumbnails: one still frame */
 @keyframes demo-swap { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
 .demo-anim.contain img { object-fit: contain; }
 .demo-anim.ph { display: flex; align-items: center; justify-content: center; background: var(--sunken); color: var(--t6); font-size: 20px; }
