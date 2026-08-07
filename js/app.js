@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v103';
+  const APP_VERSION = 'v104';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -126,9 +126,9 @@
     mediaURLs.set(id, url);
     return url;
   }
-  function demoEl(slug, extra) {
-    const wrap = el('div', 'demo-anim' + (extra ? ' ' + extra : ''));
-    for (const i of [0, 1]) {
+  function demoEl(slug, extra, still) {
+    const wrap = el('div', 'demo-anim' + (still ? ' still' : '') + (extra ? ' ' + extra : ''));
+    for (const i of (still ? [0] : [0, 1])) {
       const img = document.createElement('img');
       img.src = `demos/${slug}/${i}.jpg`;
       img.loading = 'lazy';
@@ -137,8 +137,15 @@
     }
     return wrap;
   }
+  /* thumbnails are still pictures — the movement only plays on the
+     opened exercise page (animFor) */
   function thumbFor(ex, extra) {
-    if (ex && ex.demo) return demoEl(ex.demo, extra);
+    if (ex && ex.demo) return demoEl(ex.demo, extra, true);
+    const ph = el('div', 'demo-anim ph' + (extra ? ' ' + extra : ''), '🏋️');
+    return ph;
+  }
+  function animFor(ex, extra) {
+    if (ex && ex.demo) return demoEl(ex.demo, extra, false);
     const ph = el('div', 'demo-anim ph' + (extra ? ' ' + extra : ''), '🏋️');
     return ph;
   }
@@ -2615,7 +2622,7 @@
     root.innerHTML = '';
 
     const hero = el('div', 'det-hero');
-    hero.appendChild(thumbFor(ex));
+    hero.appendChild(animFor(ex));   // the movement plays here, on the open page
     const back = el('button', 'det-back', '‹');
     back.onclick = goBackFromDetail;
     hero.appendChild(back);
