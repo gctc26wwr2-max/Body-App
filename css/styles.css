@@ -163,7 +163,9 @@ body { font-size: 14px; }
 }
 #view-today .day-strip .cell { padding: 10px 0; }
 .block-actions { display: flex; gap: 10px; }
-.block-actions .btn-ghost { flex: 1; height: 46px; }
+.block-actions .btn-ghost { flex: 1; height: 46px; font-weight: 700; }
+.block-actions .btn-ghost:first-child { color: var(--amber); border-color: var(--amber-border); background: rgba(203,190,171,.06); }
+.block-actions .btn-ghost:last-child { color: #D9825F; border-color: rgba(194,75,56,.4); background: rgba(142,58,44,.10); }
 .meta-row { display: flex; justify-content: space-between; align-items: baseline; }
 .meta-row .date { font-size: 10px; font-weight: 800; letter-spacing: .24em; text-transform: uppercase; color: var(--t5); }
 .meta-row .streak .l { font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--t6); margin-right: 7px; }
