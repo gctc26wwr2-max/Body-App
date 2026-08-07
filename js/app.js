@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v85';
+  const APP_VERSION = 'v86';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -260,11 +260,12 @@
     const nextIdxArc = (plan.days && plan.days.length) ? plan.days.findIndex((_, i) => !dtwSet.has(i)) : -1;
     let mode = 'next';
     if (lwNow) mode = 'live';
+    else if (plan.pausedAt) mode = 'paused';
     else if (finished) mode = 'complete';
     else if (trainedToday) mode = 'banked';
     else if (nextIdxArc < 0) mode = 'weekdone';
 
-    if (behind) {
+    if (behind && !plan.pausedAt) {
     // ---- block card ----
     const bc = el('div', 'card');
     const bh = el('div', 'block-head');
@@ -340,7 +341,7 @@
         + (ds === todayStr() ? ' today' : '')
         + (doneDates.has(ds) ? ' done' : '')
         + (pref.includes(i) ? ' pref' : '')
-        + (pref.includes(i) && i < dow && !doneDates.has(ds) ? ' missed' : ''));
+        + (pref.includes(i) && i < dow && !doneDates.has(ds) && !plan.pausedAt ? ' missed' : ''));
       cell.appendChild(el('span', null, ch));
       cell.appendChild(el('i'));
       strip.appendChild(cell);
@@ -389,6 +390,10 @@
         sess = `Block ${blockNumber(plan)} · complete`;
         title = 'Done';
         meta = 'Every session is banked. Renew the block to keep progressing.';
+      } else if (mode === 'paused') {
+        sess = 'On a break since ' + new Date(plan.pausedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        title = 'Paused';
+        meta = 'The block is frozen — missed days and weeks don\'t count until you resume.';
       }
       overlay.appendChild(el('div', 'arc-sess', sess));
       const dn = el('div', 'arc-day' + (mode === 'next' || mode === 'live' ? '' : ' status'), title);
@@ -402,9 +407,11 @@
       let idxDay = null, idxLabel = '';
       if ((mode === 'next' || mode === 'live') && day.items.length) {
         idxDay = day;
-      } else if ((mode === 'banked' || mode === 'weekdone') && plan.days && plan.days.length) {
+      } else if ((mode === 'banked' || mode === 'weekdone' || mode === 'paused') && plan.days && plan.days.length) {
         idxDay = nextIdxArc >= 0 ? plan.days[nextIdxArc] : plan.days[0];
-        idxLabel = `Up next · ${idxDay.name}${nextPref ? ' · ' + nextPref : ''}`;
+        idxLabel = mode === 'paused'
+          ? `When you're back · ${idxDay.name}`
+          : `Up next · ${idxDay.name}${nextPref ? ' · ' + nextPref : ''}`;
       }
       if (idxDay && idxDay.items.length) {
         if (idxLabel) root.appendChild(el('div', 'micro', idxLabel));
@@ -452,6 +459,10 @@
       } else if (mode === 'complete') {
         const cta = el('button', 'btn-cta big', 'Build Block ' + (blockNumber(plan) + 1));
         cta.onclick = () => openPlanForm(null, plan);
+        root.appendChild(cta);
+      } else if (mode === 'paused') {
+        const cta = el('button', 'btn-cta big', 'Resume training');
+        cta.onclick = async () => { await resumePlan(plan); renderTab(); };
         root.appendChild(cta);
       }
     }
@@ -502,6 +513,19 @@
       <text x="20" y="205" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W1</text>
       <text x="320" y="205" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W${weeks}</text>
     </svg>`;
+  }
+
+  /* Resume a paused block — shift its start date by the length of the
+     break so the calendar continues exactly where it left off. */
+  async function resumePlan(plan) {
+    const days = Math.max(0, Math.round((Date.now() - plan.pausedAt) / 86400000));
+    if (plan.startDate && days > 0) {
+      const d = dateOf(plan.startDate);
+      d.setDate(d.getDate() + days);
+      plan.startDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    plan.pausedAt = null;
+    await DB.put('plans', plan);
   }
 
   /* consecutive weeks (incl. this one) with at least one session */
@@ -555,6 +579,7 @@
   let elapsedInt = null;
 
   async function startWorkout(plan, dayIndex) {
+    if (plan.pausedAt) await resumePlan(plan);   // training again ends the break
     const day = plan.days[dayIndex];
     const wk = plan.startDate ? weekOf(plan) : 1;
     if ((plan.completed || []).some(c => c.week === wk && c.day === dayIndex)) {
@@ -1614,7 +1639,8 @@
       const bhl = el('div');
       bhl.appendChild(el('div', 'micro', plan.name));
       bhl.appendChild(el('div', 'pb-week num',
-        planFinished(plan) ? 'Complete' : (curWeek ? `Week ${curWeek} of ${weeks}` : 'Not started')));
+        plan.pausedAt ? 'Paused ⏸' :
+        (planFinished(plan) ? 'Complete' : (curWeek ? `Week ${curWeek} of ${weeks}` : 'Not started'))));
       bh.appendChild(bhl);
       const editB = el('button', 'rest-edit', 'Edit');
       editB.onclick = () => openPlanForm(plan);
@@ -1784,9 +1810,26 @@
       }
     }
 
-    // delete block — quiet, at the very bottom of the page
+    // pause / delete — quiet, at the very bottom of the page
     if (plan) {
       const delRow = el('div', 'text-links');
+      const pauseB = el('button', null, plan.pausedAt ? 'Resume block' : 'Pause block');
+      pauseB.onclick = async () => {
+        if (plan.pausedAt) {
+          await resumePlan(plan);
+        } else {
+          if (!await appConfirm({
+            title: 'Pause the block?',
+            body: 'Going away for a while? The block freezes — missed days and weeks won\'t count against you until you resume.',
+            ok: 'Pause', cancel: 'Keep training'
+          })) return;
+          plan.pausedAt = Date.now();
+          await DB.put('plans', plan);
+        }
+        renderTab();
+      };
+      delRow.appendChild(pauseB);
+      delRow.appendChild(el('i', null, '·'));
       const delB = el('button', null, 'Delete block');
       delB.onclick = async () => {
         if (!confirm(`Delete "${plan.name}"? History is kept.`)) return;
