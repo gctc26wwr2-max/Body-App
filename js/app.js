@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v170';
+  const APP_VERSION = 'v171';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2911,42 +2911,44 @@
     };
     injHead.appendChild(master);
     root.appendChild(injHead);
-    const injRow = el('div', 'inj-row' + (injLive ? '' : ' locked'));
-    const toggleInj = i => {
-      const s = getInjuries();
-      const k = INJURIES[i].key;
-      s.has(k) ? s.delete(k) : s.add(k);
-      setInjuries(s);
-      haptic();
-      renderPlanMaker();
-    };
-    /* a stopwatch button: one round key that acts on whatever the arrow
-       points at, reading Add or Remove depending on where the dial sits */
-    const btn = el('button', 'inj-btn' + (injOn.has(INJURIES[pmInj].key) ? ' rm' : ''),
-      injOn.has(INJURIES[pmInj].key) ? 'Remove' : 'Add');
-    btn.onclick = () => toggleInj(pmInj);
-    const dial = el('div', 'inj-dial');
-    dial.appendChild(pickerWheel(INJURIES.map(i => i.label), pmInj,
-      i => {
-        pmInj = i;
-        localStorage.setItem('injDial', INJURIES[i].key);
-        const on = injOn.has(INJURIES[i].key);
-        btn.textContent = on ? 'Remove' : 'Add';
-        btn.classList.toggle('rm', on);
-      },
-      'wide short',
-      i => (injOn.has(INJURIES[i].key) ? 'flag' : (i % 2 ? 'w11' : 'w15')),
-      toggleInj));
-    dial.appendChild(el('i', 'inj-arrow'));
-    injRow.appendChild(dial);
-    injRow.appendChild(btn);
-    root.appendChild(injRow);
-    const flagged = INJURIES.filter(i => injOn.has(i.key)).map(i => i.label);
-    root.appendChild(el('div', 'inj-note', injLive
-      ? (flagged.length
+    /* with the switch off there is nothing to choose, so the dial is not
+       there at all — turning it on brings the wheel out */
+    if (injLive) {
+      const injRow = el('div', 'inj-row');
+      const toggleInj = i => {
+        const s = getInjuries();
+        const k = INJURIES[i].key;
+        s.has(k) ? s.delete(k) : s.add(k);
+        setInjuries(s);
+        haptic();
+        renderPlanMaker();
+      };
+      /* a stopwatch button: one round key that acts on whatever the arrow
+         points at, reading Add or Remove depending on where the dial sits */
+      const btn = el('button', 'inj-btn' + (injOn.has(INJURIES[pmInj].key) ? ' rm' : ''),
+        injOn.has(INJURIES[pmInj].key) ? 'Remove' : 'Add');
+      btn.onclick = () => toggleInj(pmInj);
+      const dial = el('div', 'inj-dial');
+      dial.appendChild(pickerWheel(INJURIES.map(i => i.label), pmInj,
+        i => {
+          pmInj = i;
+          localStorage.setItem('injDial', INJURIES[i].key);
+          const on = injOn.has(INJURIES[i].key);
+          btn.textContent = on ? 'Remove' : 'Add';
+          btn.classList.toggle('rm', on);
+        },
+        'wide short',
+        i => (injOn.has(INJURIES[i].key) ? 'flag' : (i % 2 ? 'w11' : 'w15')),
+        toggleInj));
+      dial.appendChild(el('i', 'inj-arrow'));
+      injRow.appendChild(dial);
+      injRow.appendChild(btn);
+      root.appendChild(injRow);
+      const flagged = INJURIES.filter(i => injOn.has(i.key)).map(i => i.label);
+      root.appendChild(el('div', 'inj-note', flagged.length
         ? `${hiddenN} hidden — ${flagged.join(', ')}`
-        : 'Spin to the sore area, then tap Add')
-      : 'No injuries · every exercise available'));
+        : 'Spin to the sore area, then tap Add'));
+    }
     /* the kit list, right here — you find out what the gym is missing while
        you are building, not afterwards */
     const kitHead = el('div', 'inj-head');
