@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v179';
+  const APP_VERSION = 'v180';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -235,7 +235,7 @@
   $('#media-viewer-close').onclick = () => { $('#media-viewer-body').innerHTML = ''; $('#media-viewer').hidden = true; };
 
   /* ---------------- navigation ---------------- */
-  const VIEWS = ['today', 'plan', 'cardio', 'stats', 'library', 'profile', 'workout', 'summary', 'detail', 'planmaker', 'about'];
+  const VIEWS = ['today', 'plan', 'cardio', 'stats', 'library', 'profile', 'workout', 'summary', 'detail', 'planmaker', 'about', 'prefs'];
   function show(view) {
     VIEWS.forEach(v => $('#view-' + v).hidden = v !== view);
     const isTab = ['today', 'plan', 'cardio', 'stats', 'library', 'profile'].includes(view);
@@ -2200,11 +2200,11 @@
     : 0;
 
   /* Settings — one page with everything on it, no rows that open more rows. */
-  function openSettings() { sDraft = null; show('about'); renderSettings(); }
+  function openAbout() { sDraft = null; show('about'); renderAbout(); }
 
   let sDraft = null;                       // edits live here until you Save
 
-  function renderSettings() {
+  function renderAbout() {
     const root = $('#view-about');
     root.innerHTML = '';
     if (!sDraft) sDraft = { ...getProfile() };
@@ -2221,8 +2221,8 @@
 
     const head = el('div', 'w-head pm-head');
     const hl = el('div', 'w-left');
-    hl.appendChild(el('div', 't-date', 'Everything on one page'));
-    hl.appendChild(el('h1', 'pm-name-static', 'Settings'));
+    hl.appendChild(el('div', 't-date', 'Shapes every block you build'));
+    hl.appendChild(el('h1', 'pm-name-static', 'About you'));
     head.appendChild(hl);
     const close = el('button', 'w-chip', '✕');
     close.onclick = async () => {
@@ -2249,7 +2249,7 @@
       if (lock) {
         const sw = el('button', 'inj-sw sm' + (lock.on ? ' on' : ''));
         sw.appendChild(el('i', 'inj-knob'));
-        sw.onclick = () => { lock.toggle(); haptic(); renderSettings(); };
+        sw.onclick = () => { lock.toggle(); haptic(); renderAbout(); };
         h.appendChild(sw);
       }
       b.appendChild(h);
@@ -2272,7 +2272,7 @@
           Object.assign(sDraft, k === 'imperial'
             ? { units: 'lb', hUnits: 'ft' }
             : { units: 'kg', hUnits: 'cm' });
-          renderSettings();
+          renderAbout();
         }, 'you-seg'),
       'Weights, heights and the tape all follow this');
 
@@ -2305,7 +2305,7 @@
 
     slide('Sex', null,
       segToggle([['male', 'Male'], ['female', 'Female']], pr.sex || '',
-        k => { sDraft.sex = k; renderSettings(); }, 'you-seg'),
+        k => { sDraft.sex = k; renderAbout(); }, 'you-seg'),
       'Used for the body-fat estimate', lockFor('sex', 'male'));
 
     // ---- numbers, all on rulers ----
@@ -2407,6 +2407,75 @@
     root.appendChild(acts);
   }
 
+  /* Settings — the app's own preferences. Placeholders for now: the rows are
+     here so the shape is right, but none of them are wired to anything. */
+  const PREF_ICON = {
+    theme: '<circle cx="12" cy="12" r="8"/><path d="M12 4v16"/>',
+    units: '<path d="M3 9h18v6H3z"/><path d="M7 9v3M11 9v4M15 9v3M19 9v4"/>',
+    bell: '<path d="M18 9a6 6 0 1 0-12 0c0 6-2 7-2 7h16s-2-1-2-7"/><path d="M10.5 20a2 2 0 0 0 3 0"/>',
+    health: '<path d="M20.8 8.6a4.6 4.6 0 0 0-8.8-1.8 4.6 4.6 0 0 0-8.8 1.8c0 5 8.8 10.4 8.8 10.4s8.8-5.4 8.8-10.4z"/>',
+    watch: '<rect x="7" y="6" width="10" height="12" rx="3"/><path d="M9.5 6V3.5h5V6M9.5 18v2.5h5V18"/>',
+    link: '<path d="M10 13a4 4 0 0 0 5.7.4l2.6-2.6A4 4 0 1 0 12.6 5l-1.5 1.5"/><path d="M14 11a4 4 0 0 0-5.7-.4l-2.6 2.6A4 4 0 1 0 11.4 19l1.5-1.5"/>',
+    export: '<path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M4 15v4h16v-4"/>',
+    guide: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M8 8h7M8 12h5"/>',
+    faq: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 17.2h.01"/>',
+    mail: '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3.5 7.5 12 13l8.5-5.5"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8h.01"/>'
+  };
+
+  const PREF_GROUPS = [
+    { title: 'Preferences', rows: [
+      ['theme', 'Theme'], ['units', 'Units'], ['bell', 'Notifications']
+    ] },
+    { title: 'Apple', rows: [
+      ['health', 'Apple Health'], ['watch', 'Apple Watch'], ['link', 'Integrations']
+    ] },
+    { title: 'Data', rows: [
+      ['export', 'Export & import data']
+    ] },
+    { title: 'Guides', rows: [
+      ['guide', 'Getting started'], ['guide', 'Routine help']
+    ] },
+    { title: 'Help', rows: [
+      ['faq', 'Frequently asked questions'], ['mail', 'Contact'], ['info', 'About Rackside']
+    ] }
+  ];
+
+  function openPrefs() { show('prefs'); renderPrefs(); }
+
+  function renderPrefs() {
+    const root = $('#view-prefs');
+    root.innerHTML = '';
+    const head = el('div', 'w-head pm-head');
+    const hl = el('div', 'w-left');
+    hl.appendChild(el('div', 't-date', 'Rackside ' + APP_VERSION));
+    hl.appendChild(el('h1', 'pm-name-static', 'Settings'));
+    head.appendChild(hl);
+    const close = el('button', 'w-chip', '✕');
+    close.onclick = () => { show('profile'); renderTab(); };
+    head.appendChild(close);
+    root.appendChild(head);
+
+    root.appendChild(el('div', 'coach-note',
+      'Placeholders. None of these do anything yet — your real controls are the heart on Profile for About you, and the buttons under Body weight for backup.'));
+
+    PREF_GROUPS.forEach(g => {
+      root.appendChild(el('div', 'month-label', g.title));
+      const list = el('div', 'pref-list');
+      g.rows.forEach(([icon, label]) => {
+        const r = el('div', 'pref-row');
+        const ic = el('span', 'pref-ic');
+        ic.innerHTML = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" '
+          + 'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + PREF_ICON[icon] + '</svg>';
+        r.appendChild(ic);
+        r.appendChild(el('span', 'pref-lbl', label));
+        r.appendChild(el('span', 'pref-go', '›'));
+        list.appendChild(r);
+      });
+      root.appendChild(list);
+    });
+  }
+
   /* ============================================================
      PROFILE (overview + data controls)
      ============================================================ */
@@ -2422,14 +2491,23 @@
       : 'Rackside') + ' · ' + APP_VERSION));
     hl.appendChild(el('h1', 't-title', 'Profile'));
     head.appendChild(hl);
+    const acts = el('div', 'head-acts');
+    const heart = el('button', 'gear-btn');
+    heart.title = 'About you';
+    heart.innerHTML = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" '
+      + 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+      + '<path d="M20.8 8.6a4.6 4.6 0 0 0-8.8-1.8 4.6 4.6 0 0 0-8.8 1.8c0 5 8.8 10.4 8.8 10.4s8.8-5.4 8.8-10.4z"/></svg>';
+    heart.onclick = () => openAbout();
+    acts.appendChild(heart);
     const gear = el('button', 'gear-btn');
     gear.title = 'Settings';
     gear.innerHTML = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" '
       + 'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
       + '<circle cx="12" cy="12" r="3.2"/>'
       + '<path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>';
-    gear.onclick = () => openSettings();
-    head.appendChild(gear);
+    gear.onclick = () => openPrefs();
+    acts.appendChild(gear);
+    head.appendChild(acts);
     root.appendChild(head);
 
     // lifetime stats
