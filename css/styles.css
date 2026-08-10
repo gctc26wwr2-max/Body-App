@@ -897,6 +897,21 @@ body { font-size: 14px; }
   font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
 }
 .seg-toggle button.sel { background: var(--lime); color: var(--on-accent); font-weight: 800; }
+/* sliding variant: one clay pill that travels to the option you pick */
+.seg-toggle.slide { position: relative; gap: 0; }
+.seg-toggle.slide button {
+  position: relative; z-index: 1; background: none;
+  transition: color .18s ease;
+}
+.seg-toggle.slide button.sel { background: none; color: var(--on-accent); }
+.seg-ind {
+  position: absolute; top: 4px; bottom: 4px; left: 4px; z-index: 0;
+  width: calc((100% - 8px) / var(--seg-n, 2));
+  border-radius: 11px; background: var(--lime);
+  transform: translateX(calc(var(--seg-i, 0) * 100%));
+  transition: transform .3s cubic-bezier(.34, 1.3, .5, 1);
+}
+.seg-toggle.slide:has(button:disabled) .seg-ind { opacity: .55; }
 .seg-toggle.effort button { height: 34px; font-size: 11.5px; }
 .cd-act { text-transform: uppercase; }
 .cd-wheels { display: flex; gap: 10px; }
@@ -1321,3 +1336,4 @@ body { font-size: 14px; }
   background: none; border: 1px solid var(--hair-strong); color: var(--lime);
   font-size: 11.5px; font-weight: 800; letter-spacing: .04em;
 }
+.master-panel { display: flex; flex-direction: column; gap: 18px; }

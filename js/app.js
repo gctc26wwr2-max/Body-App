@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v159';
+  const APP_VERSION = 'v161';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -3315,19 +3315,16 @@
     if (!running) cardioActName = list[ai].name;
     const shownMins = running ? lc.mins : cardioMins;
 
-    const seg = el('div', 'seg-toggle');
-    ['indoor', 'outdoor'].forEach(e2 => {
-      const b = el('button', env === e2 ? 'sel' : '', e2 === 'indoor' ? 'Indoor' : 'Outdoor');
-      b.disabled = running;
-      b.onclick = () => {
+    root.appendChild(segToggle(
+      [['indoor', 'Indoor', running], ['outdoor', 'Outdoor', running]],
+      env,
+      e2 => {
         if (running || cardioEnv === e2) return;
         cardioEnv = e2;
         localStorage.setItem('cardioEnv', e2);
         renderCardio();
-      };
-      seg.appendChild(b);
-    });
-    root.appendChild(seg);
+      },
+      'defer'));
 
     const kcalEl = el('div', 'cd-kcal num');
     const upd = () => {
@@ -3558,23 +3555,32 @@
     const usable = (window.EXERCISE_LIBRARY || []).filter(equipOK);
     const head = el('header', 't-head');
     const hl = el('div');
-    hl.appendChild(el('div', 't-date',
-      `${usable.length} of ${(window.EXERCISE_LIBRARY || []).length} exercises · ${owned.size} kit`));
+    const sub = el('div', 't-date',
+      `${usable.length} of ${(window.EXERCISE_LIBRARY || []).length} exercises · ${owned.size} kit`);
+    hl.appendChild(sub);
     hl.appendChild(el('h1', 't-title', 'Block Master'));
     head.appendChild(hl);
     root.appendChild(head);
 
-    const seg = el('div', 'seg-toggle master-seg');
-    [['new', 'New block'], ['exercises', 'Library'], ['equipment', 'Equipment']].forEach(([k, lbl]) => {
-      const b = el('button', masterTab === k ? 'sel' : '', lbl);
-      b.onclick = () => { masterTab = k; renderLibrary(); };
-      seg.appendChild(b);
-    });
-    root.appendChild(seg);
-
-    if (masterTab === 'new') return renderMasterNew(root);
-    if (masterTab === 'equipment') return renderMasterEquip(root);
-    renderMasterLib(root);
+    /* only the panel below is rebuilt on a tab change — the toggle itself
+       stays put so its pill can slide instead of jumping */
+    const panel = el('div', 'master-panel');
+    const fill = () => {
+      const own = getEquip();
+      const ok = (window.EXERCISE_LIBRARY || []).filter(equipOK);
+      sub.textContent = `${ok.length} of ${(window.EXERCISE_LIBRARY || []).length} exercises · ${own.size} kit`;
+      panel.innerHTML = '';
+      if (masterTab === 'new') renderMasterNew(panel);
+      else if (masterTab === 'equipment') renderMasterEquip(panel, fill);
+      else renderMasterLib(panel);
+    };
+    root.appendChild(segToggle(
+      [['new', 'New block'], ['exercises', 'Library'], ['equipment', 'Equipment']],
+      masterTab,
+      k => { masterTab = k; fill(); },
+      'master-seg'));
+    root.appendChild(panel);
+    fill();
   }
 
   function renderMasterNew(root) {
@@ -3602,6 +3608,34 @@
       list.appendChild(r);
     });
     root.appendChild(list);
+  }
+
+  /* Segmented toggle whose clay pill slides across to the option you pick,
+     so the switch reads as one control rather than three separate buttons. */
+  function segToggle(items, activeKey, onPick, extra) {
+    const seg = el('div', 'seg-toggle slide' + (extra ? ' ' + extra : ''));
+    seg.style.setProperty('--seg-n', items.length);
+    const ind = el('i', 'seg-ind');
+    seg.appendChild(ind);
+    const paint = k => {
+      seg.style.setProperty('--seg-i', Math.max(0, items.findIndex(x => x[0] === k)));
+      [...seg.querySelectorAll('button')].forEach((b, i) => b.classList.toggle('sel', items[i][0] === k));
+    };
+    items.forEach(([key, label, disabled]) => {
+      const b = el('button', '', label);
+      b.disabled = !!disabled;
+      b.onclick = () => {
+        if (b.disabled) return;
+        paint(key);              // slide first, then do the work
+        haptic();
+        // callers that rebuild their whole screen get a beat so the slide shows
+        if (extra && extra.includes('defer')) setTimeout(() => onPick(key), 210);
+        else onPick(key);
+      };
+      seg.appendChild(b);
+    });
+    paint(activeKey);
+    return seg;
   }
 
   /* One equipment picker, used by Block Master and by the builder itself —
@@ -3642,10 +3676,10 @@
     return wrap;
   }
 
-  function renderMasterEquip(root) {
+  function renderMasterEquip(root, after) {
     root.appendChild(el('div', 'coach-note',
       'Switch off anything your gym has not got. The block builder will not pick an exercise that needs it.'));
-    root.appendChild(equipPicker(renderLibrary));
+    root.appendChild(equipPicker(after || renderLibrary));
     const all = (window.EXERCISE_LIBRARY || []);
     const off = all.length - all.filter(equipOK).length;
     root.appendChild(el('div', 'inj-note', off
