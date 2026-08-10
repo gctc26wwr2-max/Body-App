@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v167';
+  const APP_VERSION = 'v168';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2092,81 +2092,6 @@
     grid.appendChild(prC);
     root.appendChild(grid);
 
-    // body weight — v5: big reading, fine sliding scale, trend, log button
-    root.appendChild(el('div', 'month-label', 'Body weight'));
-    const bw = (await DB.all('bodyweight')).sort((a, b) => a.ts - b.ts);
-    const lastBw = bw[bw.length - 1];
-    const loggedToday = !!bw.find(x => x.date === todayStr());
-    const bwCard = el('div', 'card bwv-card');
-
-    const bwHead = el('div', 'bwv-head');
-    bwHead.appendChild(el('div', 'micro', "Today's reading"));
-    bwCard.appendChild(bwHead);
-
-    let bwv = lastBw ? lastBw.kg : 80;
-    const bwStep = 0.5;   // fixed — main lines every 1 kg
-    const read = el('div', 'bwv-read');
-    const rv = el('div', 'bwv-val num', bwv.toFixed(1));
-    rv.appendChild(el('small', null, ' kg'));
-    read.appendChild(rv);
-    const dEl = el('div', 'bwv-delta num');
-    read.appendChild(dEl);
-    bwCard.appendChild(read);
-
-    let logBtn, logVal;
-    const updDelta = () => {
-      if (!lastBw) { dEl.textContent = ''; return; }
-      const d = +(bwv - lastBw.kg).toFixed(1);
-      dEl.className = 'bwv-delta num ' + (d < 0 ? 'down' : d > 0 ? 'up' : 'same');
-      dEl.textContent = d === 0 ? 'Same as last' : `${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)} kg`;
-    };
-    const commitBw = v => {
-      bwv = v;
-      rv.firstChild.nodeValue = v.toFixed(1);
-      updDelta();
-      if (logVal) logVal.textContent = v.toFixed(1) + ' kg';
-    };
-    updDelta();
-
-    // fixed scale — 0.5 steps, main labelled lines at every 1 kg
-    const bwRuler = rulerScale({
-      value: bwv, step: bwStep, tickW: 30, span: 14, min: 20,
-      labelEvery: 2, majorEvery: 2, decimals: 1, cls: 'fine', onChange: commitBw
-    });
-    bwCard.appendChild(bwRuler.el);
-
-    // 30-day trend
-    {
-      let pts = bw.filter(e => Date.now() - e.ts < 30 * 86400000);
-      if (pts.length < 2) pts = bw;
-      if (pts.length >= 2) {
-        const tHead = el('div', 'bwv-head');
-        tHead.appendChild(el('div', 'micro', 'Trend · 30 days'));
-        const td = +(pts[pts.length - 1].kg - pts[0].kg).toFixed(1);
-        tHead.appendChild(el('div', 'micro trend-d', `${td > 0 ? '+' : td < 0 ? '−' : ''}${Math.abs(td).toFixed(1)} kg`));
-        tHead.style.marginTop = '6px';
-        bwCard.appendChild(tHead);
-        const wrap = el('div', 'bw-graph');
-        wrap.innerHTML = bwGraphSVG(pts);
-        bwCard.appendChild(wrap);
-      }
-    }
-
-    logBtn = el('button', 'bwv-log' + (loggedToday ? ' logged' : ''));
-    logBtn.appendChild(el('span', null, loggedToday ? 'Update today' : 'Log weight'));
-    logVal = el('small', null, bwv.toFixed(1) + ' kg');
-    logBtn.appendChild(logVal);
-    logBtn.onclick = async () => {
-      if (!(bwv > 20)) return;
-      const today = bw.find(x => x.date === todayStr());
-      await DB.put('bodyweight', today
-        ? { ...today, kg: bwv, ts: Date.now() }
-        : { id: DB.uid(), date: todayStr(), kg: bwv, ts: Date.now() });
-      renderProfile();
-    };
-    bwCard.appendChild(logBtn);
-    root.appendChild(bwCard);
-
     // preferred training days
     const plan = activePlan();
     if (plan) {
@@ -2195,6 +2120,90 @@
       pc.appendChild(ph);
       root.appendChild(pc);
     }
+
+    // body weight — v5: big reading, fine sliding scale, trend, log button
+    root.appendChild(el('div', 'month-label', 'Body weight'));
+    const bw = (await DB.all('bodyweight')).sort((a, b) => a.ts - b.ts);
+    const lastBw = bw[bw.length - 1];
+    const loggedToday = !!bw.find(x => x.date === todayStr());
+    const bwCard = el('div', 'card bwv-card');
+
+    const bwHead = el('div', 'bwv-head');
+    bwHead.appendChild(el('div', 'micro', "Today's reading"));
+    /* the scale sits locked so a stray touch while scrolling cannot move
+       your reading — Adjust opens it, logging locks it again */
+    const lockBtn = el('button', 'bwv-lock', 'Adjust');
+    bwHead.appendChild(lockBtn);
+    bwCard.appendChild(bwHead);
+
+    let bwv = lastBw ? lastBw.kg : 80;
+    const bwStep = 0.5;   // fixed — main lines every 1 kg
+    const read = el('div', 'bwv-read');
+    const rv = el('div', 'bwv-val num', bwv.toFixed(1));
+    rv.appendChild(el('small', null, ' kg'));
+    read.appendChild(rv);
+    const dEl = el('div', 'bwv-delta num');
+    read.appendChild(dEl);
+    bwCard.appendChild(read);
+
+    let logBtn;
+    const updDelta = () => {
+      if (!lastBw) { dEl.textContent = ''; return; }
+      const d = +(bwv - lastBw.kg).toFixed(1);
+      dEl.className = 'bwv-delta num ' + (d < 0 ? 'down' : d > 0 ? 'up' : 'same');
+      dEl.textContent = d === 0 ? 'Same as last' : `${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)} kg`;
+    };
+    const commitBw = v => {
+      bwv = v;
+      rv.firstChild.nodeValue = v.toFixed(1);
+      updDelta();
+    };
+    updDelta();
+
+    // fixed scale — 0.5 steps, main labelled lines at every 1 kg
+    const bwRuler = rulerScale({
+      value: bwv, step: bwStep, tickW: 30, span: 14, min: 20,
+      labelEvery: 2, majorEvery: 2, decimals: 1, cls: 'fine', onChange: commitBw
+    });
+    const scaleWrap = el('div', 'bwv-scale locked');
+    scaleWrap.appendChild(bwRuler.el);
+    lockBtn.onclick = () => {
+      const stillLocked = scaleWrap.classList.toggle('locked');
+      lockBtn.textContent = stillLocked ? 'Adjust' : 'Lock';
+      lockBtn.classList.toggle('open', !stillLocked);
+      haptic();
+    };
+    bwCard.appendChild(scaleWrap);
+
+    // 30-day trend
+    {
+      let pts = bw.filter(e => Date.now() - e.ts < 30 * 86400000);
+      if (pts.length < 2) pts = bw;
+      if (pts.length >= 2) {
+        const tHead = el('div', 'bwv-head');
+        tHead.appendChild(el('div', 'micro', 'Trend · 30 days'));
+        const td = +(pts[pts.length - 1].kg - pts[0].kg).toFixed(1);
+        tHead.appendChild(el('div', 'micro trend-d', `${td > 0 ? '+' : td < 0 ? '−' : ''}${Math.abs(td).toFixed(1)} kg`));
+        tHead.style.marginTop = '6px';
+        bwCard.appendChild(tHead);
+        const wrap = el('div', 'bw-graph');
+        wrap.innerHTML = bwGraphSVG(pts);
+        bwCard.appendChild(wrap);
+      }
+    }
+
+    logBtn = el('button', 'bwv-log' + (loggedToday ? ' logged' : ''));
+    logBtn.appendChild(el('span', null, loggedToday ? 'Update today' : 'Log weight'));
+    logBtn.onclick = async () => {
+      if (!(bwv > 20)) return;
+      const today = bw.find(x => x.date === todayStr());
+      await DB.put('bodyweight', today
+        ? { ...today, kg: bwv, ts: Date.now() }
+        : { id: DB.uid(), date: todayStr(), kg: bwv, ts: Date.now() });
+      renderProfile();
+    };
+    bwCard.appendChild(logBtn);
+    root.appendChild(bwCard);
 
     // data controls
     root.appendChild(el('div', 'month-label', 'Data & backup'));
