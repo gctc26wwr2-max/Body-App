@@ -744,19 +744,32 @@ body { font-size: 14px; }
 /* injuries: a short dial of body areas with a switch for the one in the window.
    The master switch in the header freezes the whole thing when it is off. */
 .inj-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.inj-row { position: relative; transition: opacity .18s ease; }
 /* paused, not wiped — dim the dial but let the saved marks stay readable */
 .inj-row.locked { pointer-events: none; }
 .inj-row.locked .pw-item { opacity: .38; }
 .inj-row.locked .pw-item:has(i.flag) { opacity: .8; }
-.inj-row.locked .inj-tap { display: none; }
-.inj-row .pw-item { padding-right: 84px; }
-.inj-tap {
-  position: absolute; top: 50%; right: 12px; transform: translateY(-50%); z-index: 3;
-  height: 30px; padding: 0 14px; border-radius: 10px;
-  background: rgba(206,107,61,.18); border: 1px solid var(--amber-border); color: var(--lime);
-  font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+.inj-row.locked .inj-btn, .inj-row.locked .inj-arrow { display: none; }
+.inj-row { display: flex; gap: 14px; align-items: center; }
+.inj-dial { position: relative; flex: 1; min-width: 0; }
+.inj-row .pw-item { padding-right: 30px; }
+/* the arrow marks the row the button will act on */
+.inj-arrow {
+  position: absolute; top: 50%; right: 12px; margin-top: -7px; z-index: 3;
+  width: 0; height: 0; border: 7px solid transparent;
+  border-right: 0; border-left: 9px solid var(--lime);
 }
+/* one round key, stopwatch style */
+.inj-btn {
+  flex: 0 0 66px; width: 66px; height: 66px; border-radius: 50%; padding: 0;
+  background: rgba(206,107,61,.16); border: 1.5px solid var(--lime); color: var(--lime);
+  font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.inj-btn:active { background: rgba(206,107,61,.34); }
+.inj-btn.rm {
+  background: rgba(203,190,171,.1); border-color: var(--amber-border); color: var(--amber);
+}
+.inj-btn.rm:active { background: rgba(203,190,171,.22); }
 .inj-sw {
   position: relative; width: 62px; height: 34px; padding: 0; border-radius: 17px;
   background: var(--ctrl); border: 1px solid var(--hair-strong);

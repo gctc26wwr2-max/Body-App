@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v143';
+  const APP_VERSION = 'v144';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2756,19 +2756,26 @@
       haptic();
       renderPlanMaker();
     };
-    // a tag parked on the indicator line so the tap is never a guess
-    const tag = el('button', 'inj-tap', injOn.has(INJURIES[pmInj].key) ? 'Remove' : 'Add');
-    tag.onclick = () => toggleInj(pmInj);
-    injRow.appendChild(pickerWheel(INJURIES.map(i => i.label), pmInj,
+    /* a stopwatch button: one round key that acts on whatever the arrow
+       points at, reading Add or Remove depending on where the dial sits */
+    const btn = el('button', 'inj-btn' + (injOn.has(INJURIES[pmInj].key) ? ' rm' : ''),
+      injOn.has(INJURIES[pmInj].key) ? 'Remove' : 'Add');
+    btn.onclick = () => toggleInj(pmInj);
+    const dial = el('div', 'inj-dial');
+    dial.appendChild(pickerWheel(INJURIES.map(i => i.label), pmInj,
       i => {
         pmInj = i;
         localStorage.setItem('injDial', INJURIES[i].key);
-        tag.textContent = injOn.has(INJURIES[i].key) ? 'Remove' : 'Add';
+        const on = injOn.has(INJURIES[i].key);
+        btn.textContent = on ? 'Remove' : 'Add';
+        btn.classList.toggle('rm', on);
       },
       'wide short',
       i => (injOn.has(INJURIES[i].key) ? 'flag' : (i % 2 ? 'w11' : 'w15')),
       toggleInj));
-    injRow.appendChild(tag);
+    dial.appendChild(el('i', 'inj-arrow'));
+    injRow.appendChild(dial);
+    injRow.appendChild(btn);
     root.appendChild(injRow);
     const flagged = INJURIES.filter(i => injOn.has(i.key)).map(i => i.label);
     root.appendChild(el('div', 'inj-note', injLive
