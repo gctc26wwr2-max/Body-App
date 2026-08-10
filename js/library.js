@@ -205,3 +205,154 @@ window.STARTER_BLOCK = {
     ]}
   ]
 };
+
+/* ---------------------------------------------------------------------------
+   Movement map — what each exercise IS, not what it is called.
+
+   Every entry is [pattern, ...stress tags]. The pattern drives substitution
+   (swap a lift for another that trains the same job); the tags drive the
+   injury filter. Filtering on tags rather than names means a new exercise
+   only has to be described once, here or by inference, to be handled.
+--------------------------------------------------------------------------- */
+window.MOVEMENTS = {
+  // chest
+  'Bench Press':                 ['hpush', 'shoulder'],
+  'Incline Dumbbell Press':      ['hpush', 'shoulder'],
+  'Dumbbell Fly':                ['fly', 'shoulder'],
+  'Push-Up':                     ['hpush', 'shoulder', 'wrist'],
+  'Cable Crossover':             ['fly', 'shoulder'],
+  'Chest Dip':                   ['hpush', 'shoulder', 'elbow', 'wrist'],
+  'Machine Chest Press':         ['hpush'],
+  // back
+  'Pull-Up':                     ['vpull', 'overhead', 'shoulder', 'elbow', 'grip'],
+  'Lat Pulldown':                ['vpull', 'overhead'],
+  'Barbell Row':                 ['hpull', 'hinge', 'spineload'],
+  'Dumbbell Row':                ['hpull'],
+  'Seated Cable Row':            ['hpull'],
+  'T-Bar Row':                   ['hpull', 'hinge', 'spineload'],
+  'Face Pull':                   ['delt'],
+  'Deadlift':                    ['hinge', 'spineload', 'hinge', 'hip', 'grip'],
+  'Back Extension':              ['hinge', 'hinge'],
+  // shoulders
+  'Overhead Press':              ['vpush', 'overhead', 'shoulder', 'spineload', 'neck'],
+  'Dumbbell Shoulder Press':     ['vpush', 'overhead', 'shoulder', 'neck'],
+  'Lateral Raise':               ['delt', 'shoulder'],
+  'Front Raise':                 ['delt', 'shoulder'],
+  'Rear Delt Fly':               ['delt'],
+  'Arnold Press':                ['vpush', 'overhead', 'shoulder', 'neck'],
+  'Upright Row':                 ['delt', 'shoulder', 'neck'],
+  'Shrug':                       ['trap', 'neck', 'spineload', 'grip'],
+  // arms
+  'Barbell Curl':                ['curl', 'elbow', 'wrist'],
+  'Dumbbell Curl':               ['curl', 'elbow'],
+  'Hammer Curl':                 ['curl', 'elbow'],
+  'Preacher Curl':               ['curl', 'elbow'],
+  'Concentration Curl':          ['curl', 'elbow'],
+  'Triceps Pushdown':            ['tri', 'elbow'],
+  'Skull Crusher':               ['tri', 'elbow', 'shoulder'],
+  'Overhead Triceps Extension':  ['tri', 'elbow', 'overhead', 'shoulder'],
+  'Close-Grip Bench Press':      ['hpush', 'elbow', 'shoulder', 'wrist'],
+  // legs
+  'Squat':                       ['squat', 'knee', 'hip', 'spineload'],
+  'Front Squat':                 ['squat', 'knee', 'hip', 'spineload', 'wrist', 'shoulder'],
+  'Goblet Squat':                ['squat', 'knee', 'hip'],
+  'Leg Press':                   ['squat', 'knee', 'hip'],
+  'Lunge':                       ['lunge', 'knee', 'hip'],
+  'Bulgarian Split Squat':       ['lunge', 'knee', 'hip'],
+  'Romanian Deadlift':           ['hinge', 'hinge', 'spineload'],
+  'Leg Extension':               ['legiso', 'knee'],
+  'Leg Curl':                    ['legiso', 'knee'],
+  'Hip Thrust':                  ['bridge', 'hip'],
+  'Calf Raise':                  ['calf', 'ankle'],
+  'Step-Up':                     ['lunge', 'knee', 'hip'],
+  'Sumo Deadlift':               ['hinge', 'spineload', 'hinge', 'hip', 'grip'],
+  // core
+  'Plank':                       ['corebrace', 'wrist'],
+  'Side Plank':                  ['corebrace', 'wrist', 'shoulder'],
+  'Crunch':                      ['coreflex', 'spineflex', 'neck'],
+  'Bicycle Crunch':              ['coreflex', 'spineflex', 'spinerot', 'neck'],
+  'Hanging Leg Raise':           ['coreflex', 'spineflex', 'hip', 'overhead', 'shoulder', 'grip'],
+  'Russian Twist':               ['corerot', 'spinerot', 'spineflex'],
+  'Cable Crunch':                ['coreflex', 'spineflex'],
+  'Ab Wheel Rollout':            ['corebrace', 'spineload', 'wrist', 'shoulder'],
+  'Mountain Climbers':           ['corebrace', 'wrist', 'knee', 'hip'],
+  'Dead Bug':                    ['corebrace'],
+  // cardio
+  'Treadmill Run':               ['cardio', 'impact', 'knee', 'ankle'],
+  'Cycling':                     ['cardio'],
+  'Rowing Machine':              ['cardio', 'hinge', 'knee'],
+  'Jump Rope':                   ['cardio', 'impact', 'knee', 'ankle'],
+  'Stair Climber':               ['cardio', 'knee', 'hip'],
+  'Elliptical':                  ['cardio'],
+  'Swimming':                    ['cardio', 'overhead', 'shoulder'],
+  'HIIT Sprints':                ['cardio', 'impact', 'knee', 'ankle', 'hip'],
+  // full body
+  'Burpee':                      ['full', 'impact', 'wrist', 'knee', 'spineflex'],
+  'Kettlebell Swing':            ['hinge', 'hinge', 'spineload', 'grip'],
+  'Clean and Press':             ['full', 'overhead', 'shoulder', 'spineload', 'hinge', 'wrist', 'knee'],
+  'Thruster':                    ['full', 'overhead', 'shoulder', 'spineload', 'knee', 'wrist'],
+  'Farmer’s Carry':              ['carry', 'grip'],
+  'Wall Ball':                   ['full', 'overhead', 'shoulder', 'knee'],
+  'Battle Ropes':                ['full', 'shoulder'],
+  // joint-friendly additions
+  'Chest-Supported Row':         ['hpull'],
+  'Machine Shoulder Press':      ['vpush', 'overhead', 'shoulder'],
+  'Assisted Pull-Up':            ['vpull', 'overhead', 'shoulder', 'elbow', 'grip'],
+  'Glute Bridge':                ['bridge'],
+  'Pallof Press':                ['corebrace']
+};
+
+/* Patterns that can stand in for each other when the exact one is ruled out. */
+window.MOVE_FAMILY = {
+  hpush: 'push', vpush: 'push', fly: 'push', tri: 'push',
+  hpull: 'pull', vpull: 'pull', delt: 'pull', trap: 'pull', curl: 'pull',
+  squat: 'legs', lunge: 'legs', legiso: 'legs', calf: 'legs',
+  hinge: 'legs', bridge: 'legs',
+  coreflex: 'core', corerot: 'core', corebrace: 'core', carry: 'core',
+  cardio: 'cardio', full: 'full'
+};
+
+/* Anything not in the map is read from its name, then its muscle group, so a
+   new exercise is described rather than waved through. Order matters —
+   "leg curl" must be caught before "curl". */
+window.MOVE_INFER = [
+  [/leg\s*curl|hamstring curl/i,                    ['legiso', 'knee']],
+  [/leg\s*extension|knee extension/i,               ['legiso', 'knee']],
+  [/calf|heel raise/i,                              ['calf', 'ankle']],
+  [/pull[-\s]?up|chin[-\s]?up|pulldown|lat pull/i,  ['vpull', 'overhead', 'shoulder', 'elbow', 'grip']],
+  [/\brow\b/i,                                      ['hpull']],
+  [/shrug/i,                                        ['trap', 'neck', 'spineload', 'grip']],
+  [/deadlift|good ?morning|hip hinge|kettlebell swing|swing/i, ['hinge', 'hinge', 'spineload', 'hip', 'grip']],
+  [/hip thrust|glute bridge|bridge/i,               ['bridge', 'hip']],
+  [/split squat|lunge|step[-\s]?up/i,               ['lunge', 'knee', 'hip']],
+  [/squat|leg press|hack/i,                         ['squat', 'knee', 'hip', 'spineload']],
+  [/overhead press|shoulder press|military|push press|jerk|snatch|handstand/i, ['vpush', 'overhead', 'shoulder', 'neck']],
+  [/upright row|lateral raise|front raise|delt|rear fly/i, ['delt', 'shoulder']],
+  [/overhead (triceps|tricep|extension)/i,          ['tri', 'elbow', 'overhead', 'shoulder']],
+  [/pushdown|skull ?crusher|triceps|tricep|kickback/i, ['tri', 'elbow']],
+  [/curl/i,                                         ['curl', 'elbow']],
+  [/dip\b/i,                                        ['hpush', 'shoulder', 'elbow', 'wrist']],
+  [/push[-\s]?up|press[-\s]?up/i,                   ['hpush', 'shoulder', 'wrist']],
+  [/landmine/i,                                     ['vpush', 'shoulder']],
+  [/sled|prowler/i,                                 ['cardio', 'knee', 'impact']],
+  [/bench|chest press|floor press/i,                ['hpush', 'shoulder']],
+  [/fly|flye|crossover|pec deck/i,                  ['fly', 'shoulder']],
+  [/plank|dead ?bug|pallof|bird ?dog|hollow/i,      ['corebrace']],
+  [/twist|woodchop|rotation/i,                      ['corerot', 'spinerot', 'spineflex']],
+  [/crunch|sit[-\s]?up|leg raise|knee raise/i,      ['coreflex', 'spineflex', 'neck']],
+  [/carry|farmer|suitcase/i,                        ['carry', 'grip']],
+  [/sprint|run|jog|jump|skip|burpee|box jump/i,     ['cardio', 'impact', 'knee', 'ankle']],
+  [/cycl|bike|elliptical|swim|walk|stair|erg|rower|rowing machine/i, ['cardio']]
+];
+
+/* Last resort: judge by muscle group, erring towards caution. */
+window.MOVE_BY_GROUP = {
+  Chest: ['hpush', 'shoulder'],
+  Back: ['hpull'],
+  Shoulders: ['delt', 'shoulder'],
+  Arms: ['curl', 'elbow'],
+  Legs: ['squat', 'knee', 'hip'],
+  Core: ['corebrace', 'spineflex'],
+  Cardio: ['cardio', 'impact', 'knee', 'ankle'],
+  'Full body': ['full', 'spineload', 'shoulder', 'knee']
+};
