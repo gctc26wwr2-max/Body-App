@@ -790,7 +790,7 @@ body { font-size: 14px; }
 }
 .pm-name::placeholder { color: var(--t7); }
 .pm-wheels .pm-sets { flex: 0 0 68px; }
-.pm-wheels .pm-reps { flex: 0 0 100px; }
+.pm-wheels .cd-col.pm-reps { flex: 0 0 90px; }
 /* narrow dials: shorter tick slot so the value never truncates */
 .pm-sets .pw-item, .pm-reps .pw-item { padding: 0 4px 0 8px; gap: 6px; }
 .pm-sets .pw-slot, .pm-reps .pw-slot { width: 12px; }
@@ -798,6 +798,16 @@ body { font-size: 14px; }
 .pm-sets .pw-item.sel i, .pm-reps .pw-item.sel i { width: 12px !important; }
 .pm-sets .pw-ind, .pm-reps .pw-ind { left: 8px; width: 12px; }
 .pm-sets .pw-lbl, .pm-reps .pw-lbl { overflow: visible; text-overflow: clip; }
+/* slim the exercise ticks to match the side columns — the width goes to the name */
+.pm-exx .pw-item { padding: 0 6px 0 10px; gap: 9px; }
+.pm-exx .pw-slot { width: 16px; }
+.pm-exx .pw-item i { width: 10px; }
+.pm-exx .pw-item.sel i { width: 16px; }
+.pm-exx .pw-ind { left: 10px; width: 16px; }
+/* short labels: never wrap or clip, whatever the exercise column is doing */
+.pm-sets .pw-item.sel .pw-lbl, .pm-reps .pw-item.sel .pw-lbl {
+  white-space: nowrap; overflow: visible; max-height: none;
+}
 .pm-wheels .pw { height: 170px; }
 #view-planmaker .ex-index .exi-row { gap: 10px; }
 #view-planmaker .hist-del { width: 28px; height: 28px; }
@@ -864,7 +874,29 @@ body { font-size: 14px; }
   font-variant-numeric: tabular-nums; text-align: left;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.pw-item.sel .pw-lbl { font-size: 16px; font-weight: 800; color: var(--t1); letter-spacing: -.01em; }
+/* the chosen row never truncates — it wraps rather than trailing off */
+.pw-item.sel .pw-lbl {
+  font-size: 16px; font-weight: 800; color: var(--t1); letter-spacing: -.015em;
+  white-space: normal; overflow: hidden; text-overflow: clip;
+  line-height: 1.04; max-height: 34px;
+}
+/* turning a wheel: everything around it fades back so the pick stands out */
+.pw-item { transition: opacity .16s ease; }
+.pw.picking .pw-item:not(.sel) { opacity: .4; }
+.pw.picking .pw-item.sel .pw-lbl { font-size: 17px; }
+/* and the exercise column takes the whole row so the full name fits on a line */
+.cd-col { transition: flex-basis .24s ease, opacity .2s ease; }
+.pm-wheels:has(.pm-exx .pw.picking) .pm-sets,
+.pm-wheels:has(.pm-exx .pw.picking) .pm-reps { flex-basis: 0; opacity: 0; }
+/* at rest a long name runs to two lines and ellipses; mid-turn it gets a
+   full-width single line, which is the whole point of the column opening up */
+.pm-exx .pw-item.sel .pw-lbl {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  font-size: 14.5px;
+}
+.pm-wheels:has(.pm-exx .pw.picking) .pm-exx .pw-item.sel .pw-lbl {
+  display: block; white-space: nowrap; text-overflow: clip;
+}
 .cd-kcal { text-align: center; font-size: 15px; font-weight: 800; color: var(--lime); letter-spacing: .04em; }
 .cd-wheels.locked { opacity: .5; pointer-events: none; }
 .seg-toggle button:disabled { opacity: .55; }

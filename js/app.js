@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v145';
+  const APP_VERSION = 'v146';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2794,7 +2794,7 @@
       i => { pmSets = PM_SETS[i]; }, null,
       i => (PM_SETS[i] % 5 === 0 ? 'w20' : (PM_SETS[i] % 2 ? 'w11' : 'w15'))));
     wheels.appendChild(c1);
-    const c2 = el('div', 'cd-col');
+    const c2 = el('div', 'cd-col pm-exx');
     c2.appendChild(el('div', 'micro', 'Exercise'));
     c2.appendChild(pickerWheel(lib.map(x => x.name), pmEx, i => { pmEx = i; }, 'wide',
       i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15'))));
@@ -2970,6 +2970,9 @@
     });
     wrap.appendChild(strip);
 
+    /* 'picking' marks the wheel as being turned right now — the page uses it
+       to fade what is around it and give the row under the indicator room */
+    const pick = on => wrap.classList.toggle('picking', on);
     const offFor = i => -(i * TICK + TICK / 2);
     const idxAt = off => Math.round(-(off + TICK / 2) / TICK);
     const clampI = i => Math.max(0, Math.min(labels.length - 1, i));
@@ -3015,6 +3018,7 @@
         if (p < 1) { raf = requestAnimationFrame(step); return; }
         val = target;
         mark();
+        pick(false);
         onChange(val);
       };
       raf = requestAnimationFrame(step);
@@ -3027,6 +3031,7 @@
       sy = e.clientY; so = offFor(val); lastN = 0;
       vy = 0; lastY = e.clientY; lastT = performance.now();
       strip.style.transition = 'none';
+      pick(true);
       wrap.setPointerCapture(e.pointerId);
     });
     wrap.addEventListener('pointermove', e => {
@@ -3044,6 +3049,7 @@
       sy = null;
       if (Math.abs(dy) < 5) {
         slide(false);
+        pick(false);
         const t = document.elementFromPoint(e.clientX, e.clientY);
         const item = t && t.closest ? t.closest('.pw-item') : null;
         if (!item) return;
@@ -3059,7 +3065,9 @@
       coastTo(Math.round(-(fromOff + throwPx + TICK / 2) / TICK), fromOff);
     };
     wrap.addEventListener('pointerup', end);
-    wrap.addEventListener('pointercancel', () => { if (sy !== null) { sy = null; slide(false); } });
+    wrap.addEventListener('pointercancel', () => {
+      if (sy !== null) { sy = null; slide(false); pick(false); }
+    });
 
     mark(); slide(false);
     return wrap;
