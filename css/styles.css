@@ -1334,13 +1334,3 @@ body { font-size: 14px; }
   font-size: 11.5px; font-weight: 800; letter-spacing: .04em;
 }
 .master-panel { display: flex; flex-direction: column; gap: 18px; }
-
-/* body-weight scale: locked until you ask for it */
-.bwv-scale { transition: opacity .15s ease; }
-.bwv-scale.locked { opacity: .4; pointer-events: none; }
-.bwv-lock {
-  height: 26px; padding: 0 11px; border-radius: 9px;
-  background: none; border: 1px solid var(--hair-strong); color: var(--t4);
-  font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
-}
-.bwv-lock.open { border-color: var(--amber-border); color: var(--lime); }

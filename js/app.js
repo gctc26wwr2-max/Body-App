@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v168';
+  const APP_VERSION = 'v169';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1428,9 +1428,10 @@
       if (sx === null) return;
       const dx = e.clientX - sx;
       sx = null;
-      if (Math.abs(dx) < 5) {
-        // a tap — pointer capture eats the click, so hit-test the tick ourselves
+      if (Math.abs(dx) < (opts.dragOnly ? 14 : 5)) {
+        // dragOnly scales ignore taps outright — nothing moves without a swipe
         slide(false);
+        if (opts.dragOnly) return;
         const t = document.elementFromPoint(e.clientX, e.clientY);
         const tick = t && t.closest ? t.closest('.ks-tick') : null;
         if (tick && tick.dataset.v !== undefined) {
@@ -2130,10 +2131,6 @@
 
     const bwHead = el('div', 'bwv-head');
     bwHead.appendChild(el('div', 'micro', "Today's reading"));
-    /* the scale sits locked so a stray touch while scrolling cannot move
-       your reading — Adjust opens it, logging locks it again */
-    const lockBtn = el('button', 'bwv-lock', 'Adjust');
-    bwHead.appendChild(lockBtn);
     bwCard.appendChild(bwHead);
 
     let bwv = lastBw ? lastBw.kg : 80;
@@ -2163,17 +2160,12 @@
     // fixed scale — 0.5 steps, main labelled lines at every 1 kg
     const bwRuler = rulerScale({
       value: bwv, step: bwStep, tickW: 30, span: 14, min: 20,
-      labelEvery: 2, majorEvery: 2, decimals: 1, cls: 'fine', onChange: commitBw
+      labelEvery: 2, majorEvery: 2, decimals: 1, cls: 'fine',
+      dragOnly: true, onChange: commitBw
     });
-    const scaleWrap = el('div', 'bwv-scale locked');
-    scaleWrap.appendChild(bwRuler.el);
-    lockBtn.onclick = () => {
-      const stillLocked = scaleWrap.classList.toggle('locked');
-      lockBtn.textContent = stillLocked ? 'Adjust' : 'Lock';
-      lockBtn.classList.toggle('open', !stillLocked);
-      haptic();
-    };
-    bwCard.appendChild(scaleWrap);
+    /* no tap-to-set here: the reading only moves if you actually swipe it,
+       so brushing the card on the way past leaves it alone */
+    bwCard.appendChild(bwRuler.el);
 
     // 30-day trend
     {
