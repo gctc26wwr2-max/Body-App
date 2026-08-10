@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v119';
+  const APP_VERSION = 'v120';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2661,8 +2661,8 @@
     const wkLogs = logs.filter(x => sameWeek(x.date));
     hl.appendChild(el('div', 't-date',
       wkLogs.length
-        ? `${wkLogs.reduce((a, x) => a + x.minutes, 0)} min · ${wkLogs.reduce((a, x) => a + x.calories, 0)} kcal this week`
-        : 'Nothing logged this week'));
+        ? `This week · ${wkLogs.reduce((a, x) => a + x.minutes, 0)} min · ${wkLogs.reduce((a, x) => a + x.calories, 0)} kcal`
+        : 'No cardio yet'));
     hl.appendChild(el('h1', 't-title', 'Cardio'));
     head.appendChild(hl);
     root.appendChild(head);
@@ -2687,12 +2687,12 @@
       root.appendChild(live);
 
       const acts = el('div', 'block-actions');
-      const fin = el('button', 'btn-cta big', 'Finish & save');
+      const fin = el('button', 'btn-cta big', 'Finish');
       fin.style.cssText = 'flex:1;width:auto;align-self:stretch;margin-top:0';
       fin.onclick = () => finishCardio(false);
       const stop = el('button', 'btn-ghost', 'Discard');
       stop.onclick = async () => {
-        if (!await appConfirm({ title: 'Discard this cardio?', body: 'Nothing will be saved.', ok: 'Discard', cancel: 'Keep going', warn: true })) return;
+        if (!await appConfirm({ title: 'Discard?', body: 'Not saved.', ok: 'Discard', cancel: 'Keep going', warn: true })) return;
         liveCardio.set(null);
         renderCardio();
       };
@@ -2817,8 +2817,8 @@
     const env = lc.env || 'indoor';
     const kcal = cardioKcal(metOf(lc.act, env), mins, kg, lc.effort);
     const ok = await appConfirm({
-      title: auto ? 'Time!' : 'Finish cardio?',
-      body: `${lc.act} (${env}) · ${mins} min · about ${kcal} kcal burned.`,
+      title: auto ? 'Time!' : 'Finish?',
+      body: `${lc.act} · ${env} · ${mins} min · ${kcal} kcal`,
       ok: 'Save', cancel: auto ? 'Discard' : 'Keep going'
     });
     if (!ok) {
