@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v177';
+  const APP_VERSION = 'v178';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2236,18 +2236,32 @@
     head.appendChild(close);
     root.appendChild(head);
 
-    /* one block per answer: label, live readout, control */
-    const slide = (label, readout, node, hint) => {
+    /* One block per answer. Rows with a switch stay locked until you turn
+       them on, so scrolling past can never nudge a value — and off simply
+       means "not set", which is also how you clear one. */
+    const slide = (label, readout, node, hint, lock) => {
       const b = el('div', 'ab-row');
       const h = el('div', 'ab-head');
       h.appendChild(el('div', 'micro', label));
       if (readout) h.appendChild(readout);
+      const body = el('div', 'ab-body' + (lock && !lock.on ? ' locked' : ''));
+      body.appendChild(node);
+      if (lock) {
+        const sw = el('button', 'inj-sw sm' + (lock.on ? ' on' : ''));
+        sw.appendChild(el('i', 'inj-knob'));
+        sw.onclick = () => { lock.toggle(); haptic(); renderSettings(); };
+        h.appendChild(sw);
+      }
       b.appendChild(h);
-      b.appendChild(node);
+      b.appendChild(body);
       if (hint) b.appendChild(el('div', 'ab-hint', hint));
       root.appendChild(b);
       return b;
     };
+    const lockFor = (key, dflt) => ({
+      on: pr[key] != null,
+      toggle: () => { if (pr[key] != null) delete sDraft[key]; else sDraft[key] = dflt; }
+    });
 
     // ---- units: one swap, both measures ----
     root.appendChild(el('div', 'month-label', 'Units'));
@@ -2272,7 +2286,7 @@
         sDraft.goal = GOALS[i].key;
         goalOut.textContent = GOALS[i].reps; goalOut.classList.remove('unset');
         goalHint.textContent = GOALS[i].note;
-      }));
+      }), null, lockFor('goal', GOALS[0].key));
     const goalHint = el('div', 'ab-hint', (GOALS.find(g => g.key === pr.goal) || {}).note
       || 'Sets the rep range a new block starts on');
     root.appendChild(goalHint);
@@ -2284,7 +2298,7 @@
         sDraft.level = LEVELS[i].key;
         lvOut.textContent = LEVELS[i].label; lvOut.classList.remove('unset');
         lvHint.textContent = LEVELS[i].note;
-      }));
+      }), null, lockFor('level', LEVELS[0].key));
     const lvHint = el('div', 'ab-hint', (LEVELS.find(l => l.key === pr.level) || {}).note
       || 'How fast the weight should climb');
     root.appendChild(lvHint);
@@ -2292,7 +2306,7 @@
     slide('Sex', null,
       segToggle([['male', 'Male'], ['female', 'Female']], pr.sex || '',
         k => { sDraft.sex = k; renderSettings(); }, 'you-seg'),
-      'Used for the body-fat estimate');
+      'Used for the body-fat estimate', lockFor('sex', 'male'));
 
     // ---- numbers, all on rulers ----
     const num = (key, label, unit, def, step, min, decimals, hint, every) => {
@@ -2310,7 +2324,7 @@
         dragOnly: true, cls: (decimals ? 'fine' : '') + (every === 1 ? ' dense' : ''),
         onChange: v => { set = true; paint(v); sDraft[key] = v; bfPaint(); }
       });
-      slide(label, out, r.el, hint);
+      slide(label, out, r.el, hint, lockFor(key, def));
     };
     num('sessionMins', 'Time per session', 'min', 60, 5, 15, 0, 'Each day gets a clock in the builder');
     num('age', 'Age', 'yrs', 30, 1, 12, 0, null, 1);
@@ -2331,7 +2345,7 @@
         dragOnly: true,
         onChange: v => { set = true; paint(v); sDraft.heightCm = +(v * 2.54).toFixed(1); bfPaint(); }
       });
-      slide('Height', out, r.el);
+      slide('Height', out, r.el, null, lockFor('heightCm', 177.8));
     } else {
       num('heightCm', 'Height', 'cm', 175, 1, 100, 0, null, 1);
     }
@@ -2351,7 +2365,7 @@
         labelEvery: 2, majorEvery: 2, decimals: 1, cls: 'fine', dragOnly: true,
         onChange: v => { set = true; paint(v); sDraft[key] = +(v * 2.54).toFixed(1); bfPaint(); }
       });
-      slide(label, out, r.el, hint);
+      slide(label, out, r.el, hint, lockFor(key, defCm));
     };
     tape('waistCm', 'Waist', 85, 'At the navel, tape level, breathe out');
     tape('neckCm', 'Neck', 38, 'Just below the Adam\'s apple');
