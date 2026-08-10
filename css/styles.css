@@ -737,6 +737,13 @@ body { font-size: 14px; }
 }
 .pm-day.sel { background: var(--lime); border-color: transparent; color: var(--on-accent); font-weight: 800; }
 .pm-day.add { color: var(--lime); font-size: 16px; padding: 0 15px; }
+.pm-day-edit { width: 110px; text-align: center; }
+.pm-name {
+  width: 100%; background: none; border: none; padding: 0; color: var(--t1);
+  font-family: var(--cond); font-size: 30px; font-weight: 800;
+  letter-spacing: -.03em; text-transform: uppercase; line-height: 1.05;
+}
+.pm-name::placeholder { color: var(--t7); }
 .pm-wheels .pm-sets { flex: 0 0 58px; }
 .pm-wheels .pm-reps { flex: 0 0 104px; }
 /* narrow dials: shorter tick slot so the value never truncates */
