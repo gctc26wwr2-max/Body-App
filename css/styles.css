@@ -744,17 +744,8 @@ body { font-size: 14px; }
 /* injuries: a short dial of body areas with a switch for the one in the window.
    The master switch in the header freezes the whole thing when it is off. */
 .inj-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.inj-row { display: flex; gap: 12px; align-items: stretch; transition: opacity .18s ease; }
+.inj-row { transition: opacity .18s ease; }
 .inj-row.locked { opacity: .32; pointer-events: none; }
-.inj-wheel { flex: 1; min-width: 0; }
-.inj-sw-wrap {
-  flex: 0 0 96px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 10px;
-}
-.inj-sw-lbl {
-  font-size: 11px; font-weight: 800; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--t5);
-}
 .inj-sw {
   position: relative; width: 62px; height: 34px; padding: 0; border-radius: 17px;
   background: var(--ctrl); border: 1px solid var(--hair-strong);
@@ -842,7 +833,6 @@ body { font-size: 14px; }
 .pw-slot { width: 30px; flex: 0 0 auto; display: flex; }
 .pw-item i { height: 2px; background: rgba(255,255,255,.18); display: block; }
 .pw-item i.w20 { width: 20px; } .pw-item i.w15 { width: 15px; } .pw-item i.w11 { width: 11px; }
-.pw-item i.flag { width: 30px; background: var(--lime); }
 .pw-item.sel i { width: 30px; background: var(--lime); }
 .pw-lbl {
   flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--t6);
