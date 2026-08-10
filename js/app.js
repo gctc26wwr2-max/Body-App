@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v173';
+  const APP_VERSION = 'v174';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2175,23 +2175,24 @@
     ? Math.round(8 + items.reduce((a, it) => a + it.sets * 2.5, 0))
     : 0;
 
-  /* The About you screen — every answer on a slide, nothing to type. */
-  function openAbout() { show('about'); renderAbout(); }
+  /* Settings — one page with everything on it, no rows that open more rows. */
+  function openSettings() { show('about'); renderSettings(); }
 
-  function renderAbout() {
+  function renderSettings() {
     const root = $('#view-about');
     root.innerHTML = '';
     const pr = getProfile();
 
     const head = el('div', 'w-head pm-head');
     const hl = el('div', 'w-left');
-    hl.appendChild(el('div', 't-date', 'Shapes every block you build'));
-    hl.appendChild(el('h1', 'pm-name-static', 'About you'));
+    hl.appendChild(el('div', 't-date', 'Everything on one page'));
+    hl.appendChild(el('h1', 'pm-name-static', 'Settings'));
     head.appendChild(hl);
     const close = el('button', 'w-chip', '✕');
     close.onclick = () => { show('profile'); renderTab(); };
     head.appendChild(close);
     root.appendChild(head);
+    root.appendChild(el('div', 'month-label', 'About you'));
 
     /* one block per answer: label, live readout, slide */
     const slide = (label, readout, node, hint) => {
@@ -2237,7 +2238,7 @@
       optionRail(['Male', 'Female'], pr.sex === 'female' ? 1 : pr.sex === 'male' ? 0 : -1, i => {
         setProfile({ sex: i ? 'female' : 'male' });
         sexOut.textContent = i ? 'Female' : 'Male';
-        renderAbout();                       // hips appear or disappear
+        renderSettings();                    // hips appear or disappear
       }), 'Used for the body-fat estimate');
 
     // ---- numbers, all on rulers ----
@@ -2284,6 +2285,78 @@
     bfPaint();
     root.appendChild(bfEl);
 
+    // preferred training days
+    const plan = activePlan();
+    if (plan) {
+      root.appendChild(el('div', 'month-label', 'Preferred training days'));
+      const pc = el('div', 'card');
+      const strip = el('div', 'day-strip');
+      plan.prefDays = plan.prefDays || [];
+      ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((ch, i) => {
+        const cell = el('button', 'cell' + (plan.prefDays.includes(i) ? ' today pref' : ''));
+        cell.type = 'button';
+        cell.appendChild(el('span', null, ch));
+        cell.appendChild(el('i'));
+        cell.onclick = async () => {
+          plan.prefDays = plan.prefDays.includes(i)
+            ? plan.prefDays.filter(x => x !== i)
+            : [...plan.prefDays, i].sort((a, b) => a - b);
+          await DB.put('plans', plan);
+          renderSettings();
+        };
+        strip.appendChild(cell);
+      });
+      pc.appendChild(strip);
+      const ph = el('div', 'hist-meta');
+      ph.style.marginTop = '10px';
+      ph.textContent = `${plan.prefDays.length} of ${(plan.days || []).length} training days picked — they show as rings on the Today week strip.`;
+      pc.appendChild(ph);
+      root.appendChild(pc);
+    }
+
+    // data controls
+    root.appendChild(el('div', 'month-label', 'Data & backup'));
+    const dc = el('div', 'card');
+    const bk = el('button', 'btn-lime', 'Back up now');
+    bk.style.cssText = 'width:100%';
+    bk.onclick = backupData;
+    dc.appendChild(bk);
+    const lbTs = Number(localStorage.getItem('lastBackup')) || 0;
+    const hint = el('div', 'hist-meta');
+    hint.style.margin = '8px 0 12px';
+    hint.textContent = (lbTs ? `Last backup ${new Date(lbTs).toLocaleDateString('en-GB')} · ` : 'Never backed up · ')
+      + 'in the share sheet choose "Save to Files" → iCloud Drive. Do it monthly — a reminder appears on Today. Photos/videos you attached are not included.';
+    dc.appendChild(hint);
+    const report = el('button', 'btn-ghost', 'Report for Claude');
+    report.style.cssText = 'width:100%;margin-bottom:10px;color:var(--lime);border-color:var(--lime-border)';
+    report.onclick = shareReport;
+    dc.appendChild(report);
+    const rHint = el('div', 'hist-meta');
+    rHint.style.margin = '0 0 12px';
+    rHint.textContent = 'Builds a text summary of your program, sessions, times, how they felt, and current numbers — share it into a Claude chat to plan your next block.';
+    dc.appendChild(rHint);
+    const restoreBtn = el('button', 'btn-ghost', 'Restore from backup');
+    restoreBtn.style.cssText = 'width:100%;margin-bottom:10px';
+    const fileIn = document.createElement('input');
+    fileIn.type = 'file';
+    fileIn.accept = 'application/json,.json';
+    fileIn.style.display = 'none';
+    fileIn.onchange = () => { if (fileIn.files[0]) restoreData(fileIn.files[0]); fileIn.value = ''; };
+    restoreBtn.onclick = () => fileIn.click();
+    dc.appendChild(restoreBtn);
+    dc.appendChild(fileIn);
+    const reset = el('button', 'btn-ghost', 'Reset training history');
+    reset.style.cssText = 'width:100%;color:var(--amber);border-color:var(--amber-border)';
+    reset.onclick = resetHistory;
+    dc.appendChild(reset);
+    root.appendChild(dc);
+
+    // about
+    const about = el('div', 'coach-note');
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    about.innerHTML = '<b>Rackside ' + APP_VERSION + ' ·</b> Local-first training app. Everything is stored on this iPhone — no account, no cloud, works offline in the gym. '
+      + (standalone ? 'Running as an installed app.' : 'Running in the browser — install via Share → Add to Home Screen.');
+    root.appendChild(about);
     const done = el('button', 'btn-cta big');
     done.style.width = '100%';
     done.textContent = 'Done';
@@ -2306,6 +2379,14 @@
       : 'Rackside') + ' · ' + APP_VERSION));
     hl.appendChild(el('h1', 't-title', 'Profile'));
     head.appendChild(hl);
+    const gear = el('button', 'gear-btn');
+    gear.title = 'Settings';
+    gear.innerHTML = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" '
+      + 'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
+      + '<circle cx="12" cy="12" r="3.2"/>'
+      + '<path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>';
+    gear.onclick = () => openSettings();
+    head.appendChild(gear);
     root.appendChild(head);
 
     // lifetime stats
@@ -2320,58 +2401,6 @@
     prC.classList.add('hl');
     grid.appendChild(prC);
     root.appendChild(grid);
-
-    // about you — one row here, the whole thing on its own screen
-    root.appendChild(el('div', 'month-label', 'About you'));
-    {
-      const pr = getProfile();
-      const g = GOALS.find(x => x.key === pr.goal), lv = LEVELS.find(x => x.key === pr.level);
-      const bits = [];
-      if (g) bits.push(g.label);
-      if (lv) bits.push(lv.label);
-      if (pr.sessionMins) bits.push(pr.sessionMins + ' min');
-      const bf = navyBodyFat(pr);
-      if (bf) bits.push(bf + '% fat');
-      const open = el('button', 'card you-open');
-      const left = el('div');
-      left.appendChild(el('div', 'you-open-t', bits.length ? bits.join(' · ') : 'Not set up yet'));
-      left.appendChild(el('div', 'you-open-s', bits.length
-        ? 'Goal, experience, session length and measurements'
-        : 'Answer six things once and blocks come out tailored'));
-      open.appendChild(left);
-      open.appendChild(el('div', 'you-open-go', '›'));
-      open.onclick = () => openAbout();
-      root.appendChild(open);
-    }
-
-    // preferred training days
-    const plan = activePlan();
-    if (plan) {
-      root.appendChild(el('div', 'month-label', 'Preferred training days'));
-      const pc = el('div', 'card');
-      const strip = el('div', 'day-strip');
-      plan.prefDays = plan.prefDays || [];
-      ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((ch, i) => {
-        const cell = el('button', 'cell' + (plan.prefDays.includes(i) ? ' today pref' : ''));
-        cell.type = 'button';
-        cell.appendChild(el('span', null, ch));
-        cell.appendChild(el('i'));
-        cell.onclick = async () => {
-          plan.prefDays = plan.prefDays.includes(i)
-            ? plan.prefDays.filter(x => x !== i)
-            : [...plan.prefDays, i].sort((a, b) => a - b);
-          await DB.put('plans', plan);
-          renderProfile();
-        };
-        strip.appendChild(cell);
-      });
-      pc.appendChild(strip);
-      const ph = el('div', 'hist-meta');
-      ph.style.marginTop = '10px';
-      ph.textContent = `${plan.prefDays.length} of ${(plan.days || []).length} training days picked — they show as rings on the Today week strip.`;
-      pc.appendChild(ph);
-      root.appendChild(pc);
-    }
 
     // body weight — v5: big reading, fine sliding scale, trend, log button
     root.appendChild(el('div', 'month-label', 'Body weight'));
@@ -2450,49 +2479,6 @@
     bwCard.appendChild(logBtn);
     root.appendChild(bwCard);
 
-    // data controls
-    root.appendChild(el('div', 'month-label', 'Data & backup'));
-    const dc = el('div', 'card');
-    const bk = el('button', 'btn-lime', 'Back up now');
-    bk.style.cssText = 'width:100%';
-    bk.onclick = backupData;
-    dc.appendChild(bk);
-    const lbTs = Number(localStorage.getItem('lastBackup')) || 0;
-    const hint = el('div', 'hist-meta');
-    hint.style.margin = '8px 0 12px';
-    hint.textContent = (lbTs ? `Last backup ${new Date(lbTs).toLocaleDateString('en-GB')} · ` : 'Never backed up · ')
-      + 'in the share sheet choose "Save to Files" → iCloud Drive. Do it monthly — a reminder appears on Today. Photos/videos you attached are not included.';
-    dc.appendChild(hint);
-    const report = el('button', 'btn-ghost', 'Report for Claude');
-    report.style.cssText = 'width:100%;margin-bottom:10px;color:var(--lime);border-color:var(--lime-border)';
-    report.onclick = shareReport;
-    dc.appendChild(report);
-    const rHint = el('div', 'hist-meta');
-    rHint.style.margin = '0 0 12px';
-    rHint.textContent = 'Builds a text summary of your program, sessions, times, how they felt, and current numbers — share it into a Claude chat to plan your next block.';
-    dc.appendChild(rHint);
-    const restoreBtn = el('button', 'btn-ghost', 'Restore from backup');
-    restoreBtn.style.cssText = 'width:100%;margin-bottom:10px';
-    const fileIn = document.createElement('input');
-    fileIn.type = 'file';
-    fileIn.accept = 'application/json,.json';
-    fileIn.style.display = 'none';
-    fileIn.onchange = () => { if (fileIn.files[0]) restoreData(fileIn.files[0]); fileIn.value = ''; };
-    restoreBtn.onclick = () => fileIn.click();
-    dc.appendChild(restoreBtn);
-    dc.appendChild(fileIn);
-    const reset = el('button', 'btn-ghost', 'Reset training history');
-    reset.style.cssText = 'width:100%;color:var(--amber);border-color:var(--amber-border)';
-    reset.onclick = resetHistory;
-    dc.appendChild(reset);
-    root.appendChild(dc);
-
-    // about
-    const about = el('div', 'coach-note');
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-    about.innerHTML = '<b>Rackside ' + APP_VERSION + ' ·</b> Local-first training app. Everything is stored on this iPhone — no account, no cloud, works offline in the gym. '
-      + (standalone ? 'Running as an installed app.' : 'Running in the browser — install via Share → Add to Home Screen.');
-    root.appendChild(about);
   }
 
   /* ---------------- body weight line graph (inline SVG) ---------------- */
