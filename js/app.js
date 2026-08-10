@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v123';
+  const APP_VERSION = 'v124';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2760,14 +2760,12 @@
       const doneSec = () => Math.min(total, Math.round((lc.acc || 0) + (lc.startedAt ? (Date.now() - lc.startedAt) / 1000 : 0)));
 
       const live = el('div', 'cd-live' + (lc.startedAt ? '' : ' paused'));
+      const gauge = el('i', 'cd-gauge');   // the card itself drains as time runs out
+      live.appendChild(gauge);
       const clock = el('div', 'cd-clock num', '0:00');
       live.appendChild(clock);
       const sub = el('div', 'cd-sub num', '');
       live.appendChild(sub);
-      const bar = el('div', 'rest-bar');
-      const fill = el('div');
-      bar.appendChild(fill);
-      live.appendChild(bar);
       root.appendChild(live);
 
       const acts = el('div', 'block-actions');
@@ -2804,7 +2802,8 @@
         const d2 = doneSec(), l = Math.max(0, total - d2);
         clock.textContent = fmtClock(l);
         sub.textContent = `${Math.round(d2 / 60)} of ${lc.mins} min · ~${cardioKcal(met, d2 / 60, kg)} kcal`;
-        fill.style.width = (100 - Math.min(100, d2 / total * 100)) + '%';
+        const rem = Math.max(0, 100 - Math.min(100, d2 / total * 100));
+        gauge.style.width = rem + '%';
         if (l <= 0 && !cardioAlerted) {
           cardioAlerted = true;
           beep();
