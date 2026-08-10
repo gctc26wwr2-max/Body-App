@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v164';
+  const APP_VERSION = 'v165';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1460,7 +1460,6 @@
 
     const top = el('div', 'ks-top');
     const big = el('div', 'ks-val num', String(set.kg));
-    big.appendChild(el('small', null, ' kg'));
     top.appendChild(big);
     const deltaEl = el('div', 'ks-delta', setDelta(cur, si));
     top.appendChild(deltaEl);

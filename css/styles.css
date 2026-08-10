@@ -376,8 +376,7 @@ body { font-size: 14px; }
 /* the weight scale — expands inside the set row */
 .kg-scale { padding: 2px 10px 12px; display: flex; flex-direction: column; gap: 7px; }
 .ks-top { display: flex; align-items: baseline; justify-content: space-between; }
-.ks-val { font-size: 30px; font-weight: 800; letter-spacing: -.04em; }
-.ks-val small { font-size: 12px; font-weight: 700; color: var(--t5); letter-spacing: 0; }
+.ks-val { font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
 .ks-delta { font-size: 9px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--t6); }
 .ks-ruler { position: relative; height: 52px; overflow: hidden; cursor: grab; }
 .ks-ruler:active { cursor: grabbing; }
