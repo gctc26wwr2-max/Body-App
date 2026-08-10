@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v114';
+  const APP_VERSION = 'v115';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -830,7 +830,10 @@
       kvWrap.appendChild(kv);
       kvWrap.appendChild(el('small', null, 'kg'));
       kgCell.appendChild(kvWrap);
+      // a logged set is locked — untick it first to change anything
+      kgCell.disabled = set.done;
       kgCell.onclick = () => {
+        if (set.done) return;
         const key = ei + ':' + si;
         lw.scaleOpenAt = lw.scaleOpenAt === key ? null : key;
         lw.repScaleAt = null;
@@ -842,14 +845,17 @@
       if (cur.timed) {
         const wrap = el('div', 'stepper');
         const minus = el('button', null, '−');
-        minus.onclick = () => { set.reps = Math.max(5, set.reps - 5); live.set(lw); updateVals(); };
+        minus.disabled = set.done;
+        minus.onclick = () => { if (set.done) return; set.reps = Math.max(5, set.reps - 5); live.set(lw); updateVals(); };
         const mid = el('button', 'hold-btn num' + (holdInt && holdExIdx === ei && holdIdx === si ? ' on' : ''));
         mid.id = 'hold-' + ei + '-' + si;
         mid.appendChild(svgIcon(PLAY, 9));
         mid.appendChild(document.createTextNode(' ' + fmtClock(set.reps)));
-        mid.onclick = () => toggleHold(ei, si);
+        mid.disabled = set.done;
+        mid.onclick = () => { if (!set.done) toggleHold(ei, si); };
         const plus = el('button', null, '+');
-        plus.onclick = () => { set.reps += 5; live.set(lw); updateVals(); };
+        plus.disabled = set.done;
+        plus.onclick = () => { if (set.done) return; set.reps += 5; live.set(lw); updateVals(); };
         wrap.append(minus, mid, plus);
         inner.appendChild(wrap);
       } else {
@@ -858,7 +864,9 @@
         const rv = el('span', 'reps-val num ' + repTone(set), String(set.reps));
         rv.id = 'val-reps-' + ei + '-' + si;
         repBtn.appendChild(rv);
+        repBtn.disabled = set.done;
         repBtn.onclick = () => {
+          if (set.done) return;
           const key = ei + ':' + si;
           lw.repScaleAt = lw.repScaleAt === key ? null : key;
           lw.scaleOpenAt = null;
@@ -871,7 +879,13 @@
       log.innerHTML = '<svg viewBox="0 0 14 14" width="14" height="14"><path d="M2 7.5 L5.5 11 L12 3.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       log.onclick = () => {
         set.done = !set.done;
-        if (set.done) { set.doneAt = Date.now(); lw.exIndex = ei; }   // you're working here now
+        if (set.done) {
+          set.doneAt = Date.now();
+          lw.exIndex = ei;                 // you're working here now
+          const key = ei + ':' + si;       // close this row's picker — the set is locked
+          if (lw.scaleOpenAt === key) lw.scaleOpenAt = null;
+          if (lw.repScaleAt === key) lw.repScaleAt = null;
+        }
         // last set banked -> advance AFTER the rest finishes, not abruptly now
         lw.advanceAfterRest = set.done && cur.sets.every(s => s.done) && ei < lw.exercises.length - 1;
         live.set(lw);
