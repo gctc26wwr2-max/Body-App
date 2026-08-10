@@ -1335,3 +1335,24 @@ body { font-size: 14px; }
   font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
   text-transform: uppercase; color: var(--t6);
 }
+
+/* ---------- About you ---------- */
+.you-card { display: flex; flex-direction: column; gap: 16px; }
+.you-row { display: flex; flex-direction: column; gap: 7px; }
+.you-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.you-hint { font-size: 10.5px; font-weight: 600; color: var(--t6); text-align: right; flex: 1; }
+.you-seg { padding: 3px; }
+.you-seg button { height: 34px; font-size: 11px; letter-spacing: .02em; text-transform: none; }
+.you-seg .seg-ind { top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / var(--seg-n, 2)); }
+.you-nums { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.you-num { display: flex; align-items: center; gap: 8px; }
+.you-num span { flex: 0 0 52px; font-size: 11.5px; font-weight: 700; color: var(--t4); }
+.you-num input {
+  flex: 1; min-width: 0; height: 38px; padding: 0 10px; border-radius: 11px;
+  background: var(--sunken); border: 1px solid var(--hair); color: var(--t1);
+  font-family: inherit; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.you-num input:focus { outline: none; border-color: var(--amber-border); }
+.you-bf { font-size: 11.5px; font-weight: 700; color: var(--lime); }
+.day-mins { font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--t5); }
+.day-mins.over { color: var(--amber); }
