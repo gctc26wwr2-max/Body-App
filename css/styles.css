@@ -91,6 +91,9 @@ body { font-size: 14px; }
   text-transform: uppercase; letter-spacing: .08em;
 }
 
+/* data & backup buttons all read at the same size */
+#view-profile .card .btn-lime { font-size: 13px; letter-spacing: .06em; height: 46px; }
+
 /* Profile keeps the Today-dark canvas — outline tiles, no brown surfaces */
 #view-profile .card,
 #view-profile .coach-note,
