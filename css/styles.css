@@ -1395,3 +1395,10 @@ body { font-size: 14px; }
 .pref-ic { flex: 0 0 22px; display: flex; color: var(--t3); }
 .pref-lbl { flex: 1; font-size: 14.5px; font-weight: 600; color: var(--t2); }
 .pref-go { font-size: 19px; font-weight: 600; color: var(--t6); }
+.pref-row.on { opacity: 1; cursor: pointer; }
+.pref-row.on .pref-ic { color: var(--lime); }
+.pref-val { font-size: 13px; font-weight: 700; color: var(--t4); }
+.pref-go.open { transform: rotate(90deg); color: var(--lime); }
+.pref-panel { padding: 4px 16px 16px; border-bottom: 1px solid var(--hair); }
+.pref-list .pref-panel:last-child { border-bottom: none; }
+.pref-panel .ab-hint { margin-top: 8px; }
