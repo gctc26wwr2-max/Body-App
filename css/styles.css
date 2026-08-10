@@ -800,13 +800,13 @@ body { font-size: 14px; }
 .pm-exbox { position: relative; }
 .pm-play {
   position: absolute; right: 8px; top: 50%; transform: translateY(-50%); z-index: 4;
-  width: 24px; height: 24px; padding: 0; border-radius: 50%;
-  background: rgba(206,107,61,.16); border: 1.2px solid var(--lime); color: var(--lime);
+  width: 18px; height: 18px; padding: 0; border-radius: 50%;
+  background: rgba(206,107,61,.16); border: 1px solid var(--lime); color: var(--lime);
   display: flex; align-items: center; justify-content: center;
 }
-.pm-play svg { width: 11px; height: 11px; margin-left: 1.5px; }
+.pm-play svg { width: 8px; height: 8px; margin-left: 1px; }
 /* small ring, finger-sized tap area */
-.pm-play::after { content: ''; position: absolute; inset: -10px; }
+.pm-play::after { content: ''; position: absolute; inset: -13px; }
 .pm-play:active { background: rgba(206,107,61,.34); }
 .move-demo { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .move-demo .demo-anim { width: min(78vw, 420px); aspect-ratio: 1; border-radius: 20px; overflow: hidden; }
@@ -850,7 +850,7 @@ body { font-size: 14px; }
 .pm-sets .pw-ind, .pm-reps .pw-ind { left: 8px; width: 12px; }
 .pm-sets .pw-lbl, .pm-reps .pw-lbl { overflow: visible; text-overflow: clip; }
 /* slim the exercise ticks to match the side columns — the width goes to the name */
-.pm-exx .pw-item { padding: 0 34px 0 10px; gap: 9px; }
+.pm-exx .pw-item { padding: 0 28px 0 10px; gap: 9px; }
 .pm-exx .pw-slot { width: 16px; }
 .pm-exx .pw-item i { width: 10px; }
 .pm-exx .pw-item.sel i { width: 16px; }
