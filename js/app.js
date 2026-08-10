@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v131';
+  const APP_VERSION = 'v132';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2865,32 +2865,72 @@
     wrap.appendChild(strip);
 
     const offFor = i => -(i * TICK + TICK / 2);
+    const idxAt = off => Math.round(-(off + TICK / 2) / TICK);
+    const clampI = i => Math.max(0, Math.min(labels.length - 1, i));
     const mark = () => [...strip.children].forEach((t, i) => t.classList.toggle('sel', i === val));
+    const put = off => { strip.style.transform = `translateY(${off}px)`; };
+    let raf = null;
+
     const slide = anim => {
+      cancelAnimationFrame(raf);
       strip.style.transition = anim ? 'transform .18s ease-out' : 'none';
-      strip.style.transform = `translateY(${offFor(val)}px)`;
+      put(offFor(val));
     };
     const setVal = (i, anim) => {
-      i = Math.max(0, Math.min(labels.length - 1, i));
+      i = clampI(i);
       if (i !== val) haptic();
       val = i;
       mark(); slide(anim);
       onChange(val);
     };
 
-    let sy = null, so = 0, lastN = 0;
+    /* spin on: coast to a stop like a wheel, ticking past each notch */
+    const coastTo = (target, fromOff) => {
+      cancelAnimationFrame(raf);
+      strip.style.transition = 'none';
+      target = clampI(target);
+      const to = offFor(target);
+      const dist = Math.abs(to - fromOff);
+      const dur = Math.max(220, Math.min(1100, dist * 2.2));
+      const t0 = performance.now();
+      let lastDetent = idxAt(fromOff);
+      const step = now => {
+        const p = Math.min(1, (now - t0) / dur);
+        const e = 1 - Math.pow(1 - p, 3);           // ease out, like friction
+        const off = fromOff + (to - fromOff) * e;
+        put(off);
+        const d = idxAt(off);
+        if (d !== lastDetent) {                      // a click for every notch passed
+          lastDetent = d;
+          haptic();
+          const c = clampI(d);
+          [...strip.children].forEach((t, i) => t.classList.toggle('sel', i === c));
+        }
+        if (p < 1) { raf = requestAnimationFrame(step); return; }
+        val = target;
+        mark();
+        onChange(val);
+      };
+      raf = requestAnimationFrame(step);
+    };
+
+    let sy = null, so = 0, lastN = 0, vy = 0, lastY = 0, lastT = 0;
     wrap.style.touchAction = 'none';
     wrap.addEventListener('pointerdown', e => {
+      cancelAnimationFrame(raf);
       sy = e.clientY; so = offFor(val); lastN = 0;
+      vy = 0; lastY = e.clientY; lastT = performance.now();
       strip.style.transition = 'none';
       wrap.setPointerCapture(e.pointerId);
     });
     wrap.addEventListener('pointermove', e => {
       if (sy === null) return;
       const dy = e.clientY - sy;
-      strip.style.transform = `translateY(${so + dy}px)`;
+      put(so + dy);
       const n = Math.round(dy / TICK);
       if (n !== lastN) { lastN = n; haptic(); }
+      const now = performance.now(), dt = now - lastT;
+      if (dt > 0) { vy = (e.clientY - lastY) / dt; lastY = e.clientY; lastT = now; }
     });
     const end = e => {
       if (sy === null) return;
@@ -2903,7 +2943,11 @@
         if (item) setVal(+item.dataset.i, true);
         return;
       }
-      setVal(val - Math.round(dy / TICK), true);
+      // carry the flick forward: how far it would drift before friction wins
+      const stale = performance.now() - lastT > 90;
+      const throwPx = stale ? 0 : vy * 170;
+      const fromOff = so + dy;
+      coastTo(Math.round(-(fromOff + throwPx + TICK / 2) / TICK), fromOff);
     };
     wrap.addEventListener('pointerup', end);
     wrap.addEventListener('pointercancel', () => { if (sy !== null) { sy = null; slide(false); } });
