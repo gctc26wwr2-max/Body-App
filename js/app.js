@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v142';
+  const APP_VERSION = 'v143';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2657,8 +2657,7 @@
   function openPlanMaker() {
     pmDays = [{ name: 'Day A', items: [] }];
     pmDay = 0;
-    const saved = [...getInjuries()][0];
-    const si = INJURIES.findIndex(i => i.key === saved);
+    const si = INJURIES.findIndex(i => i.key === localStorage.getItem('injDial'));
     pmInj = si < 0 ? 0 : si;
     pmName = 'Block ' + (plans.length + 1);
     show('planmaker');
@@ -2761,7 +2760,11 @@
     const tag = el('button', 'inj-tap', injOn.has(INJURIES[pmInj].key) ? 'Remove' : 'Add');
     tag.onclick = () => toggleInj(pmInj);
     injRow.appendChild(pickerWheel(INJURIES.map(i => i.label), pmInj,
-      i => { pmInj = i; tag.textContent = injOn.has(INJURIES[i].key) ? 'Remove' : 'Add'; },
+      i => {
+        pmInj = i;
+        localStorage.setItem('injDial', INJURIES[i].key);
+        tag.textContent = injOn.has(INJURIES[i].key) ? 'Remove' : 'Add';
+      },
       'wide short',
       i => (injOn.has(INJURIES[i].key) ? 'flag' : (i % 2 ? 'w11' : 'w15')),
       toggleInj));
