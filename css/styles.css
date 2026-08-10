@@ -1373,3 +1373,9 @@ body { font-size: 14px; }
 .or-item.sel .or-lbl { font-size: 15px; font-weight: 800; color: var(--t1); letter-spacing: -.01em; }
 .day-mins { font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--t5); }
 .day-mins.over { color: var(--amber); }
+/* every-value labels need a smaller type size to fit */
+.ks-ruler.dense .ks-tick span { font-size: 9px; letter-spacing: -.02em; }
+.ab-acts { display: flex; gap: 10px; align-items: stretch; }
+.ab-acts .btn-ghost { flex: 0 0 34%; }
+.ab-acts .btn-cta { flex: 1; margin-top: 0; }
+.seg-toggle.slide.unset .seg-ind { opacity: 0; }

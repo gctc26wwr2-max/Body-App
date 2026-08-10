@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v176';
+  const APP_VERSION = 'v177';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2200,12 +2200,24 @@
     : 0;
 
   /* Settings — one page with everything on it, no rows that open more rows. */
-  function openSettings() { show('about'); renderSettings(); }
+  function openSettings() { sDraft = null; show('about'); renderSettings(); }
+
+  let sDraft = null;                       // edits live here until you Save
 
   function renderSettings() {
     const root = $('#view-about');
     root.innerHTML = '';
-    const pr = getProfile();
+    if (!sDraft) sDraft = { ...getProfile() };
+    const pr = sDraft;
+    const saved = getProfile();
+    const dirty = () => JSON.stringify(sDraft) !== JSON.stringify(saved);
+
+    /* the screen previews your draft, so units read as you have just set them */
+    const dW = () => (pr.units === 'lb' ? 'lb' : 'kg');
+    const dH = () => (pr.hUnits === 'ft' ? 'ft' : 'cm');
+    const dToW = kg => (dW() === 'lb' ? kg * LB_PER_KG : kg);
+
+    const leave = () => { sDraft = null; show('profile'); renderTab(); };
 
     const head = el('div', 'w-head pm-head');
     const hl = el('div', 'w-left');
@@ -2213,17 +2225,23 @@
     hl.appendChild(el('h1', 'pm-name-static', 'Settings'));
     head.appendChild(hl);
     const close = el('button', 'w-chip', '✕');
-    close.onclick = () => { show('profile'); renderTab(); };
+    close.onclick = async () => {
+      if (dirty() && !await appConfirm({
+        title: 'Discard changes?',
+        body: 'Nothing you have changed here has been saved yet.',
+        ok: 'Discard', cancel: 'Keep editing', warn: true
+      })) return;
+      leave();
+    };
     head.appendChild(close);
     root.appendChild(head);
-    root.appendChild(el('div', 'month-label', 'Units'));
 
-    /* one block per answer: label, live readout, slide */
+    /* one block per answer: label, live readout, control */
     const slide = (label, readout, node, hint) => {
       const b = el('div', 'ab-row');
       const h = el('div', 'ab-head');
       h.appendChild(el('div', 'micro', label));
-      h.appendChild(readout);
+      if (readout) h.appendChild(readout);
       b.appendChild(h);
       b.appendChild(node);
       if (hint) b.appendChild(el('div', 'ab-hint', hint));
@@ -2231,22 +2249,18 @@
       return b;
     };
 
-    // ---- units first: they change how every weight on the app reads ----
-    const uOut = el('div', 'ab-val', wUnit());
-    slide('Weight unit', uOut,
-      optionRail(['kg', 'lb'], wUnit() === 'lb' ? 1 : 0, i => {
-        setProfile({ units: i ? 'lb' : 'kg' });
-        uOut.textContent = wUnit();
-        renderSettings();
-      }), 'Every weight in the app — scales, plates, history');
-
-    const hOut = el('div', 'ab-val', hUnit() === 'ft' ? 'ft / in' : 'cm');
-    slide('Height unit', hOut,
-      optionRail(['cm', 'ft / in'], hUnit() === 'ft' ? 1 : 0, i => {
-        setProfile({ hUnits: i ? 'ft' : 'cm' });
-        hOut.textContent = hUnit() === 'ft' ? 'ft / in' : 'cm';
-        renderSettings();
-      }));
+    // ---- units: one swap, both measures ----
+    root.appendChild(el('div', 'month-label', 'Units'));
+    slide('Measures', null,
+      segToggle([['metric', 'kg · cm'], ['imperial', 'lb · ft']],
+        pr.units === 'lb' ? 'imperial' : 'metric',
+        k => {
+          Object.assign(sDraft, k === 'imperial'
+            ? { units: 'lb', hUnits: 'ft' }
+            : { units: 'kg', hUnits: 'cm' });
+          renderSettings();
+        }, 'you-seg'),
+      'Weights, heights and the tape all follow this');
 
     root.appendChild(el('div', 'month-label', 'About you'));
 
@@ -2255,7 +2269,7 @@
       (GOALS.find(g => g.key === pr.goal) || {}).reps || 'not set');
     slide('Goal', goalOut,
       optionRail(GOALS.map(g => g.label), GOALS.findIndex(g => g.key === pr.goal), i => {
-        setProfile({ goal: GOALS[i].key });
+        sDraft.goal = GOALS[i].key;
         goalOut.textContent = GOALS[i].reps; goalOut.classList.remove('unset');
         goalHint.textContent = GOALS[i].note;
       }));
@@ -2267,7 +2281,7 @@
       (LEVELS.find(l => l.key === pr.level) || {}).label || 'not set');
     slide('Experience', lvOut,
       optionRail(LEVELS.map(l => l.label), LEVELS.findIndex(l => l.key === pr.level), i => {
-        setProfile({ level: LEVELS[i].key });
+        sDraft.level = LEVELS[i].key;
         lvOut.textContent = LEVELS[i].label; lvOut.classList.remove('unset');
         lvHint.textContent = LEVELS[i].note;
       }));
@@ -2275,17 +2289,13 @@
       || 'How fast the weight should climb');
     root.appendChild(lvHint);
 
-    const sexOut = el('div', 'ab-val' + (pr.sex ? '' : ' unset'),
-      pr.sex === 'female' ? 'Female' : pr.sex === 'male' ? 'Male' : 'not set');
-    slide('Sex', sexOut,
-      optionRail(['Male', 'Female'], pr.sex === 'female' ? 1 : pr.sex === 'male' ? 0 : -1, i => {
-        setProfile({ sex: i ? 'female' : 'male' });
-        sexOut.textContent = i ? 'Female' : 'Male';
-        renderSettings();                    // hips appear or disappear
-      }), 'Used for the body-fat estimate');
+    slide('Sex', null,
+      segToggle([['male', 'Male'], ['female', 'Female']], pr.sex || '',
+        k => { sDraft.sex = k; renderSettings(); }, 'you-seg'),
+      'Used for the body-fat estimate');
 
     // ---- numbers, all on rulers ----
-    const num = (key, label, unit, def, step, min, decimals, hint) => {
+    const num = (key, label, unit, def, step, min, decimals, hint, every) => {
       const out = el('div', 'ab-val');
       let set = pr[key] != null;
       const paint = v => {
@@ -2295,16 +2305,17 @@
       const start = set ? +pr[key] : def;
       paint(start);
       const r = rulerScale({
-        value: start, step, tickW: 30, span: 14, min,
-        labelEvery: decimals ? 2 : 5, majorEvery: decimals ? 2 : 5, decimals,
-        dragOnly: true, cls: decimals ? 'fine' : '',
-        onChange: v => { set = true; paint(v); setProfile({ [key]: v }); bfPaint(); }
+        value: start, step, tickW: every === 1 ? 34 : 30, span: 14, min,
+        labelEvery: every || (decimals ? 2 : 5), majorEvery: decimals ? 2 : 5, decimals,
+        dragOnly: true, cls: (decimals ? 'fine' : '') + (every === 1 ? ' dense' : ''),
+        onChange: v => { set = true; paint(v); sDraft[key] = v; bfPaint(); }
       });
       slide(label, out, r.el, hint);
     };
     num('sessionMins', 'Time per session', 'min', 60, 5, 15, 0, 'Each day gets a clock in the builder');
-    num('age', 'Age', 'yrs', 30, 1, 12, 0);
-    if (hUnit() === 'ft') {
+    num('age', 'Age', 'yrs', 30, 1, 12, 0, null, 1);
+
+    if (dH() === 'ft') {
       const out = el('div', 'ab-val' + (pr.heightCm != null ? '' : ' unset'));
       let set = pr.heightCm != null;
       const paint = inch => {
@@ -2314,18 +2325,19 @@
       const startIn = Math.round((set ? pr.heightCm : 175) / 2.54);
       paint(startIn);
       const r = rulerScale({
-        value: startIn, step: 1, tickW: 30, span: 14, min: 40,
-        labelEvery: 2, majorEvery: 6,
+        value: startIn, step: 1, tickW: 34, span: 14, min: 40,
+        labelEvery: 1, majorEvery: 6, cls: 'dense',
         fmt: v => `${Math.floor(v / 12)}'${v % 12}`,
         dragOnly: true,
-        onChange: v => { set = true; paint(v); setProfile({ heightCm: +(v * 2.54).toFixed(1) }); bfPaint(); }
+        onChange: v => { set = true; paint(v); sDraft.heightCm = +(v * 2.54).toFixed(1); bfPaint(); }
       });
       slide('Height', out, r.el);
     } else {
-      num('heightCm', 'Height', 'cm', 175, 1, 100, 0);
+      num('heightCm', 'Height', 'cm', 175, 1, 100, 0, null, 1);
     }
+
     const tape = (key, label, defCm, hint) => {
-      if (hUnit() !== 'ft') return num(key, label, 'cm', defCm, 0.5, 20, 1, hint);
+      if (dH() !== 'ft') return num(key, label, 'cm', defCm, 0.5, 20, 1, hint);
       const out = el('div', 'ab-val' + (pr[key] != null ? '' : ' unset'));
       let set = pr[key] != null;
       const paint = inch => {
@@ -2337,7 +2349,7 @@
       const r = rulerScale({
         value: start, step: 0.5, tickW: 30, span: 14, min: 8,
         labelEvery: 2, majorEvery: 2, decimals: 1, cls: 'fine', dragOnly: true,
-        onChange: v => { set = true; paint(v); setProfile({ [key]: +(v * 2.54).toFixed(1) }); bfPaint(); }
+        onChange: v => { set = true; paint(v); sDraft[key] = +(v * 2.54).toFixed(1); bfPaint(); }
       });
       slide(label, out, r.el, hint);
     };
@@ -2347,28 +2359,38 @@
 
     const bfEl = el('div', 'ab-bf');
     const bfPaint = () => {
-      const cur = getProfile();
-      const bf = navyBodyFat(cur);
+      const bf = navyBodyFat(sDraft);
       if (bf) {
         bfEl.textContent = `Body fat ≈ ${bf}%  ·  tape beats the bathroom scale — watch the trend`;
       } else {
         const need = [['heightCm', 'height'], ['waistCm', 'waist'], ['neckCm', 'neck']]
-          .concat(cur.sex === 'female' ? [['hipCm', 'hips']] : [])
-          .filter(([k]) => cur[k] == null).map(([, n]) => n);
-        bfEl.textContent = need.length
-          ? 'Body fat needs ' + need.join(', ')
-          : 'Body fat needs your sex set';
+          .concat(sDraft.sex === 'female' ? [['hipCm', 'hips']] : [])
+          .filter(([k]) => sDraft[k] == null).map(([, n]) => n);
+        bfEl.textContent = need.length ? 'Body fat needs ' + need.join(', ') : 'Body fat needs your sex set';
       }
       bfEl.classList.toggle('on', !!bf);
     };
     bfPaint();
     root.appendChild(bfEl);
 
-    const done = el('button', 'btn-cta big');
-    done.style.width = '100%';
-    done.textContent = 'Done';
-    done.onclick = () => { show('profile'); renderTab(); };
-    root.appendChild(done);
+    const acts = el('div', 'ab-acts');
+    const discard = el('button', 'btn-ghost', 'Discard');
+    discard.onclick = async () => {
+      if (dirty() && !await appConfirm({
+        title: 'Discard changes?',
+        body: 'Nothing you have changed here has been saved yet.',
+        ok: 'Discard', cancel: 'Keep editing', warn: true
+      })) return;
+      leave();
+    };
+    const save = el('button', 'btn-cta big', 'Save');
+    save.onclick = () => {
+      localStorage.setItem('profile', JSON.stringify(sDraft));
+      haptic();
+      leave();
+    };
+    acts.append(discard, save);
+    root.appendChild(acts);
   }
 
   /* ============================================================
@@ -3989,7 +4011,9 @@
     const ind = el('i', 'seg-ind');
     seg.appendChild(ind);
     const paint = k => {
-      seg.style.setProperty('--seg-i', Math.max(0, items.findIndex(x => x[0] === k)));
+      const at = items.findIndex(x => x[0] === k);
+      seg.style.setProperty('--seg-i', Math.max(0, at));
+      seg.classList.toggle('unset', at < 0);     // nothing chosen: no pill at all
       [...seg.querySelectorAll('button')].forEach((b, i) => b.classList.toggle('sel', items[i][0] === k));
     };
     items.forEach(([key, label, disabled]) => {
