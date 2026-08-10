@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v166';
+  const APP_VERSION = 'v167';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2242,21 +2242,35 @@
   }
 
   /* ---------------- body weight line graph (inline SVG) ---------------- */
-  /* Smooth line through the points — Catmull-Rom control points, with the
-     handles clamped to each segment's own range so the curve never bulges
-     past a peak or dips under a trough it never actually reached. */
+  /* Smooth line through the points — a monotone cubic (Fritsch–Carlson).
+     Tangents are scaled by each gap's own width, so unevenly spaced dates
+     cannot throw a control point past the next reading, and a tangent is
+     flattened wherever the direction changes, so the curve never rises
+     above a peak or dips below a trough that never happened. */
   function smoothPath(P) {
     const f = n => n.toFixed(1);
-    if (P.length < 3) return P.map((p, i) => (i ? 'L' : 'M') + f(p[0]) + ' ' + f(p[1])).join(' ');
+    const n = P.length;
+    if (n < 3) return P.map((p, i) => (i ? 'L' : 'M') + f(p[0]) + ' ' + f(p[1])).join(' ');
+    const dx = [], slope = [];
+    for (let i = 0; i < n - 1; i++) {
+      dx[i] = P[i + 1][0] - P[i][0];
+      slope[i] = dx[i] ? (P[i + 1][1] - P[i][1]) / dx[i] : 0;
+    }
+    const m = [slope[0]];
+    for (let i = 1; i < n - 1; i++) {
+      if (slope[i - 1] * slope[i] <= 0) m[i] = 0;          // a turn: level it off
+      else {
+        const w1 = 2 * dx[i] + dx[i - 1], w2 = dx[i] + 2 * dx[i - 1];
+        m[i] = (w1 + w2) / (w1 / slope[i - 1] + w2 / slope[i]);
+      }
+    }
+    m[n - 1] = slope[n - 2];
     let d = 'M' + f(P[0][0]) + ' ' + f(P[0][1]);
-    const t = 0.22;
-    for (let i = 0; i < P.length - 1; i++) {
-      const p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || P[i + 1];
-      const loY = Math.min(p1[1], p2[1]), hiY = Math.max(p1[1], p2[1]);
-      const cy = y => Math.max(loY, Math.min(hiY, y));
-      const c1x = p1[0] + (p2[0] - p0[0]) * t, c1y = cy(p1[1] + (p2[1] - p0[1]) * t);
-      const c2x = p2[0] - (p3[0] - p1[0]) * t, c2y = cy(p2[1] - (p3[1] - p1[1]) * t);
-      d += ' C' + f(c1x) + ' ' + f(c1y) + ' ' + f(c2x) + ' ' + f(c2y) + ' ' + f(p2[0]) + ' ' + f(p2[1]);
+    for (let i = 0; i < n - 1; i++) {
+      const h = dx[i] / 3;
+      d += ' C' + f(P[i][0] + h) + ' ' + f(P[i][1] + m[i] * h)
+         + ' ' + f(P[i + 1][0] - h) + ' ' + f(P[i + 1][1] - m[i + 1] * h)
+         + ' ' + f(P[i + 1][0]) + ' ' + f(P[i + 1][1]);
     }
     return d;
   }
