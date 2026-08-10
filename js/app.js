@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v175';
+  const APP_VERSION = 'v176';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2364,49 +2364,6 @@
     bfPaint();
     root.appendChild(bfEl);
 
-    // data controls
-    root.appendChild(el('div', 'month-label', 'Data & backup'));
-    const dc = el('div', 'card');
-    const bk = el('button', 'btn-lime', 'Back up now');
-    bk.style.cssText = 'width:100%';
-    bk.onclick = backupData;
-    dc.appendChild(bk);
-    const lbTs = Number(localStorage.getItem('lastBackup')) || 0;
-    const hint = el('div', 'hist-meta');
-    hint.style.margin = '8px 0 12px';
-    hint.textContent = (lbTs ? `Last backup ${new Date(lbTs).toLocaleDateString('en-GB')} · ` : 'Never backed up · ')
-      + 'in the share sheet choose "Save to Files" → iCloud Drive. Do it monthly — a reminder appears on Today. Photos/videos you attached are not included.';
-    dc.appendChild(hint);
-    const report = el('button', 'btn-ghost', 'Report for Claude');
-    report.style.cssText = 'width:100%;margin-bottom:10px;color:var(--lime);border-color:var(--lime-border)';
-    report.onclick = shareReport;
-    dc.appendChild(report);
-    const rHint = el('div', 'hist-meta');
-    rHint.style.margin = '0 0 12px';
-    rHint.textContent = 'Builds a text summary of your program, sessions, times, how they felt, and current numbers — share it into a Claude chat to plan your next block.';
-    dc.appendChild(rHint);
-    const restoreBtn = el('button', 'btn-ghost', 'Restore from backup');
-    restoreBtn.style.cssText = 'width:100%;margin-bottom:10px';
-    const fileIn = document.createElement('input');
-    fileIn.type = 'file';
-    fileIn.accept = 'application/json,.json';
-    fileIn.style.display = 'none';
-    fileIn.onchange = () => { if (fileIn.files[0]) restoreData(fileIn.files[0]); fileIn.value = ''; };
-    restoreBtn.onclick = () => fileIn.click();
-    dc.appendChild(restoreBtn);
-    dc.appendChild(fileIn);
-    const reset = el('button', 'btn-ghost', 'Reset training history');
-    reset.style.cssText = 'width:100%;color:var(--amber);border-color:var(--amber-border)';
-    reset.onclick = resetHistory;
-    dc.appendChild(reset);
-    root.appendChild(dc);
-
-    // about
-    const about = el('div', 'coach-note');
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-    about.innerHTML = '<b>Rackside ' + APP_VERSION + ' ·</b> Local-first training app. Everything is stored on this iPhone — no account, no cloud, works offline in the gym. '
-      + (standalone ? 'Running as an installed app.' : 'Running in the browser — install via Share → Add to Home Screen.');
-    root.appendChild(about);
     const done = el('button', 'btn-cta big');
     done.style.width = '100%';
     done.textContent = 'Done';
@@ -2558,6 +2515,49 @@
     bwCard.appendChild(logBtn);
     root.appendChild(bwCard);
 
+    // data controls
+    root.appendChild(el('div', 'month-label', 'Data & backup'));
+    const dc = el('div', 'card');
+    const bk = el('button', 'btn-lime', 'Back up now');
+    bk.style.cssText = 'width:100%';
+    bk.onclick = backupData;
+    dc.appendChild(bk);
+    const lbTs = Number(localStorage.getItem('lastBackup')) || 0;
+    const hint = el('div', 'hist-meta');
+    hint.style.margin = '8px 0 12px';
+    hint.textContent = (lbTs ? `Last backup ${new Date(lbTs).toLocaleDateString('en-GB')} · ` : 'Never backed up · ')
+      + 'in the share sheet choose "Save to Files" → iCloud Drive. Do it monthly — a reminder appears on Today. Photos/videos you attached are not included.';
+    dc.appendChild(hint);
+    const report = el('button', 'btn-ghost', 'Report for Claude');
+    report.style.cssText = 'width:100%;margin-bottom:10px;color:var(--lime);border-color:var(--lime-border)';
+    report.onclick = shareReport;
+    dc.appendChild(report);
+    const rHint = el('div', 'hist-meta');
+    rHint.style.margin = '0 0 12px';
+    rHint.textContent = 'Builds a text summary of your program, sessions, times, how they felt, and current numbers — share it into a Claude chat to plan your next block.';
+    dc.appendChild(rHint);
+    const restoreBtn = el('button', 'btn-ghost', 'Restore from backup');
+    restoreBtn.style.cssText = 'width:100%;margin-bottom:10px';
+    const fileIn = document.createElement('input');
+    fileIn.type = 'file';
+    fileIn.accept = 'application/json,.json';
+    fileIn.style.display = 'none';
+    fileIn.onchange = () => { if (fileIn.files[0]) restoreData(fileIn.files[0]); fileIn.value = ''; };
+    restoreBtn.onclick = () => fileIn.click();
+    dc.appendChild(restoreBtn);
+    dc.appendChild(fileIn);
+    const reset = el('button', 'btn-ghost', 'Reset training history');
+    reset.style.cssText = 'width:100%;color:var(--amber);border-color:var(--amber-border)';
+    reset.onclick = resetHistory;
+    dc.appendChild(reset);
+    root.appendChild(dc);
+
+    // about
+    const about = el('div', 'coach-note');
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    about.innerHTML = '<b>Rackside ' + APP_VERSION + ' ·</b> Local-first training app. Everything is stored on this iPhone — no account, no cloud, works offline in the gym. '
+      + (standalone ? 'Running as an installed app.' : 'Running in the browser — install via Share → Add to Home Screen.');
+    root.appendChild(about);
   }
 
   /* ---------------- body weight line graph (inline SVG) ---------------- */
