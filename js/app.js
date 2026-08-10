@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v134';
+  const APP_VERSION = 'v135';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2645,7 +2645,16 @@
     hl.appendChild(nameIn);
     head.appendChild(hl);
     const close = el('button', 'w-chip', '✕');
-    close.onclick = () => { show('plan'); renderTab(); };
+    close.onclick = async () => {
+      const n = pmDays.reduce((a, d) => a + d.items.length, 0);
+      if (n && !await appConfirm({
+        title: 'Discard this block?',
+        body: `${n} exercise${n === 1 ? '' : 's'} added. Nothing is saved.`,
+        ok: 'Discard', cancel: 'Keep building', warn: true
+      })) return;
+      pmDays = null;
+      show('plan'); renderTab();
+    };
     head.appendChild(close);
     root.appendChild(head);
 
