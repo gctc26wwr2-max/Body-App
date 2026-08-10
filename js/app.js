@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v121';
+  const APP_VERSION = 'v122';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2598,16 +2598,22 @@
     return Math.round(met * mulOf(effort) * 3.5 * (kg || 80) / 200 * mins);
   }
 
-  /* generic picker wheel — a finite list, dragged up/down like iOS */
-  function pickerWheel(labels, index, onChange, cls) {
+  /* Picker wheel — the same ruler language as the weight and rep scales:
+     tick lines running down a dial with a fixed clay indicator.
+     tickFor(i) returns 'w20' | 'w15' | 'w11' for the mark's length. */
+  function pickerWheel(labels, index, onChange, cls, tickFor) {
     const TICK = 40;
     let val = Math.max(0, Math.min(labels.length - 1, index));
     const wrap = el('div', 'pw' + (cls ? ' ' + cls : ''));
-    wrap.appendChild(el('i', 'pw-band'));
+    wrap.appendChild(el('i', 'pw-ind'));
     const strip = el('div', 'pw-strip');
     labels.forEach((lb, i) => {
-      const t = el('button', 'pw-item', lb);
+      const t = el('button', 'pw-item');
       t.dataset.i = i;
+      const slot = el('span', 'pw-slot');
+      slot.appendChild(el('i', tickFor ? tickFor(i) : 'w11'));
+      t.appendChild(slot);
+      t.appendChild(el('span', 'pw-lbl', lb));
       strip.appendChild(t);
     });
     wrap.appendChild(strip);
@@ -2762,12 +2768,14 @@
         cardioActName = list[i].name;
         localStorage.setItem('cardioAct', cardioActName);
         upd();
-      }, 'wide'));
+      }, 'wide', i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15'))));
       wheels.appendChild(c1);
       const c2 = el('div', 'cd-col');
       c2.appendChild(el('div', 'micro', 'Minutes'));
+      // minute marks like a watch bezel: long at the quarter hours
       c2.appendChild(pickerWheel(minsList.map(String), minsList.indexOf(cardioMins),
-        i => { cardioMins = minsList[i]; upd(); }));
+        i => { cardioMins = minsList[i]; upd(); }, null,
+        i => (minsList[i] % 15 === 0 ? 'w20' : (minsList[i] % 10 === 0 ? 'w15' : 'w11'))));
       wheels.appendChild(c2);
       root.appendChild(wheels);
 
