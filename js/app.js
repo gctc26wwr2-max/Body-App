@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v112';
+  const APP_VERSION = 'v113';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1083,6 +1083,10 @@
   /* ---------------- rest timer ---------------- */
   let restInt = null, audioCtx = null;
 
+  /* our beeps must MIX with whatever the user is listening to —
+     never pause the Music app (iOS Audio Session API, 16.4+) */
+  try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch { /* older iOS */ }
+
   function ensureAudio() {
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1103,9 +1107,13 @@
     ensureAudio();
     try { tone(660, 0, 0.13, 0.5); } catch { /* best-effort */ }
   }
-  /* pre-rendered beep clip — second audio path for when WebAudio is blocked */
-  let beepAudio = null;
-  (function buildBeepAudio() {
+  /* pre-rendered beep clip — second audio path for when WebAudio is blocked.
+     Built LAZILY on first use: creating a media element at boot grabs the
+     audio session on iOS and stops the Music app. */
+  let beepAudio = null, beepBuilt = false;
+  function buildBeepAudio() {
+    if (beepBuilt) return;
+    beepBuilt = true;
     try {
       const sr = 22050, n = Math.floor(sr * 1.2);
       const bytes = new Uint8Array(44 + n * 2);
@@ -1129,9 +1137,10 @@
       beepAudio = new Audio('data:audio/wav;base64,' + btoa(bin));
       beepAudio.preload = 'auto';
     } catch { beepAudio = null; }
-  })();
+  }
   function beep() {
     ensureAudio();
+    buildBeepAudio();
     let ok = false;
     try {
       if (audioCtx && audioCtx.state === 'running') {
@@ -1145,6 +1154,7 @@
   }
   function startRest(len) {
     ensureAudio();
+    buildBeepAudio();
     try {
       // prime the context inside the user gesture so later beeps are allowed
       const buf = audioCtx.createBuffer(1, 1, 22050);
