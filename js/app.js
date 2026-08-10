@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v150';
+  const APP_VERSION = 'v151';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2682,18 +2682,30 @@
   }
 
   /* "What does this move look like?" — for when the English name means
-     nothing. Plays a clip you attached to the exercise if there is one,
-     otherwise hands the name to a video search. */
+     nothing. Your own clip first, then the library's demo animation, and
+     only if neither exists does it fall back to a video search. */
+  const demoSlug = ex => (ex && ((window.EXERCISE_DEMOS || {})[ex.name] || ex.demo)) || null;
+
   async function showMove(ex) {
     if (!ex) return;
     haptic();
+    const body = $('#media-viewer-body');
+    const slug = demoSlug(ex) || demoSlug(exercises.find(e => e.name === ex.name));
     const mine = exercises.find(e => e.name === ex.name);
     const mid = mine && mine.mediaIds && mine.mediaIds[0];
+    if (!mid && slug) {
+      body.innerHTML = '';
+      const wrap = el('div', 'move-demo');
+      wrap.appendChild(demoEl(slug, null, false));
+      wrap.appendChild(el('div', 'move-name', ex.name));
+      body.appendChild(wrap);
+      $('#media-viewer').hidden = false;
+      return;
+    }
     if (mid) {
       const rec = await DB.get('media', mid);
       const url = rec && await mediaURL(mid);
       if (url) {
-        const body = $('#media-viewer-body');
         body.innerHTML = '';
         let big;
         if (rec.type.startsWith('video')) {
@@ -2888,24 +2900,13 @@
     const paintChips = () => [...chips.children].forEach(b =>
       b.classList.toggle('on', b.textContent === pmGroup));
     facets.appendChild(chips);
-    const findRow = el('div', 'pm-find-row');
     const find = document.createElement('input');
     find.className = 'pm-search';
     find.type = 'search';
     find.placeholder = 'Search exercises';
     find.value = pmQuery;
     find.autocomplete = 'off';
-    findRow.appendChild(find);
-    /* names are English — this shows the move itself. Your own clip if you
-       saved one on the exercise, otherwise a video search for it. */
-    const demo = el('button', 'pm-demo');
-    demo.title = 'Show this move';
-    demo.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" '
-      + 'stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/>'
-      + '<path d="M10.2 8.6 15.6 12l-5.4 3.4Z" fill="currentColor" stroke-linejoin="round"/></svg>';
-    demo.onclick = () => showMove(shown[pmEx]);
-    findRow.appendChild(demo);
-    facets.appendChild(findRow);
+    facets.appendChild(find);
     root.appendChild(facets);
 
     // the three wheels
@@ -2919,9 +2920,22 @@
     const c2 = el('div', 'cd-col pm-exx');
     const exLbl = el('div', 'micro', 'Exercise');
     c2.appendChild(exLbl);
+    /* the indicator on this dial is a play arrow: it marks the row and, when
+       tapped, shows the move — the name alone is no use if you cannot read it.
+       It sits alongside the dial, not inside it, or the wheel's pointer
+       capture would swallow the tap. */
+    const exBox = el('div', 'pm-exbox');
+    const play = el('button', 'pm-play');
+    play.title = 'Show this move';
+    play.innerHTML = '<svg viewBox="0 0 20 20" width="16" height="16"><path d="M5 3.4 16 10 5 16.6Z" '
+      + 'fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>';
+    play.onclick = () => showMove(shown[pmEx]);
     const exWheel = () => pickerWheel(shown.map(x => x.name), pmEx, i => { pmEx = i; }, 'wide',
-      i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15')));
-    c2.appendChild(exWheel());
+      i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15')),
+      () => showMove(shown[pmEx]));
+    exBox.appendChild(exWheel());
+    exBox.appendChild(play);
+    c2.appendChild(exBox);
     /* refilter swaps just the dial, so typing never costs you the keyboard */
     function refilter() {
       const q = pmQuery.trim().toLowerCase();
@@ -2932,7 +2946,7 @@
       shown = keep.length ? keep : lib;
       const again = shown.findIndex(x => x.name === wasName);
       pmEx = again < 0 ? 0 : again;
-      c2.replaceChild(exWheel(), c2.lastChild);
+      exBox.replaceChild(exWheel(), exBox.firstChild);
       exLbl.textContent = shown.length === lib.length
         ? 'Exercise' : `Exercise · ${shown.length}`;
       exLbl.classList.toggle('none', !keep.length);
