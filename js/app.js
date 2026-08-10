@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v122';
+  const APP_VERSION = 'v123';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2674,6 +2674,7 @@
     logs.sort((a, b) => b.ts - a.ts);
     const kg = bw.length ? [...bw].sort((a, b) => a.ts - b.ts).pop().kg : 80;
     const lc = liveCardio.get();
+    const running = !!lc;
 
     const head = el('header', 't-head');
     const hl = el('div');
@@ -2686,16 +2687,80 @@
     head.appendChild(hl);
     root.appendChild(head);
 
-    if (lc) {
-      // ---- live session ----
-      const total = lc.mins * 60;
-      const left = () => Math.max(0, Math.ceil((lc.startedAt + total * 1000 - Date.now()) / 1000));
-      const done = () => Math.min(total, Math.round((Date.now() - lc.startedAt) / 1000));
-      const met = metOf(lc.act, lc.env || 'indoor');
+    // ---- the pickers stay on screen the whole time ----
+    cardioAlerted = running ? cardioAlerted : false;
+    const minsList = Array.from({ length: 24 }, (_, i) => (i + 1) * 5);
+    if (!minsList.includes(cardioMins)) cardioMins = 20;
+    const env = running ? (lc.env || 'indoor') : cardioEnv;
+    let list = actsFor(env);
+    const actName = running ? lc.act : cardioActName;
+    let ai = list.findIndex(a => a.name === actName);
+    if (ai < 0) ai = 0;
+    if (!running) cardioActName = list[ai].name;
+    const shownMins = running ? lc.mins : cardioMins;
 
-      const live = el('div', 'cd-live');
-      live.appendChild(el('div', 'cd-act', `${lc.env || 'indoor'} · ${lc.act}`));
-      const clock = el('div', 'cd-clock num', fmtClock(left()));
+    const seg = el('div', 'seg-toggle');
+    ['indoor', 'outdoor'].forEach(e2 => {
+      const b = el('button', env === e2 ? 'sel' : '', e2 === 'indoor' ? 'Indoor' : 'Outdoor');
+      b.disabled = running;
+      b.onclick = () => {
+        if (running || cardioEnv === e2) return;
+        cardioEnv = e2;
+        localStorage.setItem('cardioEnv', e2);
+        renderCardio();
+      };
+      seg.appendChild(b);
+    });
+    root.appendChild(seg);
+
+    const kcalEl = el('div', 'cd-kcal num');
+    const upd = () => {
+      kcalEl.textContent = `~${cardioKcal(metOf(cardioActName, cardioEnv), cardioMins, kg)} kcal`;
+    };
+
+    const wheels = el('div', 'cd-wheels' + (running ? ' locked' : ''));
+    const c1 = el('div', 'cd-col');
+    c1.appendChild(el('div', 'micro', 'Activity'));
+    c1.appendChild(pickerWheel(list.map(t => t.name), ai, i => {
+      cardioActName = list[i].name;
+      localStorage.setItem('cardioAct', cardioActName);
+      upd();
+    }, 'wide', i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15'))));
+    wheels.appendChild(c1);
+    const c2 = el('div', 'cd-col');
+    c2.appendChild(el('div', 'micro', 'Minutes'));
+    // minute marks like a watch bezel: long at the quarter hours
+    c2.appendChild(pickerWheel(minsList.map(String), minsList.indexOf(shownMins),
+      i => { cardioMins = minsList[i]; upd(); }, null,
+      i => (minsList[i] % 15 === 0 ? 'w20' : (minsList[i] % 10 === 0 ? 'w15' : 'w11'))));
+    wheels.appendChild(c2);
+    root.appendChild(wheels);
+
+    if (!running) {
+      upd();
+      root.appendChild(kcalEl);
+
+      const start = el('button', 'btn-cta big');
+      start.style.width = '100%';
+      start.appendChild(svgIcon(PLAY, 13));
+      start.appendChild(document.createTextNode(' Start'));
+      start.onclick = () => {
+        liveCardio.set({
+          act: cardioActName, env: cardioEnv, mins: cardioMins,
+          startedAt: Date.now(), acc: 0
+        });
+        cardioAlerted = false;
+        renderCardio();
+      };
+      root.appendChild(start);
+    } else {
+      // ---- the timer lives right below the wheels ----
+      const total = lc.mins * 60;
+      const met = metOf(lc.act, env);
+      const doneSec = () => Math.min(total, Math.round((lc.acc || 0) + (lc.startedAt ? (Date.now() - lc.startedAt) / 1000 : 0)));
+
+      const live = el('div', 'cd-live' + (lc.startedAt ? '' : ' paused'));
+      const clock = el('div', 'cd-clock num', '0:00');
       live.appendChild(clock);
       const sub = el('div', 'cd-sub num', '');
       live.appendChild(sub);
@@ -2706,23 +2771,40 @@
       root.appendChild(live);
 
       const acts = el('div', 'block-actions');
-      const fin = el('button', 'btn-cta big', 'Finish');
-      fin.style.cssText = 'flex:1;width:auto;align-self:stretch;margin-top:0';
+      const pause = el('button', 'btn-ghost', lc.startedAt ? 'Pause' : 'Resume');
+      pause.onclick = () => {
+        const cur = liveCardio.get();
+        if (!cur) return;
+        if (cur.startedAt) {
+          cur.acc = (cur.acc || 0) + (Date.now() - cur.startedAt) / 1000;
+          cur.startedAt = null;
+        } else {
+          cur.startedAt = Date.now();
+        }
+        liveCardio.set(cur);
+        renderCardio();
+      };
+      const fin = el('button', 'btn-cta big', 'Finish & save');
+      fin.style.cssText = 'flex:1.4;width:auto;align-self:stretch;margin-top:0';
       fin.onclick = () => finishCardio(false);
-      const stop = el('button', 'btn-ghost', 'Discard');
-      stop.onclick = async () => {
+      acts.append(pause, fin);
+      root.appendChild(acts);
+
+      const disc = el('div', 'text-links');
+      const d = el('button', null, 'Discard');
+      d.onclick = async () => {
         if (!await appConfirm({ title: 'Discard?', body: 'Not saved.', ok: 'Discard', cancel: 'Keep going', warn: true })) return;
         liveCardio.set(null);
         renderCardio();
       };
-      acts.append(fin, stop);
-      root.appendChild(acts);
+      disc.appendChild(d);
+      root.appendChild(disc);
 
       const tick = () => {
-        const l = left(), d = done();
+        const d2 = doneSec(), l = Math.max(0, total - d2);
         clock.textContent = fmtClock(l);
-        sub.textContent = `${Math.round(d / 60)} of ${lc.mins} min · ~${cardioKcal(met, d / 60, kg, lc.effort)} kcal`;
-        fill.style.width = (100 - Math.min(100, d / total * 100)) + '%';
+        sub.textContent = `${Math.round(d2 / 60)} of ${lc.mins} min · ~${cardioKcal(met, d2 / 60, kg)} kcal`;
+        fill.style.width = (100 - Math.min(100, d2 / total * 100)) + '%';
         if (l <= 0 && !cardioAlerted) {
           cardioAlerted = true;
           beep();
@@ -2732,69 +2814,7 @@
         }
       };
       tick();
-      cardioInt = setInterval(tick, 500);
-    } else {
-      // ---- setup: where · what · how long · how hard ----
-      cardioAlerted = false;
-      const minsList = Array.from({ length: 24 }, (_, i) => (i + 1) * 5);
-      if (!minsList.includes(cardioMins)) cardioMins = 20;
-      let list = actsFor(cardioEnv);
-      let ai = list.findIndex(a => a.name === cardioActName);
-      if (ai < 0) ai = 0;
-      cardioActName = list[ai].name;
-
-      const seg = el('div', 'seg-toggle');
-      ['indoor', 'outdoor'].forEach(env => {
-        const b = el('button', cardioEnv === env ? 'sel' : '', env === 'indoor' ? 'Indoor' : 'Outdoor');
-        b.onclick = () => {
-          if (cardioEnv === env) return;
-          cardioEnv = env;
-          localStorage.setItem('cardioEnv', env);
-          renderCardio();   // keeps your activity if it exists out there too
-        };
-        seg.appendChild(b);
-      });
-      root.appendChild(seg);
-
-      const kcalEl = el('div', 'cd-kcal num');
-      const upd = () => {
-        kcalEl.textContent = `~${cardioKcal(metOf(cardioActName, cardioEnv), cardioMins, kg)} kcal`;
-      };
-
-      const wheels = el('div', 'cd-wheels');
-      const c1 = el('div', 'cd-col');
-      c1.appendChild(el('div', 'micro', 'Activity'));
-      c1.appendChild(pickerWheel(list.map(t => t.name), ai, i => {
-        cardioActName = list[i].name;
-        localStorage.setItem('cardioAct', cardioActName);
-        upd();
-      }, 'wide', i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15'))));
-      wheels.appendChild(c1);
-      const c2 = el('div', 'cd-col');
-      c2.appendChild(el('div', 'micro', 'Minutes'));
-      // minute marks like a watch bezel: long at the quarter hours
-      c2.appendChild(pickerWheel(minsList.map(String), minsList.indexOf(cardioMins),
-        i => { cardioMins = minsList[i]; upd(); }, null,
-        i => (minsList[i] % 15 === 0 ? 'w20' : (minsList[i] % 10 === 0 ? 'w15' : 'w11'))));
-      wheels.appendChild(c2);
-      root.appendChild(wheels);
-
-      upd();
-      root.appendChild(kcalEl);
-
-      const start = el('button', 'btn-cta big');
-      start.style.width = '100%';
-      start.appendChild(svgIcon(PLAY, 13));
-      start.appendChild(document.createTextNode(' Start'));
-      start.onclick = () => {
-        liveCardio.set({
-          act: cardioActName, env: cardioEnv,
-          mins: cardioMins, startedAt: Date.now()
-        });
-        cardioAlerted = false;
-        renderCardio();
-      };
-      root.appendChild(start);
+      if (lc.startedAt) cardioInt = setInterval(tick, 500);
     }
 
     // ---- history ----
@@ -2810,7 +2830,7 @@
         c.appendChild(el('div', 'hrow-date', dateOf(x.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })));
         c.appendChild(el('div', 'hrow-name', x.activity));
         c.appendChild(el('div', 'hrow-meta num',
-          `${x.minutes} min · ${x.calories} kcal${x.env ? ' · ' + x.env : ''}${x.effort && x.effort !== 'steady' ? ' · ' + x.effort : ''}`));
+          `${x.minutes} min · ${x.calories} kcal${x.env ? ' · ' + x.env : ''}`));
         r.appendChild(c);
         const del = el('button', 'hist-del', '✕');
         del.onclick = async e => {
@@ -2831,7 +2851,8 @@
     if (!lc) return;
     clearInterval(cardioInt);
     const total = lc.mins * 60;
-    const secs = Math.min(total, Math.max(1, Math.round((Date.now() - lc.startedAt) / 1000)));
+    const elapsed = (lc.acc || 0) + (lc.startedAt ? (Date.now() - lc.startedAt) / 1000 : 0);
+    const secs = Math.min(total, Math.max(1, Math.round(elapsed)));
     const mins = Math.max(1, Math.round(secs / 60));
     const bw = await DB.all('bodyweight');
     const kg = bw.length ? [...bw].sort((a, b) => a.ts - b.ts).pop().kg : 80;
