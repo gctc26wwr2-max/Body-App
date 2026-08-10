@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v117';
+  const APP_VERSION = 'v118';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2537,50 +2537,51 @@
   /* ============================================================
      CARDIO
      ============================================================ */
-  /* MET values — calories = MET x 3.5 x kg / 200 per minute.
-     Outdoor work costs a little more (wind, terrain, no flywheel). */
-  const CARDIO_SETS = {
-    indoor: [
-      { name: 'Treadmill Walk', met: 3.8 },
-      { name: 'Treadmill Run', met: 9.8 },
-      { name: 'Stationary Bike', met: 7.0 },
-      { name: 'Rowing Machine', met: 7.0 },
-      { name: 'Elliptical', met: 5.5 },
-      { name: 'Stair Climber', met: 9.0 },
-      { name: 'Jump Rope', met: 12.3 },
-      { name: 'Pool Swim', met: 8.3 },
-      { name: 'Boxing', met: 9.0 },
-      { name: 'HIIT Sprints', met: 12.0 }
-    ],
-    outdoor: [
-      { name: 'Walk', met: 3.5 },
-      { name: 'Run', met: 10.0 },
-      { name: 'Trail Run', met: 10.5 },
-      { name: 'Cycling', met: 8.0 },
-      { name: 'Hiking', met: 6.0 },
-      { name: 'Open Water Swim', met: 9.5 },
-      { name: 'Sprints', met: 12.5 },
-      { name: 'Stairs', met: 8.8 },
-      { name: 'Football', met: 7.0 },
-      { name: 'Tennis', met: 7.3 }
-    ]
+  /* Most activities happen both indoors and out, and the burn differs —
+     a street run costs more than the same minutes on a treadmill.
+     null = that activity doesn't exist in that setting.
+     calories = MET x 3.5 x kg / 200 per minute, scaled by effort. */
+  const CARDIO_ACTS = [
+    { name: 'Walk', indoor: 3.8, outdoor: 3.5 },
+    { name: 'Run', indoor: 9.8, outdoor: 10.0 },
+    { name: 'Trail Run', indoor: null, outdoor: 10.5 },
+    { name: 'Cycling', indoor: 7.0, outdoor: 8.0 },
+    { name: 'Rowing', indoor: 7.0, outdoor: 8.5 },
+    { name: 'Swimming', indoor: 8.3, outdoor: 9.5 },
+    { name: 'Elliptical', indoor: 5.5, outdoor: null },
+    { name: 'Stair Climber', indoor: 9.0, outdoor: null },
+    { name: 'Stairs', indoor: 8.8, outdoor: 8.8 },
+    { name: 'Jump Rope', indoor: 12.3, outdoor: 12.3 },
+    { name: 'Sprints', indoor: 12.0, outdoor: 12.5 },
+    { name: 'Boxing', indoor: 9.0, outdoor: 9.0 },
+    { name: 'Hiking', indoor: null, outdoor: 6.0 },
+    { name: 'Football', indoor: 7.0, outdoor: 7.0 },
+    { name: 'Tennis', indoor: 7.3, outdoor: 7.3 },
+    { name: 'Skipping Drills', indoor: 10.0, outdoor: 10.0 }
+  ];
+  const CARDIO_EFFORT = [
+    { key: 'easy', label: 'Easy', mul: 0.8 },
+    { key: 'steady', label: 'Steady', mul: 1 },
+    { key: 'hard', label: 'Hard', mul: 1.3 }
+  ];
+  const actsFor = env => CARDIO_ACTS.filter(a => a[env] != null);
+  const metOf = (name, env) => {
+    const a = CARDIO_ACTS.find(x => x.name === name);
+    if (!a) return 7;                       // anything logged before this list
+    return a[env] ?? a.indoor ?? a.outdoor ?? 7;
   };
-  const metOf = name => {
-    for (const list of Object.values(CARDIO_SETS)) {
-      const t = list.find(x => x.name === name);
-      if (t) return t.met;
-    }
-    return 7;   // a sensible middle for anything logged before
-  };
+  const mulOf = key => (CARDIO_EFFORT.find(e => e.key === key) || CARDIO_EFFORT[1]).mul;
   const liveCardio = {
     get() { try { return JSON.parse(localStorage.getItem('liveCardio') || 'null'); } catch { return null; } },
     set(v) { v ? localStorage.setItem('liveCardio', JSON.stringify(v)) : localStorage.removeItem('liveCardio'); }
   };
   let cardioEnv = localStorage.getItem('cardioEnv') || 'indoor';
-  let cardioAct = 1, cardioMins = 20, cardioInt = null, cardioAlerted = false;
+  let cardioEffort = localStorage.getItem('cardioEffort') || 'steady';
+  let cardioActName = localStorage.getItem('cardioAct') || 'Run';
+  let cardioMins = 20, cardioInt = null, cardioAlerted = false;
 
-  function cardioKcal(met, mins, kg) {
-    return Math.round(met * 3.5 * (kg || 80) / 200 * mins);
+  function cardioKcal(met, mins, kg, effort) {
+    return Math.round(met * mulOf(effort) * 3.5 * (kg || 80) / 200 * mins);
   }
 
   /* generic picker wheel — a finite list, dragged up/down like iOS */
@@ -2670,10 +2671,10 @@
       const total = lc.mins * 60;
       const left = () => Math.max(0, Math.ceil((lc.startedAt + total * 1000 - Date.now()) / 1000));
       const done = () => Math.min(total, Math.round((Date.now() - lc.startedAt) / 1000));
-      const met = metOf(lc.act);
+      const met = metOf(lc.act, lc.env || 'indoor');
 
       const live = el('div', 'cd-live');
-      live.appendChild(el('div', 'cd-act', (lc.env || 'indoor') + ' · ' + lc.act));
+      live.appendChild(el('div', 'cd-act', `${lc.env || 'indoor'} · ${lc.act}`));
       const clock = el('div', 'cd-clock num', fmtClock(left()));
       live.appendChild(clock);
       const sub = el('div', 'cd-sub num', '');
@@ -2700,7 +2701,7 @@
       const tick = () => {
         const l = left(), d = done();
         clock.textContent = fmtClock(l);
-        sub.textContent = `${Math.round(d / 60)} of ${lc.mins} min · ~${cardioKcal(met, d / 60, kg)} kcal`;
+        sub.textContent = `${Math.round(d / 60)} of ${lc.mins} min · ~${cardioKcal(met, d / 60, kg, lc.effort)} kcal`;
         fill.style.width = (100 - Math.min(100, d / total * 100)) + '%';
         if (l <= 0 && !cardioAlerted) {
           cardioAlerted = true;
@@ -2713,12 +2714,14 @@
       tick();
       cardioInt = setInterval(tick, 500);
     } else {
-      // ---- setup: indoor/outdoor toggle + two wheels ----
+      // ---- setup: where · what · how long · how hard ----
       cardioAlerted = false;
       const minsList = Array.from({ length: 24 }, (_, i) => (i + 1) * 5);
       if (!minsList.includes(cardioMins)) cardioMins = 20;
-      let list = CARDIO_SETS[cardioEnv];
-      if (cardioAct >= list.length) cardioAct = 0;
+      let list = actsFor(cardioEnv);
+      let ai = list.findIndex(a => a.name === cardioActName);
+      if (ai < 0) ai = 0;
+      cardioActName = list[ai].name;
 
       const seg = el('div', 'seg-toggle');
       ['indoor', 'outdoor'].forEach(env => {
@@ -2727,8 +2730,7 @@
           if (cardioEnv === env) return;
           cardioEnv = env;
           localStorage.setItem('cardioEnv', env);
-          cardioAct = 0;
-          renderCardio();
+          renderCardio();   // keeps your activity if it exists out there too
         };
         seg.appendChild(b);
       });
@@ -2736,14 +2738,17 @@
 
       const kcalEl = el('div', 'cd-kcal num');
       const upd = () => {
-        const t = list[cardioAct];
-        kcalEl.textContent = `~${cardioKcal(t.met, cardioMins, kg)} kcal`;
+        kcalEl.textContent = `~${cardioKcal(metOf(cardioActName, cardioEnv), cardioMins, kg, cardioEffort)} kcal`;
       };
 
       const wheels = el('div', 'cd-wheels');
       const c1 = el('div', 'cd-col');
       c1.appendChild(el('div', 'micro', 'Activity'));
-      c1.appendChild(pickerWheel(list.map(t => t.name), cardioAct, i => { cardioAct = i; upd(); }, 'wide'));
+      c1.appendChild(pickerWheel(list.map(t => t.name), ai, i => {
+        cardioActName = list[i].name;
+        localStorage.setItem('cardioAct', cardioActName);
+        upd();
+      }, 'wide'));
       wheels.appendChild(c1);
       const c2 = el('div', 'cd-col');
       c2.appendChild(el('div', 'micro', 'Minutes'));
@@ -2751,6 +2756,21 @@
         i => { cardioMins = minsList[i]; upd(); }));
       wheels.appendChild(c2);
       root.appendChild(wheels);
+
+      // effort — the same minutes burn very differently
+      const eff = el('div', 'seg-toggle effort');
+      CARDIO_EFFORT.forEach(e => {
+        const b = el('button', cardioEffort === e.key ? 'sel' : '', e.label);
+        b.onclick = () => {
+          cardioEffort = e.key;
+          localStorage.setItem('cardioEffort', e.key);
+          eff.querySelectorAll('button').forEach(x => x.classList.remove('sel'));
+          b.classList.add('sel');
+          upd();
+        };
+        eff.appendChild(b);
+      });
+      root.appendChild(eff);
 
       upd();
       root.appendChild(kcalEl);
@@ -2760,7 +2780,10 @@
       start.appendChild(svgIcon(PLAY, 13));
       start.appendChild(document.createTextNode(' Start cardio'));
       start.onclick = () => {
-        liveCardio.set({ act: list[cardioAct].name, env: cardioEnv, mins: cardioMins, startedAt: Date.now() });
+        liveCardio.set({
+          act: cardioActName, env: cardioEnv, effort: cardioEffort,
+          mins: cardioMins, startedAt: Date.now()
+        });
         cardioAlerted = false;
         renderCardio();
       };
@@ -2780,7 +2803,7 @@
         c.appendChild(el('div', 'hrow-date', dateOf(x.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })));
         c.appendChild(el('div', 'hrow-name', x.activity));
         c.appendChild(el('div', 'hrow-meta num',
-          `${x.minutes} min · ${x.calories} kcal${x.env ? ' · ' + x.env : ''}`));
+          `${x.minutes} min · ${x.calories} kcal${x.env ? ' · ' + x.env : ''}${x.effort && x.effort !== 'steady' ? ' · ' + x.effort : ''}`));
         r.appendChild(c);
         const del = el('button', 'hist-del', '✕');
         del.onclick = async e => {
@@ -2805,10 +2828,11 @@
     const mins = Math.max(1, Math.round(secs / 60));
     const bw = await DB.all('bodyweight');
     const kg = bw.length ? [...bw].sort((a, b) => a.ts - b.ts).pop().kg : 80;
-    const kcal = cardioKcal(metOf(lc.act), mins, kg);
+    const env = lc.env || 'indoor';
+    const kcal = cardioKcal(metOf(lc.act, env), mins, kg, lc.effort);
     const ok = await appConfirm({
       title: auto ? 'Time!' : 'Finish cardio?',
-      body: `${lc.act} · ${mins} min · about ${kcal} kcal burned.`,
+      body: `${lc.act} (${env}) · ${mins} min · about ${kcal} kcal burned.`,
       ok: 'Save', cancel: auto ? 'Discard' : 'Keep going'
     });
     if (!ok) {
@@ -2818,7 +2842,7 @@
     }
     await DB.put('cardio', {
       id: DB.uid(), date: todayStr(), ts: Date.now(),
-      activity: lc.act, env: lc.env || 'indoor', minutes: mins, calories: kcal
+      activity: lc.act, env, effort: lc.effort || 'steady', minutes: mins, calories: kcal
     });
     liveCardio.set(null);
     renderCardio();
