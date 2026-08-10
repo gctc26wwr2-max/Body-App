@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v116';
+  const APP_VERSION = 'v117';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2309,7 +2309,7 @@
     if (cds.length) {
       L.push('');
       L.push('CARDIO (latest):');
-      for (const c of cds) L.push(`- ${c.date} · ${c.activity} · ${c.minutes} min · ${c.calories} kcal`);
+      for (const c of cds) L.push(`- ${c.date} · ${c.activity}${c.env ? ' (' + c.env + ')' : ''} · ${c.minutes} min · ${c.calories} kcal`);
     }
     L.push('');
     L.push('Please review this training history and plan my next block accordingly (same weekly frequency unless you advise otherwise).');
@@ -2537,25 +2537,46 @@
   /* ============================================================
      CARDIO
      ============================================================ */
-  /* MET values — calories = MET x 3.5 x kg / 200 per minute */
-  const CARDIO_TYPES = [
-    { name: 'Walk', met: 3.8 },
-    { name: 'Treadmill Run', met: 9.8 },
-    { name: 'Outdoor Run', met: 10.0 },
-    { name: 'Cycling', met: 7.5 },
-    { name: 'Rowing Machine', met: 7.0 },
-    { name: 'Elliptical', met: 5.5 },
-    { name: 'Stair Climber', met: 9.0 },
-    { name: 'Swimming', met: 8.3 },
-    { name: 'Jump Rope', met: 12.3 },
-    { name: 'HIIT Sprints', met: 12.0 },
-    { name: 'Boxing', met: 9.0 },
-    { name: 'Hiking', met: 6.0 }
-  ];
+  /* MET values — calories = MET x 3.5 x kg / 200 per minute.
+     Outdoor work costs a little more (wind, terrain, no flywheel). */
+  const CARDIO_SETS = {
+    indoor: [
+      { name: 'Treadmill Walk', met: 3.8 },
+      { name: 'Treadmill Run', met: 9.8 },
+      { name: 'Stationary Bike', met: 7.0 },
+      { name: 'Rowing Machine', met: 7.0 },
+      { name: 'Elliptical', met: 5.5 },
+      { name: 'Stair Climber', met: 9.0 },
+      { name: 'Jump Rope', met: 12.3 },
+      { name: 'Pool Swim', met: 8.3 },
+      { name: 'Boxing', met: 9.0 },
+      { name: 'HIIT Sprints', met: 12.0 }
+    ],
+    outdoor: [
+      { name: 'Walk', met: 3.5 },
+      { name: 'Run', met: 10.0 },
+      { name: 'Trail Run', met: 10.5 },
+      { name: 'Cycling', met: 8.0 },
+      { name: 'Hiking', met: 6.0 },
+      { name: 'Open Water Swim', met: 9.5 },
+      { name: 'Sprints', met: 12.5 },
+      { name: 'Stairs', met: 8.8 },
+      { name: 'Football', met: 7.0 },
+      { name: 'Tennis', met: 7.3 }
+    ]
+  };
+  const metOf = name => {
+    for (const list of Object.values(CARDIO_SETS)) {
+      const t = list.find(x => x.name === name);
+      if (t) return t.met;
+    }
+    return 7;   // a sensible middle for anything logged before
+  };
   const liveCardio = {
     get() { try { return JSON.parse(localStorage.getItem('liveCardio') || 'null'); } catch { return null; } },
     set(v) { v ? localStorage.setItem('liveCardio', JSON.stringify(v)) : localStorage.removeItem('liveCardio'); }
   };
+  let cardioEnv = localStorage.getItem('cardioEnv') || 'indoor';
   let cardioAct = 1, cardioMins = 20, cardioInt = null, cardioAlerted = false;
 
   function cardioKcal(met, mins, kg) {
@@ -2649,10 +2670,10 @@
       const total = lc.mins * 60;
       const left = () => Math.max(0, Math.ceil((lc.startedAt + total * 1000 - Date.now()) / 1000));
       const done = () => Math.min(total, Math.round((Date.now() - lc.startedAt) / 1000));
-      const type = CARDIO_TYPES.find(t => t.name === lc.act) || CARDIO_TYPES[0];
+      const met = metOf(lc.act);
 
       const live = el('div', 'cd-live');
-      live.appendChild(el('div', 'cd-act', lc.act));
+      live.appendChild(el('div', 'cd-act', (lc.env || 'indoor') + ' · ' + lc.act));
       const clock = el('div', 'cd-clock num', fmtClock(left()));
       live.appendChild(clock);
       const sub = el('div', 'cd-sub num', '');
@@ -2679,7 +2700,7 @@
       const tick = () => {
         const l = left(), d = done();
         clock.textContent = fmtClock(l);
-        sub.textContent = `${Math.round(d / 60)} of ${lc.mins} min · ~${cardioKcal(type.met, d / 60, kg)} kcal`;
+        sub.textContent = `${Math.round(d / 60)} of ${lc.mins} min · ~${cardioKcal(met, d / 60, kg)} kcal`;
         fill.style.width = (100 - Math.min(100, d / total * 100)) + '%';
         if (l <= 0 && !cardioAlerted) {
           cardioAlerted = true;
@@ -2692,21 +2713,37 @@
       tick();
       cardioInt = setInterval(tick, 500);
     } else {
-      // ---- setup: two wheels ----
+      // ---- setup: indoor/outdoor toggle + two wheels ----
       cardioAlerted = false;
       const minsList = Array.from({ length: 24 }, (_, i) => (i + 1) * 5);
       if (!minsList.includes(cardioMins)) cardioMins = 20;
+      let list = CARDIO_SETS[cardioEnv];
+      if (cardioAct >= list.length) cardioAct = 0;
+
+      const seg = el('div', 'seg-toggle');
+      ['indoor', 'outdoor'].forEach(env => {
+        const b = el('button', cardioEnv === env ? 'sel' : '', env === 'indoor' ? 'Indoor' : 'Outdoor');
+        b.onclick = () => {
+          if (cardioEnv === env) return;
+          cardioEnv = env;
+          localStorage.setItem('cardioEnv', env);
+          cardioAct = 0;
+          renderCardio();
+        };
+        seg.appendChild(b);
+      });
+      root.appendChild(seg);
 
       const kcalEl = el('div', 'cd-kcal num');
       const upd = () => {
-        const t = CARDIO_TYPES[cardioAct];
+        const t = list[cardioAct];
         kcalEl.textContent = `~${cardioKcal(t.met, cardioMins, kg)} kcal`;
       };
 
       const wheels = el('div', 'cd-wheels');
       const c1 = el('div', 'cd-col');
       c1.appendChild(el('div', 'micro', 'Activity'));
-      c1.appendChild(pickerWheel(CARDIO_TYPES.map(t => t.name), cardioAct, i => { cardioAct = i; upd(); }, 'wide'));
+      c1.appendChild(pickerWheel(list.map(t => t.name), cardioAct, i => { cardioAct = i; upd(); }, 'wide'));
       wheels.appendChild(c1);
       const c2 = el('div', 'cd-col');
       c2.appendChild(el('div', 'micro', 'Minutes'));
@@ -2723,7 +2760,7 @@
       start.appendChild(svgIcon(PLAY, 13));
       start.appendChild(document.createTextNode(' Start cardio'));
       start.onclick = () => {
-        liveCardio.set({ act: CARDIO_TYPES[cardioAct].name, mins: cardioMins, startedAt: Date.now() });
+        liveCardio.set({ act: list[cardioAct].name, env: cardioEnv, mins: cardioMins, startedAt: Date.now() });
         cardioAlerted = false;
         renderCardio();
       };
@@ -2742,7 +2779,8 @@
         const c = el('div', 'hrow-body');
         c.appendChild(el('div', 'hrow-date', dateOf(x.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })));
         c.appendChild(el('div', 'hrow-name', x.activity));
-        c.appendChild(el('div', 'hrow-meta num', `${x.minutes} min · ${x.calories} kcal`));
+        c.appendChild(el('div', 'hrow-meta num',
+          `${x.minutes} min · ${x.calories} kcal${x.env ? ' · ' + x.env : ''}`));
         r.appendChild(c);
         const del = el('button', 'hist-del', '✕');
         del.onclick = async e => {
@@ -2767,8 +2805,7 @@
     const mins = Math.max(1, Math.round(secs / 60));
     const bw = await DB.all('bodyweight');
     const kg = bw.length ? [...bw].sort((a, b) => a.ts - b.ts).pop().kg : 80;
-    const type = CARDIO_TYPES.find(t => t.name === lc.act) || CARDIO_TYPES[0];
-    const kcal = cardioKcal(type.met, mins, kg);
+    const kcal = cardioKcal(metOf(lc.act), mins, kg);
     const ok = await appConfirm({
       title: auto ? 'Time!' : 'Finish cardio?',
       body: `${lc.act} · ${mins} min · about ${kcal} kcal burned.`,
@@ -2781,7 +2818,7 @@
     }
     await DB.put('cardio', {
       id: DB.uid(), date: todayStr(), ts: Date.now(),
-      activity: lc.act, minutes: mins, calories: kcal
+      activity: lc.act, env: lc.env || 'indoor', minutes: mins, calories: kcal
     });
     liveCardio.set(null);
     renderCardio();
