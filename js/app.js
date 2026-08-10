@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v138';
+  const APP_VERSION = 'v139';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2345,7 +2345,7 @@
       L.push('CARDIO (latest):');
       for (const c of cds) L.push(`- ${c.date} · ${c.activity}${c.env ? ' (' + c.env + ')' : ''} · ${c.minutes} min · ${c.calories} kcal`);
     }
-    const inj = INJURIES.filter(i => getInjuries().has(i.key)).map(i => i.label);
+    const inj = injEnabled() ? INJURIES.filter(i => getInjuries().has(i.key)).map(i => i.label) : [];
     if (inj.length) {
       L.push('');
       L.push('INJURIES / AVOIDING: ' + inj.join(', '));
@@ -2368,7 +2368,7 @@
     const payload = {
       app: 'rackside', version: 5, exportedAt: new Date().toISOString(),
       exercises: exs, plans: pls, sessions: sess, workouts: wks, bodyweight: bws, cardio: cds,
-      injuries: [...getInjuries()]
+      injuries: [...getInjuries()], injuriesOn: injEnabled()
     };
     const file = new File([JSON.stringify(payload)], `rackside-backup-${todayStr()}.json`, { type: 'application/json' });
     try {
@@ -2397,6 +2397,7 @@
       }
     }
     if (Array.isArray(data.injuries)) setInjuries(new Set(data.injuries));
+    if (typeof data.injuriesOn === 'boolean') localStorage.setItem('injuriesOn', data.injuriesOn ? '1' : '0');
     alert(`Restored ${n} records from ${data.exportedAt ? data.exportedAt.slice(0, 10) : 'backup'}.`);
     renderTab();
   }
@@ -2618,7 +2619,7 @@
     { label: '20–30', lo: 20, hi: 30 }
   ];
   let pmDays = null, pmDay = 0, pmSets = 2, pmEx = 0, pmReps = 2, pmName = '';
-  let pmShowAll = false, pmInj = 0;
+  let pmInj = 0;
 
   /* Injury log — what to keep out of the wheel while something hurts.
      Lists are cautious on purpose; "Show all" overrides them any time. */
@@ -2636,7 +2637,10 @@
     try { return new Set(JSON.parse(localStorage.getItem('injuries') || '[]')); } catch { return new Set(); }
   };
   const setInjuries = set => localStorage.setItem('injuries', JSON.stringify([...set]));
+  /* master switch — with the log off nothing is hidden and the dial sits frozen */
+  const injEnabled = () => localStorage.getItem('injuriesOn') === '1';
   function avoidedNames() {
+    if (!injEnabled()) return new Set();
     const on = getInjuries();
     const out = new Set();
     INJURIES.forEach(i => { if (on.has(i.key)) i.avoid.forEach(n => out.add(n)); });
@@ -2663,7 +2667,7 @@
     root.innerHTML = '';
     const all = pmExerciseList();
     const avoid = avoidedNames();
-    const lib = pmShowAll ? all : all.filter(x => !avoid.has(x.name));
+    const lib = all.filter(x => !avoid.has(x.name));
     const hiddenN = all.length - lib.length;
     if (pmEx >= lib.length) pmEx = 0;
 
@@ -2728,9 +2732,20 @@
     /* injury log — spin to a body area, flip the switch to avoid it.
        Anything switched on drops its risky lifts out of the exercise wheel. */
     const injOn = getInjuries();
+    const injLive = injEnabled();
     if (pmInj >= INJURIES.length) pmInj = 0;
-    root.appendChild(el('div', 'micro', 'Injuries'));
-    const injRow = el('div', 'inj-row');
+    const injHead = el('div', 'inj-head');
+    injHead.appendChild(el('div', 'micro', 'Injuries'));
+    const master = el('button', 'inj-sw sm' + (injLive ? ' on' : ''));
+    master.appendChild(el('i', 'inj-knob'));
+    master.onclick = () => {
+      localStorage.setItem('injuriesOn', injLive ? '0' : '1');
+      haptic();
+      renderPlanMaker();
+    };
+    injHead.appendChild(master);
+    root.appendChild(injHead);
+    const injRow = el('div', 'inj-row' + (injLive ? '' : ' locked'));
     const sw = el('button', 'inj-sw');
     sw.appendChild(el('i', 'inj-knob'));
     const swLbl = el('div', 'inj-sw-lbl');
@@ -2758,17 +2773,10 @@
     injRow.appendChild(swWrap);
     paint();
     root.appendChild(injRow);
-    if (hiddenN || pmShowAll || injOn.size) {
-      const note = el('div', 'inj-note');
-      const flagged = INJURIES.filter(i => injOn.has(i.key)).map(i => i.label).join(', ');
-      note.appendChild(el('span', null, pmShowAll
-        ? `Showing everything${flagged ? ' · ' + flagged : ''}`
-        : (hiddenN ? `${hiddenN} hidden — ${flagged}` : 'Nothing hidden')));
-      const t = el('button', null, pmShowAll ? 'Hide risky' : 'Show all');
-      t.onclick = () => { pmShowAll = !pmShowAll; renderPlanMaker(); };
-      note.appendChild(t);
-      root.appendChild(note);
-    }
+    const flagged = INJURIES.filter(i => injOn.has(i.key)).map(i => i.label).join(', ');
+    root.appendChild(el('div', 'inj-note', injLive
+      ? (hiddenN ? `${hiddenN} hidden — ${flagged}` : 'Nothing hidden yet — switch an area on')
+      : 'Log off · every exercise available'));
 
     // the three wheels
     const wheels = el('div', 'cd-wheels pm-wheels');
