@@ -721,6 +721,13 @@ body { font-size: 14px; }
 .pv-go { margin-left: auto; color: var(--t6); font-size: 16px; padding-right: 2px; }
 
 /* ============ CARDIO ============ */
+.seg-toggle { display: flex; gap: 6px; background: var(--sunken); border: 1px solid var(--hair); border-radius: 14px; padding: 4px; }
+.seg-toggle button {
+  flex: 1; height: 38px; border-radius: 11px; border: none; background: none; color: var(--t4);
+  font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+}
+.seg-toggle button.sel { background: var(--lime); color: var(--on-accent); font-weight: 800; }
+.cd-act { text-transform: uppercase; }
 .cd-wheels { display: flex; gap: 12px; }
 .cd-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .cd-col:last-child { flex: 0 0 96px; }
