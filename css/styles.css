@@ -795,17 +795,17 @@ body { font-size: 14px; }
   font-size: 11.5px; font-weight: 700; letter-spacing: .02em; white-space: nowrap;
 }
 .gchip.on { background: var(--lime); border-color: var(--lime); color: var(--on-accent); font-weight: 800; }
-/* on the exercise dial the clay indicator becomes a play arrow in front of
-   the name — tap it (or the name) to watch the move */
-.pm-exx .pw-ind { display: none; }
-.pm-exx .pw-item.sel i { opacity: 0; }
+/* a ringed play key on the right of the exercise dial, level with the
+   indicator — tap it (or the name) to watch the move */
 .pm-exbox { position: relative; }
 .pm-play {
-  position: absolute; left: 2px; top: 50%; transform: translateY(-50%); z-index: 4;
-  width: 30px; height: 30px; padding: 0; border: none; background: none;
-  color: var(--lime); display: flex; align-items: center; justify-content: center;
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%); z-index: 4;
+  width: 32px; height: 32px; padding: 0; border-radius: 50%;
+  background: rgba(206,107,61,.16); border: 1.5px solid var(--lime); color: var(--lime);
+  display: flex; align-items: center; justify-content: center;
 }
-.pm-play:active { opacity: .5; }
+.pm-play svg { margin-left: 2px; }
+.pm-play:active { background: rgba(206,107,61,.34); }
 .move-demo { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .move-demo .demo-anim { width: min(78vw, 420px); aspect-ratio: 1; border-radius: 20px; overflow: hidden; }
 .move-name {
@@ -838,8 +838,8 @@ body { font-size: 14px; }
   letter-spacing: -.03em; text-transform: uppercase; line-height: 1.05;
 }
 .pm-name::placeholder { color: var(--t7); }
-.pm-wheels .pm-sets { flex: 0 0 68px; }
-.pm-wheels .cd-col.pm-reps { flex: 0 0 90px; }
+.pm-wheels .pm-sets { flex: 0 0 58px; }
+.pm-wheels .cd-col.pm-reps { flex: 0 0 82px; }
 /* narrow dials: shorter tick slot so the value never truncates */
 .pm-sets .pw-item, .pm-reps .pw-item { padding: 0 4px 0 8px; gap: 6px; }
 .pm-sets .pw-slot, .pm-reps .pw-slot { width: 12px; }
@@ -848,7 +848,7 @@ body { font-size: 14px; }
 .pm-sets .pw-ind, .pm-reps .pw-ind { left: 8px; width: 12px; }
 .pm-sets .pw-lbl, .pm-reps .pw-lbl { overflow: visible; text-overflow: clip; }
 /* slim the exercise ticks to match the side columns — the width goes to the name */
-.pm-exx .pw-item { padding: 0 6px 0 10px; gap: 9px; }
+.pm-exx .pw-item { padding: 0 42px 0 10px; gap: 9px; }
 .pm-exx .pw-slot { width: 16px; }
 .pm-exx .pw-item i { width: 10px; }
 .pm-exx .pw-item.sel i { width: 16px; }
@@ -888,7 +888,7 @@ body { font-size: 14px; }
 .seg-toggle button.sel { background: var(--lime); color: var(--on-accent); font-weight: 800; }
 .seg-toggle.effort button { height: 34px; font-size: 11.5px; }
 .cd-act { text-transform: uppercase; }
-.cd-wheels { display: flex; gap: 12px; }
+.cd-wheels { display: flex; gap: 10px; }
 .cd-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .cd-col:last-child { flex: 0 0 96px; }
 /* a dial: tick marks down the face, a fixed clay indicator, edges falling away */
