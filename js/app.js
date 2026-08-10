@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v140';
+  const APP_VERSION = 'v141';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2732,17 +2732,18 @@
     }
     root.appendChild(days);
 
-    /* injury log — the switch says whether something hurts; if it does,
-       the area under the indicator is the one we keep out of the wheel. */
+    /* injury log — the switch says whether anything hurts; if it does, spin
+       the dial and tap an area to add it. Tap it again to drop it. */
     const injLive = injEnabled();
+    const injOn = getInjuries();
     if (pmInj >= INJURIES.length) pmInj = 0;
     const injHead = el('div', 'inj-head');
-    injHead.appendChild(el('div', 'micro', 'Injury'));
+    injHead.appendChild(el('div', 'micro', 'Injuries'));
     const master = el('button', 'inj-sw sm' + (injLive ? ' on' : ''));
     master.appendChild(el('i', 'inj-knob'));
     master.onclick = () => {
       localStorage.setItem('injuriesOn', injLive ? '0' : '1');
-      if (!injLive) setInjuries(new Set([INJURIES[pmInj].key]));
+      if (!injLive && !injOn.size) setInjuries(new Set([INJURIES[pmInj].key]));
       haptic();
       renderPlanMaker();
     };
@@ -2750,15 +2751,24 @@
     root.appendChild(injHead);
     const injRow = el('div', 'inj-row' + (injLive ? '' : ' locked'));
     injRow.appendChild(pickerWheel(INJURIES.map(i => i.label), pmInj,
+      i => { pmInj = i; },
+      'wide short',
+      i => (injOn.has(INJURIES[i].key) ? 'flag' : (i % 2 ? 'w11' : 'w15')),
       i => {
-        pmInj = i;
-        setInjuries(new Set([INJURIES[i].key]));
+        const s = getInjuries();
+        const k = INJURIES[i].key;
+        s.has(k) ? s.delete(k) : s.add(k);
+        setInjuries(s);
+        haptic();
         renderPlanMaker();
-      }, 'wide short', i => (i % 2 ? 'w11' : 'w15')));
+      }));
     root.appendChild(injRow);
+    const flagged = INJURIES.filter(i => injOn.has(i.key)).map(i => i.label);
     root.appendChild(el('div', 'inj-note', injLive
-      ? `${hiddenN} hidden for your ${INJURIES[pmInj].label.toLowerCase()}`
-      : 'No injury · every exercise available'));
+      ? (flagged.length
+        ? `${hiddenN} hidden — ${flagged.join(', ')} · tap to add or remove`
+        : 'Tap an area on the dial to add it')
+      : 'No injuries · every exercise available'));
 
     // the three wheels
     const wheels = el('div', 'cd-wheels pm-wheels');
@@ -2925,8 +2935,9 @@
 
   /* Picker wheel — the same ruler language as the weight and rep scales:
      tick lines running down a dial with a fixed clay indicator.
-     tickFor(i) returns 'w20' | 'w15' | 'w11' for the mark's length. */
-  function pickerWheel(labels, index, onChange, cls, tickFor) {
+     tickFor(i) returns 'w20' | 'w15' | 'w11' for the mark's length.
+     onTap(i), if given, fires when the centred row is tapped. */
+  function pickerWheel(labels, index, onChange, cls, tickFor, onTap) {
     const TICK = 40;
     let val = Math.max(0, Math.min(labels.length - 1, index));
     const wrap = el('div', 'pw' + (cls ? ' ' + cls : ''));
@@ -3019,7 +3030,10 @@
         slide(false);
         const t = document.elementFromPoint(e.clientX, e.clientY);
         const item = t && t.closest ? t.closest('.pw-item') : null;
-        if (item) setVal(+item.dataset.i, true);
+        if (!item) return;
+        const i = +item.dataset.i;
+        // a tap on the one already under the indicator is a tap, not a move
+        if (onTap && i === val) onTap(i); else setVal(i, true);
         return;
       }
       // carry the flick forward: how far it would drift before friction wins

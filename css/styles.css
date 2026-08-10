@@ -833,6 +833,10 @@ body { font-size: 14px; }
 .pw-slot { width: 30px; flex: 0 0 auto; display: flex; }
 .pw-item i { height: 2px; background: rgba(255,255,255,.18); display: block; }
 .pw-item i.w20 { width: 20px; } .pw-item i.w15 { width: 15px; } .pw-item i.w11 { width: 11px; }
+/* a flagged injury keeps a full clay mark and a clay label, centred or not */
+.pw-item i.flag { width: 30px; background: var(--lime); }
+.pw-item .pw-slot:has(i.flag) + .pw-lbl,
+.pw-item.sel .pw-slot:has(i.flag) + .pw-lbl { color: var(--lime); }
 .pw-item.sel i { width: 30px; background: var(--lime); }
 .pw-lbl {
   flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--t6);
