@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v136';
+  const APP_VERSION = 'v137';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2345,6 +2345,11 @@
       L.push('CARDIO (latest):');
       for (const c of cds) L.push(`- ${c.date} · ${c.activity}${c.env ? ' (' + c.env + ')' : ''} · ${c.minutes} min · ${c.calories} kcal`);
     }
+    const inj = INJURIES.filter(i => getInjuries().has(i.key)).map(i => i.label);
+    if (inj.length) {
+      L.push('');
+      L.push('INJURIES / AVOIDING: ' + inj.join(', '));
+    }
     L.push('');
     L.push('Please review this training history and plan my next block accordingly (same weekly frequency unless you advise otherwise).');
     const text = L.join('\n');
@@ -2361,8 +2366,9 @@
       DB.all('bodyweight'), DB.all('cardio')
     ]);
     const payload = {
-      app: 'rackside', version: 4, exportedAt: new Date().toISOString(),
-      exercises: exs, plans: pls, sessions: sess, workouts: wks, bodyweight: bws, cardio: cds
+      app: 'rackside', version: 5, exportedAt: new Date().toISOString(),
+      exercises: exs, plans: pls, sessions: sess, workouts: wks, bodyweight: bws, cardio: cds,
+      injuries: [...getInjuries()]
     };
     const file = new File([JSON.stringify(payload)], `rackside-backup-${todayStr()}.json`, { type: 'application/json' });
     try {
@@ -2390,6 +2396,7 @@
         if (rec && rec.id) { await DB.put(store, rec); n++; }
       }
     }
+    if (Array.isArray(data.injuries)) setInjuries(new Set(data.injuries));
     alert(`Restored ${n} records from ${data.exportedAt ? data.exportedAt.slice(0, 10) : 'backup'}.`);
     renderTab();
   }
@@ -2611,6 +2618,30 @@
     { label: '20–30', lo: 20, hi: 30 }
   ];
   let pmDays = null, pmDay = 0, pmSets = 2, pmEx = 0, pmReps = 2, pmName = '';
+  let pmShowAll = false;
+
+  /* Injury log — what to keep out of the wheel while something hurts.
+     Lists are cautious on purpose; "Show all" overrides them any time. */
+  const INJURIES = [
+    { key: 'back', label: 'Lower back', avoid: ['Deadlift', 'Sumo Deadlift', 'Barbell Row', 'T-Bar Row', 'Squat', 'Front Squat', 'Romanian Deadlift', 'Back Extension', 'Clean and Press', 'Thruster', 'Kettlebell Swing', 'Ab Wheel Rollout', 'Russian Twist', 'Hanging Leg Raise', 'Upright Row'] },
+    { key: 'shoulder', label: 'Shoulder', avoid: ['Overhead Press', 'Dumbbell Shoulder Press', 'Machine Shoulder Press', 'Arnold Press', 'Upright Row', 'Bench Press', 'Incline Dumbbell Press', 'Chest Dip', 'Lateral Raise', 'Front Raise', 'Push-Up', 'Clean and Press', 'Thruster', 'Wall Ball', 'Battle Ropes', 'Pull-Up'] },
+    { key: 'knee', label: 'Knee', avoid: ['Squat', 'Front Squat', 'Goblet Squat', 'Lunge', 'Bulgarian Split Squat', 'Leg Press', 'Step-Up', 'Leg Extension', 'Jump Rope', 'HIIT Sprints', 'Burpee', 'Wall Ball', 'Thruster', 'Mountain Climbers'] },
+    { key: 'elbow', label: 'Elbow', avoid: ['Barbell Curl', 'Dumbbell Curl', 'Hammer Curl', 'Preacher Curl', 'Concentration Curl', 'Triceps Pushdown', 'Skull Crusher', 'Overhead Triceps Extension', 'Close-Grip Bench Press', 'Chest Dip', 'Pull-Up'] },
+    { key: 'wrist', label: 'Wrist', avoid: ['Push-Up', 'Front Squat', 'Clean and Press', 'Thruster', 'Barbell Curl', 'Ab Wheel Rollout', 'Burpee', 'Mountain Climbers', 'Plank', 'Side Plank', 'Battle Ropes'] },
+    { key: 'neck', label: 'Neck', avoid: ['Shrug', 'Upright Row', 'Overhead Press', 'Crunch', 'Bicycle Crunch', 'Russian Twist', 'Deadlift'] },
+    { key: 'hip', label: 'Hip', avoid: ['Squat', 'Lunge', 'Bulgarian Split Squat', 'Hip Thrust', 'Leg Press', 'Deadlift', 'Sumo Deadlift', 'Step-Up', 'Hanging Leg Raise', 'Glute Bridge'] },
+    { key: 'ankle', label: 'Ankle', avoid: ['Calf Raise', 'Jump Rope', 'HIIT Sprints', 'Burpee', 'Lunge', 'Step-Up', 'Treadmill Run', 'Mountain Climbers'] }
+  ];
+  const getInjuries = () => {
+    try { return new Set(JSON.parse(localStorage.getItem('injuries') || '[]')); } catch { return new Set(); }
+  };
+  const setInjuries = set => localStorage.setItem('injuries', JSON.stringify([...set]));
+  function avoidedNames() {
+    const on = getInjuries();
+    const out = new Set();
+    INJURIES.forEach(i => { if (on.has(i.key)) i.avoid.forEach(n => out.add(n)); });
+    return out;
+  }
 
   function pmExerciseList() {
     const names = new Map();
@@ -2630,7 +2661,10 @@
   function renderPlanMaker() {
     const root = $('#view-planmaker');
     root.innerHTML = '';
-    const lib = pmExerciseList();
+    const all = pmExerciseList();
+    const avoid = avoidedNames();
+    const lib = pmShowAll ? all : all.filter(x => !avoid.has(x.name));
+    const hiddenN = all.length - lib.length;
     if (pmEx >= lib.length) pmEx = 0;
 
     const head = el('div', 'w-head pm-head');
@@ -2691,6 +2725,32 @@
     }
     root.appendChild(days);
 
+    // injury log — anything ticked drops its risky lifts out of the wheel
+    const injOn = getInjuries();
+    const inj = el('div', 'pm-inj');
+    INJURIES.forEach(i => {
+      const b = el('button', 'inj-chip' + (injOn.has(i.key) ? ' on' : ''), i.label);
+      b.onclick = () => {
+        const s = getInjuries();
+        s.has(i.key) ? s.delete(i.key) : s.add(i.key);
+        setInjuries(s);
+        renderPlanMaker();
+      };
+      inj.appendChild(b);
+    });
+    root.appendChild(el('div', 'micro', 'Injuries'));
+    root.appendChild(inj);
+    if (hiddenN || pmShowAll) {
+      const note = el('div', 'inj-note');
+      note.appendChild(el('span', null, pmShowAll
+        ? `Showing everything${avoid.size ? ' · ' + avoid.size + ' flagged' : ''}`
+        : `${hiddenN} hidden for your injuries`));
+      const t = el('button', null, pmShowAll ? 'Hide risky' : 'Show all');
+      t.onclick = () => { pmShowAll = !pmShowAll; renderPlanMaker(); };
+      note.appendChild(t);
+      root.appendChild(note);
+    }
+
     // the three wheels
     const wheels = el('div', 'cd-wheels pm-wheels');
     const c1 = el('div', 'cd-col pm-sets');
@@ -2715,7 +2775,7 @@
     addBtn.style.width = '100%';
     addBtn.textContent = `Add to ${pmDays[pmDay].name}`;
     addBtn.onclick = () => {
-      const item = pmExerciseList()[pmEx];
+      const item = lib[pmEx];
       pmDays[pmDay].items.push({
         name: item.name, sets: pmSets,
         repLo: PM_REPS[pmReps].lo, repHi: PM_REPS[pmReps].hi
