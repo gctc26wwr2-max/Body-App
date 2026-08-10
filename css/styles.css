@@ -745,7 +745,11 @@ body { font-size: 14px; }
    The master switch in the header freezes the whole thing when it is off. */
 .inj-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .inj-row { position: relative; transition: opacity .18s ease; }
-.inj-row.locked { opacity: .32; pointer-events: none; }
+/* paused, not wiped — dim the dial but let the saved marks stay readable */
+.inj-row.locked { pointer-events: none; }
+.inj-row.locked .pw-item { opacity: .38; }
+.inj-row.locked .pw-item:has(i.flag) { opacity: .8; }
+.inj-row.locked .inj-tap { display: none; }
 .inj-row .pw-item { padding-right: 84px; }
 .inj-tap {
   position: absolute; top: 50%; right: 12px; transform: translateY(-50%); z-index: 3;
