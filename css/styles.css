@@ -747,14 +747,15 @@ body { font-size: 14px; }
   letter-spacing: -.03em; text-transform: uppercase; line-height: 1.05;
 }
 .pm-name::placeholder { color: var(--t7); }
-.pm-wheels .pm-sets { flex: 0 0 58px; }
-.pm-wheels .pm-reps { flex: 0 0 104px; }
+.pm-wheels .pm-sets { flex: 0 0 68px; }
+.pm-wheels .pm-reps { flex: 0 0 100px; }
 /* narrow dials: shorter tick slot so the value never truncates */
-.pm-sets .pw-item, .pm-reps .pw-item { padding: 0 6px 0 10px; gap: 8px; }
-.pm-sets .pw-slot, .pm-reps .pw-slot { width: 14px; }
-.pm-sets .pw-item i, .pm-reps .pw-item i { width: 10px !important; }
-.pm-sets .pw-item.sel i, .pm-reps .pw-item.sel i { width: 14px !important; }
-.pm-sets .pw-ind, .pm-reps .pw-ind { left: 10px; width: 14px; }
+.pm-sets .pw-item, .pm-reps .pw-item { padding: 0 4px 0 8px; gap: 6px; }
+.pm-sets .pw-slot, .pm-reps .pw-slot { width: 12px; }
+.pm-sets .pw-item i, .pm-reps .pw-item i { width: 8px !important; }
+.pm-sets .pw-item.sel i, .pm-reps .pw-item.sel i { width: 12px !important; }
+.pm-sets .pw-ind, .pm-reps .pw-ind { left: 8px; width: 12px; }
+.pm-sets .pw-lbl, .pm-reps .pw-lbl { overflow: visible; text-overflow: clip; }
 .pm-wheels .pw { height: 170px; }
 #view-planmaker .ex-index .exi-row { gap: 10px; }
 #view-planmaker .hist-del { width: 28px; height: 28px; }
