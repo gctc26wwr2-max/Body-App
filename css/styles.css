@@ -744,10 +744,9 @@ body { font-size: 14px; }
 /* injuries: a short dial of body areas with a switch for the one in the window.
    The master switch in the header freezes the whole thing when it is off. */
 .inj-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-/* paused, not wiped — dim the dial but let the saved marks stay readable */
+/* switched off: nothing is flagged, so the dial just sits there greyed out */
 .inj-row.locked { pointer-events: none; }
 .inj-row.locked .pw-item { opacity: .38; }
-.inj-row.locked .pw-item:has(i.flag) { opacity: .8; }
 .inj-row.locked .inj-btn, .inj-row.locked .inj-arrow { display: none; }
 .inj-row { display: flex; gap: 14px; align-items: center; }
 .inj-dial { position: relative; flex: 1; min-width: 0; }

@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v146';
+  const APP_VERSION = 'v147';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2742,6 +2742,7 @@
     master.appendChild(el('i', 'inj-knob'));
     master.onclick = () => {
       localStorage.setItem('injuriesOn', injLive ? '0' : '1');
+      if (injLive) setInjuries(new Set());     // switching off clears the marks
       haptic();
       renderPlanMaker();
     };
@@ -2782,9 +2783,7 @@
       ? (flagged.length
         ? `${hiddenN} hidden — ${flagged.join(', ')}`
         : 'Spin to the sore area, then tap Add')
-      : (flagged.length
-        ? `Paused — ${flagged.join(', ')} still saved`
-        : 'Off · every exercise available')));
+      : 'No injuries · every exercise available'));
 
     // the three wheels
     const wheels = el('div', 'cd-wheels pm-wheels');
