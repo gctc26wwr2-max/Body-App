@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v129';
+  const APP_VERSION = 'v130';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2648,7 +2648,7 @@
     { label: '15–20', lo: 15, hi: 20 },
     { label: '20–30', lo: 20, hi: 30 }
   ];
-  let pmDays = null, pmDay = 0, pmSets = 2, pmEx = 0, pmReps = 2;
+  let pmDays = null, pmDay = 0, pmSets = 2, pmEx = 0, pmReps = 2, pmName = '';
 
   function pmExerciseList() {
     const names = new Map();
@@ -2660,6 +2660,7 @@
   function openPlanMaker() {
     pmDays = [{ name: 'Day A', items: [] }];
     pmDay = 0;
+    pmName = 'Block ' + (plans.length + 1);
     show('planmaker');
     renderPlanMaker();
   }
@@ -2673,18 +2674,39 @@
     const head = el('div', 'w-head pm-head');
     const hl = el('div', 'w-left');
     hl.appendChild(el('div', 't-date', `${pmDays.reduce((a, d) => a + d.items.length, 0)} exercises`));
-    hl.appendChild(el('h1', 't-title', 'New block'));
+    const nameIn = document.createElement('input');
+    nameIn.className = 'pm-name';
+    nameIn.value = pmName;
+    nameIn.placeholder = 'Block name';
+    nameIn.maxLength = 28;
+    nameIn.oninput = () => { pmName = nameIn.value; };
+    hl.appendChild(nameIn);
     head.appendChild(hl);
     const close = el('button', 'w-chip', '✕');
     close.onclick = () => { show('plan'); renderTab(); };
     head.appendChild(close);
     root.appendChild(head);
 
-    // days
+    // days — tap the open one again to rename it
     const days = el('div', 'pm-days');
     pmDays.forEach((d, i) => {
       const b = el('button', 'pm-day' + (i === pmDay ? ' sel' : ''), d.name);
-      b.onclick = () => { pmDay = i; renderPlanMaker(); };
+      b.onclick = () => {
+        if (i !== pmDay) { pmDay = i; renderPlanMaker(); return; }
+        const inp = document.createElement('input');
+        inp.className = 'pm-day sel pm-day-edit';
+        inp.value = d.name;
+        inp.maxLength = 18;
+        const commit = () => {
+          d.name = (inp.value || '').trim() || d.name;
+          renderPlanMaker();
+        };
+        inp.onblur = commit;
+        inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
+        b.replaceWith(inp);
+        inp.focus();
+        inp.select();
+      };
       days.appendChild(b);
     });
     if (pmDays.length < 6) {
@@ -2794,7 +2816,7 @@
     }
     const plan = {
       id: DB.uid(), createdAt: Date.now(),
-      name: 'Block ' + (plans.length + 1),
+      name: (pmName || '').trim() || 'Block ' + (plans.length + 1),
       weeks: 4, days, prefDays: (current && current.prefDays) || [0, 2, 4],
       startDate: null, completed: [], finishedAt: null,
       queued: mode === 'queue'
