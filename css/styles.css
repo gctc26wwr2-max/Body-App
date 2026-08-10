@@ -764,19 +764,18 @@ body { font-size: 14px; }
 .cd-wheels.locked { opacity: .5; pointer-events: none; }
 .seg-toggle button:disabled { opacity: .55; }
 .cd-live {
-  position: relative; overflow: hidden;
-  border-radius: 22px; padding: 20px; display: flex; flex-direction: column; gap: 8px;
-  background: var(--sunken); border: 1px solid rgba(206,107,61,.32); text-align: center;
+  border-radius: 22px; padding: 20px; display: flex; flex-direction: column; gap: 10px;
+  background: rgba(206,107,61,.08); border: 1px solid rgba(206,107,61,.32); text-align: center;
 }
-/* the fill drains right-to-left as the countdown finishes */
+/* the bar shrinks from the right as the countdown finishes */
+.cd-track { height: 8px; border-radius: 5px; background: rgba(255,255,255,.07); overflow: hidden; margin-top: 4px; }
 .cd-gauge {
-  position: absolute; left: 0; top: 0; bottom: 0; width: 100%; z-index: 0;
-  background: linear-gradient(90deg, rgba(206,107,61,.34) 0%, rgba(206,107,61,.20) 72%, rgba(206,107,61,0) 100%);
+  display: block; height: 100%; width: 100%; border-radius: 5px;
+  background: linear-gradient(90deg, var(--lime-dim), var(--lime));
   transition: width .5s linear;
 }
-.cd-live > div { position: relative; z-index: 1; }
-.cd-live.paused { border-color: var(--hair-8); }
-.cd-live.paused .cd-gauge { background: linear-gradient(90deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.05) 72%, rgba(255,255,255,0) 100%); transition: none; }
+.cd-live.paused { background: var(--sunken); border-color: var(--hair-8); }
+.cd-live.paused .cd-gauge { background: rgba(255,255,255,.18); transition: none; }
 .cd-live.paused .cd-clock { color: var(--t3); }
 .cd-act { font-size: 10px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--lime); }
 .cd-clock { font-size: 62px; font-weight: 800; line-height: .9; letter-spacing: -.05em; }

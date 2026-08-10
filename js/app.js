@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v124';
+  const APP_VERSION = 'v125';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2760,12 +2760,14 @@
       const doneSec = () => Math.min(total, Math.round((lc.acc || 0) + (lc.startedAt ? (Date.now() - lc.startedAt) / 1000 : 0)));
 
       const live = el('div', 'cd-live' + (lc.startedAt ? '' : ' paused'));
-      const gauge = el('i', 'cd-gauge');   // the card itself drains as time runs out
-      live.appendChild(gauge);
       const clock = el('div', 'cd-clock num', '0:00');
       live.appendChild(clock);
       const sub = el('div', 'cd-sub num', '');
       live.appendChild(sub);
+      const track = el('div', 'cd-track');       // a bar that shrinks as time runs out
+      const gauge = el('i', 'cd-gauge');
+      track.appendChild(gauge);
+      live.appendChild(track);
       root.appendChild(live);
 
       const acts = el('div', 'block-actions');
