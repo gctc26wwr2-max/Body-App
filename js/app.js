@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v157';
+  const APP_VERSION = 'v158';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -3602,11 +3602,6 @@
     (window.EQUIPMENT || []).forEach(q => {
       const on = q.always || owned.has(q.key);
       const b = el('button', 'equip-tile' + (on ? ' on' : '') + (q.always ? ' fixed' : ''));
-      const img = document.createElement('img');
-      img.src = `icons/equip/${q.key}.png`;
-      img.alt = '';
-      img.loading = 'lazy';
-      b.appendChild(img);
       b.appendChild(el('span', 'equip-lbl', q.label));
       const n = (window.EXERCISE_LIBRARY || []).filter(x => equipOf(x).includes(q.key)).length;
       b.appendChild(el("span", "equip-n", q.always ? "always" : `${n} move${n === 1 ? "" : "s"}`));
