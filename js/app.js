@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v148';
+  const APP_VERSION = 'v149';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2622,7 +2622,7 @@
     { label: '20–30', lo: 20, hi: 30 }
   ];
   let pmDays = null, pmDay = 0, pmSets = 2, pmEx = 0, pmReps = 2, pmName = '';
-  let pmInj = 0;
+  let pmInj = 0, pmGroup = 'All', pmQuery = '';
 
   /* Injury log — each area rules out the movements that load it, never a list
      of exercise names. Anything tagged in js/library.js is covered the moment
@@ -2841,6 +2841,30 @@
     if (stuck.length) root.appendChild(el('div', 'inj-swap warn',
       'No safe stand-in for ' + stuck.join(', ') + ' — remove it or drop that injury.'));
 
+    /* narrowing the wheel — 76 exercises is a lot to spin past, so pick a
+       body part or type a couple of letters and the dial shrinks to match */
+    let shown = lib;
+    const facets = el('div', 'pm-find');
+    const groups = ['All', ...[...new Set(lib.map(x => x.group))].sort()];
+    if (!groups.includes(pmGroup)) pmGroup = 'All';
+    const chips = el('div', 'gchip-row');
+    groups.forEach(g => {
+      const b = el('button', 'gchip' + (g === pmGroup ? ' on' : ''), g);
+      b.onclick = () => { pmGroup = g; refilter(); paintChips(); };
+      chips.appendChild(b);
+    });
+    const paintChips = () => [...chips.children].forEach(b =>
+      b.classList.toggle('on', b.textContent === pmGroup));
+    facets.appendChild(chips);
+    const find = document.createElement('input');
+    find.className = 'pm-search';
+    find.type = 'search';
+    find.placeholder = 'Search exercises';
+    find.value = pmQuery;
+    find.autocomplete = 'off';
+    facets.appendChild(find);
+    root.appendChild(facets);
+
     // the three wheels
     const wheels = el('div', 'cd-wheels pm-wheels');
     const c1 = el('div', 'cd-col pm-sets');
@@ -2850,9 +2874,29 @@
       i => (PM_SETS[i] % 5 === 0 ? 'w20' : (PM_SETS[i] % 2 ? 'w11' : 'w15'))));
     wheels.appendChild(c1);
     const c2 = el('div', 'cd-col pm-exx');
-    c2.appendChild(el('div', 'micro', 'Exercise'));
-    c2.appendChild(pickerWheel(lib.map(x => x.name), pmEx, i => { pmEx = i; }, 'wide',
-      i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15'))));
+    const exLbl = el('div', 'micro', 'Exercise');
+    c2.appendChild(exLbl);
+    const exWheel = () => pickerWheel(shown.map(x => x.name), pmEx, i => { pmEx = i; }, 'wide',
+      i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15')));
+    c2.appendChild(exWheel());
+    /* refilter swaps just the dial, so typing never costs you the keyboard */
+    function refilter() {
+      const q = pmQuery.trim().toLowerCase();
+      const keep = lib.filter(x =>
+        (pmGroup === 'All' || x.group === pmGroup) &&
+        (!q || x.name.toLowerCase().includes(q)));
+      const wasName = shown[pmEx] && shown[pmEx].name;
+      shown = keep.length ? keep : lib;
+      const again = shown.findIndex(x => x.name === wasName);
+      pmEx = again < 0 ? 0 : again;
+      c2.replaceChild(exWheel(), c2.lastChild);
+      exLbl.textContent = shown.length === lib.length
+        ? 'Exercise' : `Exercise · ${shown.length}`;
+      exLbl.classList.toggle('none', !keep.length);
+      if (!keep.length) exLbl.textContent = 'Exercise · no match';
+      addBtn.textContent = `Add to ${pmDays[pmDay].name}`;
+    }
+    find.oninput = () => { pmQuery = find.value; refilter(); };
     wheels.appendChild(c2);
     const c3 = el('div', 'cd-col pm-reps');
     c3.appendChild(el('div', 'micro', 'Reps'));
@@ -2865,7 +2909,8 @@
     addBtn.style.width = '100%';
     addBtn.textContent = `Add to ${pmDays[pmDay].name}`;
     addBtn.onclick = () => {
-      const item = lib[pmEx];
+      const item = shown[pmEx];
+      if (!item) return;
       pmDays[pmDay].items.push({
         name: item.name, sets: pmSets,
         repLo: PM_REPS[pmReps].lo, repHi: PM_REPS[pmReps].hi
@@ -2874,6 +2919,7 @@
       renderPlanMaker();
     };
     root.appendChild(addBtn);
+    if (pmGroup !== 'All' || pmQuery) refilter();   // carry the last filter over
 
     // what's in this day
     const day = pmDays[pmDay];
