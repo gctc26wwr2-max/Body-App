@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v149';
+  const APP_VERSION = 'v150';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2681,6 +2681,38 @@
     return pool.sort((a, b) => score(a) - score(b))[0];
   }
 
+  /* "What does this move look like?" — for when the English name means
+     nothing. Plays a clip you attached to the exercise if there is one,
+     otherwise hands the name to a video search. */
+  async function showMove(ex) {
+    if (!ex) return;
+    haptic();
+    const mine = exercises.find(e => e.name === ex.name);
+    const mid = mine && mine.mediaIds && mine.mediaIds[0];
+    if (mid) {
+      const rec = await DB.get('media', mid);
+      const url = rec && await mediaURL(mid);
+      if (url) {
+        const body = $('#media-viewer-body');
+        body.innerHTML = '';
+        let big;
+        if (rec.type.startsWith('video')) {
+          big = document.createElement('video');
+          big.src = url; big.controls = true; big.playsInline = true;
+          big.autoplay = true; big.loop = true; big.muted = true;
+        } else {
+          big = document.createElement('img');
+          big.src = url;
+        }
+        body.appendChild(big);
+        $('#media-viewer').hidden = false;
+        return;
+      }
+    }
+    window.open('https://www.youtube.com/results?search_query='
+      + encodeURIComponent('how to ' + ex.name + ' exercise form'), '_blank');
+  }
+
   function pmExerciseList() {
     const names = new Map();
     (window.EXERCISE_LIBRARY || []).forEach(i => names.set(i.name, i));
@@ -2856,13 +2888,24 @@
     const paintChips = () => [...chips.children].forEach(b =>
       b.classList.toggle('on', b.textContent === pmGroup));
     facets.appendChild(chips);
+    const findRow = el('div', 'pm-find-row');
     const find = document.createElement('input');
     find.className = 'pm-search';
     find.type = 'search';
     find.placeholder = 'Search exercises';
     find.value = pmQuery;
     find.autocomplete = 'off';
-    facets.appendChild(find);
+    findRow.appendChild(find);
+    /* names are English — this shows the move itself. Your own clip if you
+       saved one on the exercise, otherwise a video search for it. */
+    const demo = el('button', 'pm-demo');
+    demo.title = 'Show this move';
+    demo.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" '
+      + 'stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/>'
+      + '<path d="M10.2 8.6 15.6 12l-5.4 3.4Z" fill="currentColor" stroke-linejoin="round"/></svg>';
+    demo.onclick = () => showMove(shown[pmEx]);
+    findRow.appendChild(demo);
+    facets.appendChild(findRow);
     root.appendChild(facets);
 
     // the three wheels

@@ -795,8 +795,15 @@ body { font-size: 14px; }
   font-size: 11.5px; font-weight: 700; letter-spacing: .02em; white-space: nowrap;
 }
 .gchip.on { background: var(--lime); border-color: var(--lime); color: var(--on-accent); font-weight: 800; }
+.pm-find-row { display: flex; gap: 8px; align-items: stretch; }
+.pm-demo {
+  flex: 0 0 46px; border-radius: 12px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--sunken); border: 1px solid var(--hair); color: var(--lime);
+}
+.pm-demo:active { background: var(--ctrl); }
 .pm-search {
-  width: 100%; height: 40px; padding: 0 14px; border-radius: 12px;
+  flex: 1; min-width: 0; height: 40px; padding: 0 14px; border-radius: 12px;
   background: var(--sunken); border: 1px solid var(--hair); color: var(--t1);
   font-family: inherit; font-size: 13.5px; font-weight: 600;
 }
