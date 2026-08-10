@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v125';
+  const APP_VERSION = 'v126';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -39,6 +39,7 @@
   let pickFilter = 'All';
   let statsLift = null;
   let planHistOpen = false;   // Plan tab shows the last few sessions until asked
+  let cardioHistOpen = false;
   let detailReturn = null;   // where the detail screen goes back to
 
   const todayStr = () => {
@@ -2822,7 +2823,8 @@
     if (logs.length) {
       root.appendChild(el('div', 'micro', 'History'));
       const rail = el('div', 'plan-rail');
-      logs.slice(0, 20).forEach(x => {
+      const CD_SHOWN = 3;
+      (cardioHistOpen ? logs : logs.slice(0, CD_SHOWN)).forEach(x => {
         const r = el('div', 'hrow');
         const node = el('i', 'ex-node small');
         node.appendChild(el('i'));
@@ -2843,7 +2845,56 @@
         r.appendChild(del);
         rail.appendChild(r);
       });
+      if (logs.length > CD_SHOWN) {
+        const more = el('div', 'text-links inset');
+        const b = el('button', null, cardioHistOpen ? 'Show less' : `Show all ${logs.length}`);
+        b.onclick = () => { cardioHistOpen = !cardioHistOpen; renderCardio(); };
+        more.appendChild(b);
+        rail.appendChild(more);
+      }
       root.appendChild(rail);
+
+      // ---- totals + 8-week trend, closing the page ----
+      const base = el('div', 'base-row');
+      const bs = (v, l, cls) => {
+        const d = el('div', 'base-stat' + (cls ? ' ' + cls : ''));
+        d.appendChild(el('div', 'v num', v));
+        d.appendChild(el('div', 'l', l));
+        return d;
+      };
+      const totMin = logs.reduce((a, x) => a + x.minutes, 0);
+      base.appendChild(bs(String(logs.length), 'Sessions'));
+      base.appendChild(bs(Math.round(totMin / 6) / 10 + ' h', 'Time'));
+      base.appendChild(bs(fmtKg(logs.reduce((a, x) => a + x.calories, 0)), 'Kcal', 'earn'));
+      root.appendChild(base);
+
+      const nowD = new Date();
+      const dow0 = (nowD.getDay() + 6) % 7;
+      const mon = new Date(nowD); mon.setDate(nowD.getDate() - dow0); mon.setHours(0, 0, 0, 0);
+      const weekly = Array.from({ length: 8 }, (_, i) => {
+        const ws = new Date(mon.getTime() - (7 - i) * 7 * 86400000);
+        const we = new Date(ws.getTime() + 7 * 86400000);
+        return logs.filter(x => { const d = dateOf(x.date); return d >= ws && d < we; })
+          .reduce((a, x) => a + x.minutes, 0);
+      });
+      if (weekly.some(v => v > 0)) {
+        const cell = el('div', 'sg-cell');
+        cell.appendChild(el('div', 'sg-name', 'Minutes · per week'));
+        const row = el('div', 'sg-valrow');
+        row.appendChild(el('span', 'sg-val num', weekly[7] + ' min'));
+        const d = weekly[7] - weekly[6];
+        if (d !== 0) row.appendChild(el('span', 'sg-d num' + (d > 0 ? ' up' : ' down'), (d > 0 ? '+' : '−') + Math.abs(d)));
+        cell.appendChild(row);
+        const g = el('div', 'sg-graph');
+        g.innerHTML = sparkSVG(weekly, 320, 60);
+        cell.appendChild(g);
+        root.appendChild(cell);
+      }
+    } else {
+      const emp = el('div', 'empty-state');
+      emp.appendChild(el('div', 'e-icon', '🏃'));
+      emp.appendChild(el('p', null, 'Pick an activity and press Start.'));
+      root.appendChild(emp);
     }
   }
 
