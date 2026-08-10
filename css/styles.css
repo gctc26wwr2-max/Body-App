@@ -727,6 +727,41 @@ body { font-size: 14px; }
 .pv-meta { font-size: 12px; color: var(--t5); margin-top: 2px; font-variant-numeric: tabular-nums; }
 .pv-go { margin-left: auto; color: var(--t6); font-size: 16px; padding-right: 2px; }
 
+/* ============ PLAN MAKER ============ */
+.pm-head { position: static; margin: 0; padding: 0 0 4px; background: none; border: none; backdrop-filter: none; }
+.pm-days { display: flex; gap: 7px; flex-wrap: wrap; }
+.pm-day {
+  height: 36px; padding: 0 14px; border-radius: 12px;
+  background: var(--sunken); border: 1px solid var(--hair); color: var(--t4);
+  font-size: 12.5px; font-weight: 700;
+}
+.pm-day.sel { background: var(--lime); border-color: transparent; color: var(--on-accent); font-weight: 800; }
+.pm-day.add { color: var(--lime); font-size: 16px; padding: 0 15px; }
+.pm-wheels .pm-sets { flex: 0 0 58px; }
+.pm-wheels .pm-reps { flex: 0 0 104px; }
+/* narrow dials: shorter tick slot so the value never truncates */
+.pm-sets .pw-item, .pm-reps .pw-item { padding: 0 6px 0 10px; gap: 8px; }
+.pm-sets .pw-slot, .pm-reps .pw-slot { width: 14px; }
+.pm-sets .pw-item i, .pm-reps .pw-item i { width: 10px !important; }
+.pm-sets .pw-item.sel i, .pm-reps .pw-item.sel i { width: 14px !important; }
+.pm-sets .pw-ind, .pm-reps .pw-ind { left: 10px; width: 14px; }
+.pm-wheels .pw { height: 170px; }
+#view-planmaker .ex-index .exi-row { gap: 10px; }
+#view-planmaker .hist-del { width: 28px; height: 28px; }
+.queue-row {
+  display: flex; align-items: center; gap: 12px;
+  border-radius: 16px; background: var(--sunken); border: 1px dashed var(--lime-border); padding: 13px 14px;
+}
+.queue-row > div { flex: 1; min-width: 0; }
+.q-name { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: -.02em; }
+.q-meta { font-size: 11.5px; font-weight: 600; color: var(--t5); margin-top: 2px; }
+.q-go {
+  flex: 0 0 auto; height: 36px; padding: 0 14px; border-radius: 12px; border: none;
+  background: var(--lime); color: var(--on-accent); font-size: 12px; font-weight: 800;
+}
+.modal-acts.stack { flex-direction: column; }
+.modal-acts.stack button { width: 100%; }
+
 /* ============ CARDIO ============ */
 .seg-toggle { display: flex; gap: 6px; background: var(--sunken); border: 1px solid var(--hair); border-radius: 14px; padding: 4px; }
 .seg-toggle button {
