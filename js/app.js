@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v137';
+  const APP_VERSION = 'v138';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2618,7 +2618,7 @@
     { label: '20–30', lo: 20, hi: 30 }
   ];
   let pmDays = null, pmDay = 0, pmSets = 2, pmEx = 0, pmReps = 2, pmName = '';
-  let pmShowAll = false;
+  let pmShowAll = false, pmInj = 0;
 
   /* Injury log — what to keep out of the wheel while something hurts.
      Lists are cautious on purpose; "Show all" overrides them any time. */
@@ -2725,26 +2725,45 @@
     }
     root.appendChild(days);
 
-    // injury log — anything ticked drops its risky lifts out of the wheel
+    /* injury log — spin to a body area, flip the switch to avoid it.
+       Anything switched on drops its risky lifts out of the exercise wheel. */
     const injOn = getInjuries();
-    const inj = el('div', 'pm-inj');
-    INJURIES.forEach(i => {
-      const b = el('button', 'inj-chip' + (injOn.has(i.key) ? ' on' : ''), i.label);
-      b.onclick = () => {
-        const s = getInjuries();
-        s.has(i.key) ? s.delete(i.key) : s.add(i.key);
-        setInjuries(s);
-        renderPlanMaker();
-      };
-      inj.appendChild(b);
-    });
+    if (pmInj >= INJURIES.length) pmInj = 0;
     root.appendChild(el('div', 'micro', 'Injuries'));
-    root.appendChild(inj);
-    if (hiddenN || pmShowAll) {
+    const injRow = el('div', 'inj-row');
+    const sw = el('button', 'inj-sw');
+    sw.appendChild(el('i', 'inj-knob'));
+    const swLbl = el('div', 'inj-sw-lbl');
+    const paint = () => {
+      const on = getInjuries().has(INJURIES[pmInj].key);
+      sw.classList.toggle('on', on);
+      swLbl.textContent = on ? 'Avoiding' : 'Fine';
+    };
+    const injWheel = el('div', 'inj-wheel');
+    injWheel.appendChild(pickerWheel(INJURIES.map(i => i.label), pmInj,
+      i => { pmInj = i; paint(); }, 'wide short',
+      i => (injOn.has(INJURIES[i].key) ? 'flag' : 'w11')));
+    injRow.appendChild(injWheel);
+    sw.onclick = () => {
+      const s = getInjuries();
+      const k = INJURIES[pmInj].key;
+      s.has(k) ? s.delete(k) : s.add(k);
+      setInjuries(s);
+      haptic();
+      renderPlanMaker();
+    };
+    const swWrap = el('div', 'inj-sw-wrap');
+    swWrap.appendChild(swLbl);
+    swWrap.appendChild(sw);
+    injRow.appendChild(swWrap);
+    paint();
+    root.appendChild(injRow);
+    if (hiddenN || pmShowAll || injOn.size) {
       const note = el('div', 'inj-note');
+      const flagged = INJURIES.filter(i => injOn.has(i.key)).map(i => i.label).join(', ');
       note.appendChild(el('span', null, pmShowAll
-        ? `Showing everything${avoid.size ? ' · ' + avoid.size + ' flagged' : ''}`
-        : `${hiddenN} hidden for your injuries`));
+        ? `Showing everything${flagged ? ' · ' + flagged : ''}`
+        : (hiddenN ? `${hiddenN} hidden — ${flagged}` : 'Nothing hidden')));
       const t = el('button', null, pmShowAll ? 'Hide risky' : 'Show all');
       t.onclick = () => { pmShowAll = !pmShowAll; renderPlanMaker(); };
       note.appendChild(t);
