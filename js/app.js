@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v133';
+  const APP_VERSION = 'v134';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2599,7 +2599,7 @@
   /* ============================================================
      PLAN MAKER — three wheels: sets, exercise, reps
      ============================================================ */
-  const PM_SETS = [1, 2, 3, 4, 5, 6];
+  const PM_SETS = Array.from({ length: 20 }, (_, i) => i + 1);
   const PM_REPS = [
     { label: '5–8', lo: 5, hi: 8 },
     { label: '6–10', lo: 6, hi: 10 },
@@ -2687,7 +2687,8 @@
     const c1 = el('div', 'cd-col pm-sets');
     c1.appendChild(el('div', 'micro', 'Sets'));
     c1.appendChild(pickerWheel(PM_SETS.map(String), PM_SETS.indexOf(pmSets),
-      i => { pmSets = PM_SETS[i]; }, null, () => 'w15'));
+      i => { pmSets = PM_SETS[i]; }, null,
+      i => (PM_SETS[i] % 5 === 0 ? 'w20' : (PM_SETS[i] % 2 ? 'w11' : 'w15'))));
     wheels.appendChild(c1);
     const c2 = el('div', 'cd-col');
     c2.appendChild(el('div', 'micro', 'Exercise'));
