@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v158';
+  const APP_VERSION = 'v159';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2628,7 +2628,7 @@
     { label: '20–30', lo: 20, hi: 30 }
   ];
   let pmDays = null, pmDay = 0, pmSets = 2, pmEx = 0, pmReps = 2, pmName = '';
-  let pmInj = 0, pmGroup = 'All', pmQuery = '';
+  let pmInj = 0, pmGroup = 'All', pmQuery = '', pmKitOpen = false;
 
   /* Injury log — each area rules out the movements that load it, never a list
      of exercise names. Anything tagged in js/library.js is covered the moment
@@ -2918,8 +2918,18 @@
         ? `${hiddenN} hidden — ${flagged.join(', ')}`
         : 'Spin to the sore area, then tap Add')
       : 'No injuries · every exercise available'));
-    if (noKitN) root.appendChild(el('div', 'inj-note',
-      `${noKitN} more need kit you have switched off — Block Master › Equipment`));
+    /* the kit list, right here — you find out what the gym is missing while
+       you are building, not afterwards */
+    const kitHead = el('div', 'inj-head');
+    kitHead.appendChild(el('div', 'micro', 'Equipment'));
+    const kitBtn = el('button', 'kit-btn', pmKitOpen ? 'Done' : (noKitN ? `${noKitN} off` : 'All on'));
+    kitBtn.onclick = () => { pmKitOpen = !pmKitOpen; renderPlanMaker(); };
+    kitHead.appendChild(kitBtn);
+    root.appendChild(kitHead);
+    if (pmKitOpen) root.appendChild(equipPicker(renderPlanMaker));
+    else root.appendChild(el('div', 'inj-note', noKitN
+      ? `${noKitN} exercises need kit you have switched off`
+      : 'Every exercise available'));
     if (swaps.length) root.appendChild(el('div', 'inj-swap', 'Swapped: ' + swaps.join(' · ')));
     if (stuck.length) root.appendChild(el('div', 'inj-swap warn',
       'No safe stand-in for ' + stuck.join(', ') + ' — remove it or drop that injury.'));
@@ -3594,37 +3604,50 @@
     root.appendChild(list);
   }
 
-  function renderMasterEquip(root) {
+  /* One equipment picker, used by Block Master and by the builder itself —
+     the gym you are standing in is the thing that decides the block. */
+  function equipPicker(after) {
+    const wrap = el('div', 'equip-wrap');
     const owned = getEquip();
-    root.appendChild(el('div', 'coach-note',
-      'Switch off anything you have not got. The block builder will not pick an exercise that needs it.'));
-    const grid = el('div', 'equip-grid');
-    (window.EQUIPMENT || []).forEach(q => {
-      const on = q.always || owned.has(q.key);
-      const b = el('button', 'equip-tile' + (on ? ' on' : '') + (q.always ? ' fixed' : ''));
-      b.appendChild(el('span', 'equip-lbl', q.label));
-      const n = (window.EXERCISE_LIBRARY || []).filter(x => equipOf(x).includes(q.key)).length;
-      b.appendChild(el("span", "equip-n", q.always ? "always" : `${n} move${n === 1 ? "" : "s"}`));
-      if (!q.always) b.onclick = () => {
-        const s = getEquip();
-        s.has(q.key) ? s.delete(q.key) : s.add(q.key);
-        setEquip(s);
-        haptic();
-        renderLibrary();
-      };
-      grid.appendChild(b);
-    });
-    root.appendChild(grid);
     const all = (window.EXERCISE_LIBRARY || []);
-    const off = all.length - all.filter(equipOK).length;
+    const secs = [...new Set((window.EQUIPMENT || []).map(q => q.sec || 'Other'))];
+    secs.forEach(sec => {
+      wrap.appendChild(el('div', 'micro', sec));
+      const grid = el('div', 'equip-grid');
+      (window.EQUIPMENT || []).filter(q => (q.sec || 'Other') === sec).forEach(q => {
+        const on = q.always || owned.has(q.key);
+        const b = el('button', 'equip-tile' + (on ? ' on' : '') + (q.always ? ' fixed' : ''));
+        b.appendChild(el('span', 'equip-lbl', q.label));
+        const n = all.filter(x => equipOf(x).includes(q.key)).length;
+        b.appendChild(el('span', 'equip-n', q.always ? 'always' : `${n} move${n === 1 ? '' : 's'}`));
+        if (!q.always) b.onclick = () => {
+          const s = getEquip();
+          s.has(q.key) ? s.delete(q.key) : s.add(q.key);
+          setEquip(s);
+          haptic();
+          after();
+        };
+        grid.appendChild(b);
+      });
+      wrap.appendChild(grid);
+    });
     const acts = el('div', 'equip-acts');
     const allBtn = el('button', 'btn-ghost', 'Select all');
-    allBtn.onclick = () => { setEquip(new Set((window.EQUIPMENT || []).map(q => q.key))); renderLibrary(); };
-    const noneBtn = el('button', 'btn-ghost', 'Home only');
-    noneBtn.onclick = () => { setEquip(new Set(['bodyweight', 'mat'])); renderLibrary(); };
+    allBtn.onclick = () => { setEquip(new Set((window.EQUIPMENT || []).map(q => q.key))); after(); };
+    const homeBtn = el('button', 'btn-ghost', 'Home only');
+    homeBtn.onclick = () => { setEquip(new Set(['bodyweight', 'mat'])); after(); };
     acts.appendChild(allBtn);
-    acts.appendChild(noneBtn);
-    root.appendChild(acts);
+    acts.appendChild(homeBtn);
+    wrap.appendChild(acts);
+    return wrap;
+  }
+
+  function renderMasterEquip(root) {
+    root.appendChild(el('div', 'coach-note',
+      'Switch off anything your gym has not got. The block builder will not pick an exercise that needs it.'));
+    root.appendChild(equipPicker(renderLibrary));
+    const all = (window.EXERCISE_LIBRARY || []);
+    const off = all.length - all.filter(equipOK).length;
     root.appendChild(el('div', 'inj-note', off
       ? `${off} exercises need kit you have switched off`
       : 'Everything in the catalog is available'));
