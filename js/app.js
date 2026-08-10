@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v180';
+  const APP_VERSION = 'v181';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2263,21 +2263,6 @@
       toggle: () => { if (pr[key] != null) delete sDraft[key]; else sDraft[key] = dflt; }
     });
 
-    // ---- units: one swap, both measures ----
-    root.appendChild(el('div', 'month-label', 'Units'));
-    slide('Measures', null,
-      segToggle([['metric', 'kg · cm'], ['imperial', 'lb · ft']],
-        pr.units === 'lb' ? 'imperial' : 'metric',
-        k => {
-          Object.assign(sDraft, k === 'imperial'
-            ? { units: 'lb', hUnits: 'ft' }
-            : { units: 'kg', hUnits: 'cm' });
-          renderAbout();
-        }, 'you-seg'),
-      'Weights, heights and the tape all follow this');
-
-    root.appendChild(el('div', 'month-label', 'About you'));
-
     // ---- choices ----
     const goalOut = el('div', 'ab-val' + (pr.goal ? '' : ' unset'),
       (GOALS.find(g => g.key === pr.goal) || {}).reps || 'not set');
@@ -2420,12 +2405,13 @@
     guide: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M8 8h7M8 12h5"/>',
     faq: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 17.2h.01"/>',
     mail: '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3.5 7.5 12 13l8.5-5.5"/>',
-    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8h.01"/>'
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8h.01"/>',
+    star: '<path d="M12 3.6l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.8l5.9-.9z"/>'
   };
 
   const PREF_GROUPS = [
     { title: 'Preferences', rows: [
-      ['theme', 'Theme'], ['units', 'Units'], ['bell', 'Notifications']
+      ['theme', 'Theme'], ['units', 'Units', 'units'], ['bell', 'Notifications']
     ] },
     { title: 'Apple', rows: [
       ['health', 'Apple Health'], ['watch', 'Apple Watch'], ['link', 'Integrations']
@@ -2437,11 +2423,13 @@
       ['guide', 'Getting started'], ['guide', 'Routine help']
     ] },
     { title: 'Help', rows: [
-      ['faq', 'Frequently asked questions'], ['mail', 'Contact'], ['info', 'About Rackside']
+      ['star', 'Rate in the App Store'], ['faq', 'Frequently asked questions'],
+      ['mail', 'Contact'], ['info', 'About Rackside']
     ] }
   ];
 
-  function openPrefs() { show('prefs'); renderPrefs(); }
+  let prefOpen = null;
+  function openPrefs() { prefOpen = null; show('prefs'); renderPrefs(); }
 
   function renderPrefs() {
     const root = $('#view-prefs');
@@ -2457,20 +2445,41 @@
     root.appendChild(head);
 
     root.appendChild(el('div', 'coach-note',
-      'Placeholders. None of these do anything yet — your real controls are the heart on Profile for About you, and the buttons under Body weight for backup.'));
+      'Units works. The rest are placeholders for now — your other controls are the heart on Profile for About you, and the buttons under Body weight for backup.'));
 
     PREF_GROUPS.forEach(g => {
       root.appendChild(el('div', 'month-label', g.title));
       const list = el('div', 'pref-list');
-      g.rows.forEach(([icon, label]) => {
-        const r = el('div', 'pref-row');
+      g.rows.forEach(([icon, label, live]) => {
+        const r = el('div', 'pref-row' + (live ? ' on' : ''));
         const ic = el('span', 'pref-ic');
         ic.innerHTML = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" '
           + 'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + PREF_ICON[icon] + '</svg>';
         r.appendChild(ic);
         r.appendChild(el('span', 'pref-lbl', label));
-        r.appendChild(el('span', 'pref-go', '›'));
+        if (live === 'units') {
+          r.appendChild(el('span', 'pref-val', wUnit() === 'lb' ? 'lb · ft' : 'kg · cm'));
+          r.appendChild(el('span', 'pref-go' + (prefOpen === 'units' ? ' open' : ''), '›'));
+          r.onclick = () => { prefOpen = prefOpen === 'units' ? null : 'units'; renderPrefs(); };
+        } else {
+          r.appendChild(el('span', 'pref-go', '›'));
+        }
         list.appendChild(r);
+        if (live === 'units' && prefOpen === 'units') {
+          const panel = el('div', 'pref-panel');
+          panel.appendChild(segToggle(
+            [['metric', 'kg · cm'], ['imperial', 'lb · ft']],
+            wUnit() === 'lb' ? 'imperial' : 'metric',
+            k => {
+              setProfile(k === 'imperial'
+                ? { units: 'lb', hUnits: 'ft' }
+                : { units: 'kg', hUnits: 'cm' });
+              renderPrefs();
+            }, 'you-seg'));
+          panel.appendChild(el('div', 'ab-hint',
+            'Weights, heights and the tape all follow this — nothing stored is rewritten.'));
+          list.appendChild(panel);
+        }
       });
       root.appendChild(list);
     });
