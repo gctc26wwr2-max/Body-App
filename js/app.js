@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v171';
+  const APP_VERSION = 'v172';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2063,6 +2063,53 @@
       root.appendChild(emp);
     }
   }
+  /* ---------------- about you ----------------
+     A handful of one-time answers that actually change what a block says.
+     Stored on this device like everything else. */
+  const GOALS = [
+    { key: 'strength', label: 'Strength', reps: '5–8', repIx: 0, note: 'heavy, low reps, long rests' },
+    { key: 'muscle', label: 'Muscle', reps: '8–12', repIx: 3, note: 'moderate load, controlled reps' },
+    { key: 'fatloss', label: 'Fat loss', reps: '12–15', repIx: 5, note: 'higher reps, short rests, more cardio' },
+    { key: 'health', label: 'Health', reps: '10–12', repIx: 4, note: 'steady, sustainable, joint-friendly' }
+  ];
+  const LEVELS = [
+    { key: 'new', label: 'New', note: 'under a year — add weight often' },
+    { key: 'mid', label: '1–3 yrs', note: 'add weight when reps are earned' },
+    { key: 'exp', label: '3+ yrs', note: 'slower jumps, more volume tolerated' }
+  ];
+  const SESSION_MINS = [30, 45, 60, 75, 90];
+
+  function getProfile() {
+    try { return JSON.parse(localStorage.getItem('profile') || '{}') || {}; } catch { return {}; }
+  }
+  function setProfile(patch) {
+    const next = { ...getProfile(), ...patch };
+    localStorage.setItem('profile', JSON.stringify(next));
+    return next;
+  }
+  const goalOf = () => GOALS.find(g => g.key === getProfile().goal) || null;
+
+  /* US Navy body-fat estimate — a tape measure beats most bathroom scales,
+     and the trend matters more than the absolute number either way. */
+  function navyBodyFat(pr) {
+    const h = +pr.heightCm, w = +pr.waistCm, n = +pr.neckCm, hip = +pr.hipCm;
+    if (!(h > 0 && w > 0 && n > 0)) return null;
+    let bf;
+    if (pr.sex === 'female') {
+      if (!(hip > 0)) return null;
+      bf = 495 / (1.29579 - 0.35004 * Math.log10(w + hip - n) + 0.22100 * Math.log10(h)) - 450;
+    } else {
+      if (w - n <= 0) return null;
+      bf = 495 / (1.0324 - 0.19077 * Math.log10(w - n) + 0.15456 * Math.log10(h)) - 450;
+    }
+    return bf > 2 && bf < 70 ? +bf.toFixed(1) : null;
+  }
+
+  /* rough clock for a day's worth of work: a set plus its rest, and a warm-up */
+  const dayMinutes = items => items.length
+    ? Math.round(8 + items.reduce((a, it) => a + it.sets * 2.5, 0))
+    : 0;
+
   /* ============================================================
      PROFILE (overview + data controls)
      ============================================================ */
@@ -2092,6 +2139,70 @@
     prC.classList.add('hl');
     grid.appendChild(prC);
     root.appendChild(grid);
+
+    // about you — the answers that change what a block says
+    root.appendChild(el('div', 'month-label', 'About you'));
+    const you = el('div', 'card you-card');
+    const pr = getProfile();
+
+    const row = (label, node, hint) => {
+      const r = el('div', 'you-row');
+      const h = el('div', 'you-head');
+      h.appendChild(el('div', 'micro', label));
+      if (hint) h.appendChild(el('div', 'you-hint', hint));
+      r.appendChild(h);
+      r.appendChild(node);
+      return r;
+    };
+
+    you.appendChild(row('Goal',
+      segToggle(GOALS.map(g => [g.key, g.label]), pr.goal || '',
+        k => { setProfile({ goal: k }); renderProfile(); }, 'you-seg'),
+      goalOf() ? `${goalOf().reps} reps · ${goalOf().note}` : 'Sets the rep ranges a new block starts from'));
+
+    you.appendChild(row('Experience',
+      segToggle(LEVELS.map(l => [l.key, l.label]), pr.level || '',
+        k => { setProfile({ level: k }); renderProfile(); }, 'you-seg'),
+      (LEVELS.find(l => l.key === pr.level) || {}).note || 'How fast the weight should climb'));
+
+    you.appendChild(row('Time per session',
+      segToggle(SESSION_MINS.map(m => [String(m), m + 'm']), String(pr.sessionMins || ''),
+        k => { setProfile({ sessionMins: +k }); renderProfile(); }, 'you-seg'),
+      pr.sessionMins ? 'The builder warns when a day runs over' : 'Decides how many exercises fit a day'));
+
+    you.appendChild(row('Sex',
+      segToggle([['male', 'Male'], ['female', 'Female']], pr.sex || '',
+        k => { setProfile({ sex: k }); renderProfile(); }, 'you-seg'),
+      'Used for the body-fat estimate and calories'));
+
+    const nums = el('div', 'you-nums');
+    const numField = (key, label, unit, min, max) => {
+      const f = el('label', 'you-num');
+      f.appendChild(el('span', null, label));
+      const i = document.createElement('input');
+      i.type = 'number'; i.inputMode = 'decimal'; i.placeholder = unit;
+      i.min = min; i.max = max;
+      if (pr[key] != null) i.value = pr[key];
+      i.onchange = () => {
+        const v = parseFloat(i.value);
+        setProfile({ [key]: Number.isFinite(v) && v >= min && v <= max ? v : null });
+        renderProfile();
+      };
+      f.appendChild(i);
+      nums.appendChild(f);
+    };
+    numField('age', 'Age', 'yrs', 12, 100);
+    numField('heightCm', 'Height', 'cm', 100, 230);
+    numField('waistCm', 'Waist', 'cm', 40, 200);
+    numField('neckCm', 'Neck', 'cm', 20, 70);
+    if (pr.sex === 'female') numField('hipCm', 'Hips', 'cm', 50, 200);
+    you.appendChild(row('Measurements', nums, 'Waist and neck give a body-fat estimate'));
+
+    const bf = navyBodyFat(pr);
+    you.appendChild(el('div', 'you-bf', bf
+      ? `Body fat ≈ ${bf}%  ·  tape beats the bathroom scale, watch the trend`
+      : 'Add height, waist and neck for a body-fat estimate'));
+    root.appendChild(you);
 
     // preferred training days
     const plan = activePlan();
@@ -2369,6 +2480,20 @@
       L.push('CARDIO (latest):');
       for (const c of cds) L.push(`- ${c.date} · ${c.activity}${c.env ? ' (' + c.env + ')' : ''} · ${c.minutes} min · ${c.calories} kcal`);
     }
+    {
+      const pr = getProfile();
+      const g = GOALS.find(x => x.key === pr.goal), lv = LEVELS.find(x => x.key === pr.level);
+      const bits = [];
+      if (g) bits.push('goal: ' + g.label.toLowerCase());
+      if (lv) bits.push('training ' + lv.label.toLowerCase());
+      if (pr.sessionMins) bits.push(pr.sessionMins + ' min per session');
+      if (pr.age) bits.push(pr.age + ' yrs');
+      if (pr.sex) bits.push(pr.sex);
+      if (pr.heightCm) bits.push(pr.heightCm + ' cm');
+      const bf = navyBodyFat(pr);
+      if (bf) bits.push('~' + bf + '% body fat (tape estimate)');
+      if (bits.length) { L.push(''); L.push('ABOUT ME: ' + bits.join(' · ')); }
+    }
     const injOnNow = injEnabled() ? INJURIES.filter(i => getInjuries().has(i.key)) : [];
     if (injOnNow.length) {
       const avoiding = [...new Set(injOnNow.flatMap(i => i.avoid))];
@@ -2400,7 +2525,8 @@
     const payload = {
       app: 'rackside', version: 5, exportedAt: new Date().toISOString(),
       exercises: exs, plans: pls, sessions: sess, workouts: wks, bodyweight: bws, cardio: cds,
-      injuries: [...getInjuries()], injuriesOn: injEnabled(), equip: [...getEquip()]
+      injuries: [...getInjuries()], injuriesOn: injEnabled(), equip: [...getEquip()],
+      profile: getProfile()
     };
     const file = new File([JSON.stringify(payload)], `rackside-backup-${todayStr()}.json`, { type: 'application/json' });
     try {
@@ -2431,6 +2557,7 @@
     if (Array.isArray(data.injuries)) setInjuries(new Set(data.injuries));
     if (typeof data.injuriesOn === 'boolean') localStorage.setItem('injuriesOn', data.injuriesOn ? '1' : '0');
     if (Array.isArray(data.equip)) setEquip(new Set(data.equip));
+    if (data.profile && typeof data.profile === 'object') localStorage.setItem('profile', JSON.stringify(data.profile));
     alert(`Restored ${n} records from ${data.exportedAt ? data.exportedAt.slice(0, 10) : 'backup'}.`);
     renderTab();
   }
@@ -2799,6 +2926,8 @@
     pmDay = 0;
     const si = INJURIES.findIndex(i => i.key === localStorage.getItem('injDial'));
     pmInj = si < 0 ? 0 : si;
+    const g = goalOf();
+    if (g) pmReps = g.repIx;              // your goal picks the starting rep range
     pmName = 'Block ' + (plans.length + 1);
     show('planmaker');
     renderPlanMaker();
@@ -3061,7 +3190,13 @@
     // what's in this day
     const day = pmDays[pmDay];
     if (day.items.length) {
-      root.appendChild(el('div', 'micro', day.name));
+      const mins = dayMinutes(day.items);
+      const budget = getProfile().sessionMins || 0;
+      const dayHead = el('div', 'inj-head');
+      dayHead.appendChild(el('div', 'micro', day.name));
+      dayHead.appendChild(el('div', 'day-mins' + (budget && mins > budget ? ' over' : ''),
+        budget ? `~${mins} of ${budget} min` : `~${mins} min`));
+      root.appendChild(dayHead);
       const idx = el('div', 'ex-index');
       day.items.forEach((it, i) => {
         const r = el('div', 'exi-row' + (it.stuck ? ' stuck' : ''));
