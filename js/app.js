@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v174';
+  const APP_VERSION = 'v175';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -53,6 +53,26 @@
   };
   const fmtKg = v => (Math.round(v * 100) / 100).toLocaleString('en-US');
 
+  /* ---------------- units ----------------
+     Everything is stored metric — kilos and centimetres — and converted only
+     where it is shown or typed, so switching units never rewrites history. */
+  const LB_PER_KG = 2.20462262;
+  const wUnit = () => (getProfile().units === 'lb' ? 'lb' : 'kg');
+  const toW = kg => (wUnit() === 'lb' ? kg * LB_PER_KG : kg);
+  const fromW = v => +(wUnit() === 'lb' ? v / LB_PER_KG : v).toFixed(3);
+  const fmtWn = kg => fmtKg(toW(kg));
+  const fmtW = kg => fmtWn(kg) + ' ' + wUnit();
+  const wStep = () => (wUnit() === 'lb' ? 1 : 0.5);
+  const wPlates = () => (wUnit() === 'lb' ? [5, 10, 25] : [2.5, 5, 10]);
+  const wBump = () => (wUnit() === 'lb' ? 5 / LB_PER_KG : 2.5);      // one small jump, in kg
+  const hUnit = () => (getProfile().hUnits === 'ft' ? 'ft' : 'cm');
+  const fmtH = cm => {
+    if (!(cm > 0)) return '—';
+    if (hUnit() !== 'ft') return Math.round(cm) + ' cm';
+    const inch = Math.round(cm / 2.54);
+    return `${Math.floor(inch / 12)}'${inch % 12}"`;
+  };
+
   /* ---------------- pure logic (design spec) ---------------- */
   const est1RM = (kg, reps) => reps > 0 ? kg * (1 + reps / 30) : 0;   // Epley
 
@@ -60,7 +80,8 @@
     const logged = sets.filter(s => s.done);
     if (!logged.length) return { kind: 'idle' };
     const last = logged[logged.length - 1];
-    if (last.reps >= last.targetHi) return { kind: 'increase', step: 2.5, nextKg: last.kg + 2.5, last };
+    const step = wBump();     // 2.5 kg, or the 5 lb equivalent
+    if (last.reps >= last.targetHi) return { kind: 'increase', step, nextKg: +(last.kg + step).toFixed(3), last };
     return { kind: 'hold', kg: last.kg, last };
   }
   function applySuggestion(sets, nextKg) {
@@ -351,7 +372,7 @@
       rc.appendChild(el('div', 'renew-title', 'Time to renew your plan'));
       const vol = workouts.filter(x => x.planId === plan.id).reduce((a, x) => a + (x.volume || 0), 0);
       rc.appendChild(el('div', 'renew-body',
-        `You moved ${fmtKg(vol)} kg across ${workouts.filter(x => x.planId === plan.id).length} sessions this block. ` +
+        `You moved ${fmtW(vol)} across ${workouts.filter(x => x.planId === plan.id).length} sessions this block. ` +
         `Build Block ${blockNumber(plan) + 1} with fresh targets, or repeat this one and beat your numbers.`));
       const acts = el('div', 'renew-actions');
       const bNew = el('button', 'btn-lime', `Build Block ${blockNumber(plan) + 1}`);
@@ -467,7 +488,7 @@
           const r = el('div', 'exi-row');
           r.appendChild(el('div', 'exi-num', String(i + 1).padStart(2, '0')));
           r.appendChild(el('div', 'exi-name', ex ? ex.name : '(deleted)'));
-          r.appendChild(el('div', 'exi-scheme', `${it.sets || 3} × ${it.repLo || 8}–${it.repHi || 12}${it.kg ? ' · ' + fmtKg(it.kg) + ' kg' : ''}`));
+          r.appendChild(el('div', 'exi-scheme', `${it.sets || 3} × ${it.repLo || 8}–${it.repHi || 12}${it.kg ? ' · ' + fmtW(it.kg) : ''}`));
           if (ex) r.onclick = () => openDetail(ex.id, 'library');
           idx.appendChild(r);
         });
@@ -486,7 +507,7 @@
       const lastW0 = workouts[0];
       base.appendChild(bs(lastW0 ? String(lastW0.duration) : '—', 'Last min'));
       const wkVol0 = workouts.filter(x => sameWeek(x.date)).reduce((a, x) => a + (x.volume || 0), 0);
-      base.appendChild(bs(fmtKg(wkVol0), 'Kg this week', 'earn'));
+      base.appendChild(bs(fmtWn(wkVol0), wUnit() + ' this week', 'earn'));
       root.appendChild(base);
 
       // calories burned — today's cardio, or the week's
@@ -812,7 +833,7 @@
     if (!active) {
       if (allDone) {
         const sum = el('div', 'exx-sum num',
-          cur.sets.map(s => cur.timed ? `${s.reps}s` : `${fmtKg(s.kg)} × ${s.reps}`).join('  ·  '));
+          cur.sets.map(s => cur.timed ? `${s.reps}s` : `${fmtWn(s.kg)} × ${s.reps}`).join('  ·  '));
         if (cur.feel) sum.appendChild(el('span', 'hd-feel ' + cur.feel, cur.feel));
         card.appendChild(sum);
       }
@@ -883,7 +904,7 @@
       const kv = el('span', 'kv num', String(set.kg));
       kv.id = 'val-kg-' + ei + '-' + si;
       kvWrap.appendChild(kv);
-      kvWrap.appendChild(el('small', null, 'kg'));
+      kvWrap.appendChild(el('small', null, wUnit()));
       kgCell.appendChild(kvWrap);
       // a logged set is locked — untick it first to change anything
       kgCell.disabled = set.done;
@@ -967,10 +988,10 @@
       t.appendChild(el('div', 's-title', `Top of range · ${sug.last.reps}/${cur.repLo}-${cur.repHi}`));
       t.appendChild(el('div', 's-body', cur.timed
         ? 'Full hold banked — add 5 s to your remaining sets.'
-        : `Go up to ${fmtKg(sug.nextKg)} kg on your remaining sets.`));
+        : `Go up to ${fmtW(sug.nextKg)} on your remaining sets.`));
       s.appendChild(t);
       if (cur.sets.some(x => !x.done)) {
-        const act = el('button', 's-act num', cur.timed ? '+5 s' : '+2.5 kg');
+        const act = el('button', 's-act num', cur.timed ? '+5 s' : '+' + fmtW(sug.step));
         act.onclick = () => {
           if (cur.timed) cur.sets.forEach(x => { if (!x.done) x.reps += 5; });
           else applySuggestion(cur.sets, sug.nextKg);
@@ -986,7 +1007,7 @@
       t.appendChild(el('div', 's-title', `Hold steady · ${sug.last.reps}/${cur.repLo}-${cur.repHi}`));
       t.appendChild(el('div', 's-body', cur.timed
         ? `Build up to ${cur.repHi} s holds before adding time.`
-        : `Stay at ${fmtKg(sug.kg)} kg until you reach ${cur.repHi} reps.`));
+        : `Stay at ${fmtW(sug.kg)} until you reach ${cur.repHi} reps.`));
       s.appendChild(t);
       card.appendChild(s);
     } else {
@@ -995,7 +1016,7 @@
       t.appendChild(el('div', 's-title', 'Progression'));
       t.appendChild(el('div', 's-body', cur.timed
         ? `Tap ▸ on a set to run the hold timer — reach ${cur.repHi} s to progress.`
-        : `Hit ${cur.repHi} reps on a set to earn +2.5 kg.`));
+        : `Hit ${cur.repHi} reps on a set to earn +${fmtW(wBump())}.`));
       s.appendChild(t);
       card.appendChild(s);
     }
@@ -1029,7 +1050,7 @@
       const kg = Math.max(...h.sets.map(s => s.weight || 0));
       const line = el('div', 'last-line');
       line.appendChild(el('i'));
-      line.appendChild(el('span', 'num', `Last time · ${fmtKg(kg)} kg × ${h.sets.map(s => s.reps).join(', ')}`));
+      line.appendChild(el('span', 'num', `Last time · ${fmtW(kg)} × ${h.sets.map(s => s.reps).join(', ')}`));
       card.appendChild(line);
     }
 
@@ -1355,7 +1376,7 @@
     // opts: value, step, tickW, span, min, labelEvery, decimals, cls, onChange(v)
     const st = { base: opts.value, val: opts.value };
     const lblEvery = opts.labelEvery || 1;
-    const fmt = v => opts.decimals ? v.toFixed(opts.decimals) : String(+v.toFixed(2));
+    const fmt = opts.fmt || (v => opts.decimals ? v.toFixed(opts.decimals) : String(+v.toFixed(2)));
     const wrap = el('div', 'ks-ruler' + (opts.cls ? ' ' + opts.cls : ''));
     wrap.appendChild(el('i', 'ks-ind'));
     const strip = el('div', 'ks-strip');
@@ -1452,21 +1473,21 @@
     return { el: wrap, setVal: v => setVal(v, true), get: () => st.val };
   }
 
-  /* The weight scale — expands inside the set row.
-     0.5 kg per notch, long labelled lines at whole kilos. */
+  /* The weight scale — expands inside the set row. The ruler runs in whatever
+     unit you picked (0.5 kg or 1 lb per notch); kilos are what get stored. */
   function weightScale(lw, cur, ei, si, updateVals) {
     const set = cur.sets[si];
-    const stepK = 0.5;
     const box = el('div', 'kg-scale');
 
     const top = el('div', 'ks-top');
-    const big = el('div', 'ks-val num', String(set.kg));
+    const big = el('div', 'ks-val num', fmtWn(set.kg));
     top.appendChild(big);
     const deltaEl = el('div', 'ks-delta', setDelta(cur, si));
     top.appendChild(deltaEl);
     box.appendChild(top);
 
-    const commit = v => {
+    const commit = shown => {
+      const v = fromW(shown);
       set.kg = v;
       // the new weight carries forward to the remaining unlogged sets
       for (let j = si + 1; j < cur.sets.length; j++) {
@@ -1474,23 +1495,26 @@
       }
       live.set(lw);
       updateVals();
-      big.firstChild.nodeValue = String(v);
+      big.firstChild.nodeValue = fmtKg(shown);
       deltaEl.textContent = setDelta(cur, si);
     };
-    const ruler = rulerScale({ value: set.kg, step: stepK, tickW: 30, span: 14, min: 0, labelEvery: 2, majorEvery: 2, onChange: commit });
+    const ruler = rulerScale({
+      value: +toW(set.kg).toFixed(1), step: wStep(), tickW: 30, span: 14, min: 0,
+      labelEvery: 2, majorEvery: 2, onChange: commit
+    });
     box.appendChild(ruler.el);
 
     const ctr = el('div', 'ks-controls');
     const openedWith = set.kg;   // for reverting a mistaken change
-    const undo = el('button', 'ks-adj ks-reset num', '↺ ' + fmtKg(openedWith));
-    undo.title = 'Back to ' + fmtKg(openedWith) + ' kg';
-    undo.onclick = () => ruler.setVal(openedWith);
+    const undo = el('button', 'ks-adj ks-reset num', '↺ ' + fmtWn(openedWith));
+    undo.title = 'Back to ' + fmtW(openedWith);
+    undo.onclick = () => ruler.setVal(+toW(openedWith).toFixed(1));
     const reset = el('button', 'ks-adj ks-reset num', '0');
     reset.title = 'Reset to 0';
     reset.onclick = () => ruler.setVal(0);
     ctr.append(undo, reset);
     const plates = el('div', 'ks-plates');
-    [2.5, 5, 10].forEach(p => {
+    wPlates().forEach(p => {
       const b = el('button', 'num', '+' + p);
       b.onclick = () => ruler.setVal(ruler.get() + p);
       plates.appendChild(b);
@@ -1789,7 +1813,7 @@
 
     const grid = el('div', 'sum-grid');
     grid.appendChild(sumCard(w.duration + ' min', 'Duration'));
-    grid.appendChild(sumCard(fmtKg(w.volume) + ' kg', 'Volume'));
+    grid.appendChild(sumCard(fmtW(w.volume), 'Volume'));
     grid.appendChild(sumCard(String(w.sets), 'Sets logged'));
     const prC = sumCard(String(w.prs.length), 'Records');
     prC.classList.add('hl');
@@ -1803,7 +1827,7 @@
       c.appendChild(el('div', 'pr-name', pr.name));
       c.appendChild(el('div', 'pr-detail num', `Est. 1RM ${pr.after} kg · was ${pr.before} kg`));
       r.appendChild(c);
-      r.appendChild(el('div', 'pr-delta num', '+' + (pr.after - pr.before) + ' kg'));
+      r.appendChild(el('div', 'pr-delta num', '+' + fmtW(pr.after - pr.before)));
       root.appendChild(r);
     }
 
@@ -1927,7 +1951,7 @@
               const timed = /second/i.test((ex2 && ex2.notes) || '');
               cc.appendChild(el('div', 'pv-meta num',
                 `${it.sets} × ${it.repLo}-${it.repHi}${timed ? ' s' : ' reps'}`
-                + (it.kg ? ` · ${fmtKg(it.kg)} kg` : '')));
+                + (it.kg ? ` · ${fmtW(it.kg)}` : '')));
               row.appendChild(cc);
               if (ex2) {
                 row.appendChild(el('div', 'pv-go', '›'));
@@ -1964,7 +1988,7 @@
       const nm = el('div', 'hrow-name', w.name);
       if (w.prs && w.prs.length) nm.appendChild(el('span', 'pr-chip', w.prs.length + ' PR'));
       c.appendChild(nm);
-      c.appendChild(el('div', 'hrow-meta num', `${fmtKg(w.volume)} kg · ${w.sets} sets${w.feel ? ' · ' + w.feel : ''} ▾`));
+      c.appendChild(el('div', 'hrow-meta num', `${fmtW(w.volume)} · ${w.sets} sets${w.feel ? ' · ' + w.feel : ''} ▾`));
       r.appendChild(c);
       const del = el('button', 'hist-del', '✕');
       del.title = 'Delete this session';
@@ -1998,7 +2022,7 @@
             const dr = el('div', 'hd-row');
             dr.appendChild(el('div', 'hd-name', ex ? ex.name : 'Deleted exercise'));
             const txt = s.sets.map(x => (x.weight || 0) > 0
-              ? `${fmtKg(x.weight)}×${x.reps}`
+              ? `${fmtWn(x.weight)}×${x.reps}`
               : `${x.reps}${s.timed ? 's' : ''}`).join(' · ');
             const hs = el('div', 'hd-sets num', txt);
             if (s.feel) hs.appendChild(el('span', 'hd-feel ' + s.feel, s.feel));
@@ -2192,7 +2216,7 @@
     close.onclick = () => { show('profile'); renderTab(); };
     head.appendChild(close);
     root.appendChild(head);
-    root.appendChild(el('div', 'month-label', 'About you'));
+    root.appendChild(el('div', 'month-label', 'Units'));
 
     /* one block per answer: label, live readout, slide */
     const slide = (label, readout, node, hint) => {
@@ -2206,6 +2230,25 @@
       root.appendChild(b);
       return b;
     };
+
+    // ---- units first: they change how every weight on the app reads ----
+    const uOut = el('div', 'ab-val', wUnit());
+    slide('Weight unit', uOut,
+      optionRail(['kg', 'lb'], wUnit() === 'lb' ? 1 : 0, i => {
+        setProfile({ units: i ? 'lb' : 'kg' });
+        uOut.textContent = wUnit();
+        renderSettings();
+      }), 'Every weight in the app — scales, plates, history');
+
+    const hOut = el('div', 'ab-val', hUnit() === 'ft' ? 'ft / in' : 'cm');
+    slide('Height unit', hOut,
+      optionRail(['cm', 'ft / in'], hUnit() === 'ft' ? 1 : 0, i => {
+        setProfile({ hUnits: i ? 'ft' : 'cm' });
+        hOut.textContent = hUnit() === 'ft' ? 'ft / in' : 'cm';
+        renderSettings();
+      }));
+
+    root.appendChild(el('div', 'month-label', 'About you'));
 
     // ---- choices ----
     const goalOut = el('div', 'ab-val' + (pr.goal ? '' : ' unset'),
@@ -2261,10 +2304,46 @@
     };
     num('sessionMins', 'Time per session', 'min', 60, 5, 15, 0, 'Each day gets a clock in the builder');
     num('age', 'Age', 'yrs', 30, 1, 12, 0);
-    num('heightCm', 'Height', 'cm', 175, 1, 100, 0);
-    num('waistCm', 'Waist', 'cm', 85, 0.5, 40, 1, 'At the navel, tape level, breathe out');
-    num('neckCm', 'Neck', 'cm', 38, 0.5, 20, 1, 'Just below the Adam\'s apple');
-    if (pr.sex === 'female') num('hipCm', 'Hips', 'cm', 95, 0.5, 50, 1, 'Widest point');
+    if (hUnit() === 'ft') {
+      const out = el('div', 'ab-val' + (pr.heightCm != null ? '' : ' unset'));
+      let set = pr.heightCm != null;
+      const paint = inch => {
+        out.textContent = `${Math.floor(inch / 12)}'${Math.round(inch % 12)}"` + (set ? '' : ' · not set');
+        out.classList.toggle('unset', !set);
+      };
+      const startIn = Math.round((set ? pr.heightCm : 175) / 2.54);
+      paint(startIn);
+      const r = rulerScale({
+        value: startIn, step: 1, tickW: 30, span: 14, min: 40,
+        labelEvery: 2, majorEvery: 6,
+        fmt: v => `${Math.floor(v / 12)}'${v % 12}`,
+        dragOnly: true,
+        onChange: v => { set = true; paint(v); setProfile({ heightCm: +(v * 2.54).toFixed(1) }); bfPaint(); }
+      });
+      slide('Height', out, r.el);
+    } else {
+      num('heightCm', 'Height', 'cm', 175, 1, 100, 0);
+    }
+    const tape = (key, label, defCm, hint) => {
+      if (hUnit() !== 'ft') return num(key, label, 'cm', defCm, 0.5, 20, 1, hint);
+      const out = el('div', 'ab-val' + (pr[key] != null ? '' : ' unset'));
+      let set = pr[key] != null;
+      const paint = inch => {
+        out.textContent = inch.toFixed(1) + ' in' + (set ? '' : ' · not set');
+        out.classList.toggle('unset', !set);
+      };
+      const start = +((set ? pr[key] : defCm) / 2.54).toFixed(1);
+      paint(start);
+      const r = rulerScale({
+        value: start, step: 0.5, tickW: 30, span: 14, min: 8,
+        labelEvery: 2, majorEvery: 2, decimals: 1, cls: 'fine', dragOnly: true,
+        onChange: v => { set = true; paint(v); setProfile({ [key]: +(v * 2.54).toFixed(1) }); bfPaint(); }
+      });
+      slide(label, out, r.el, hint);
+    };
+    tape('waistCm', 'Waist', 85, 'At the navel, tape level, breathe out');
+    tape('neckCm', 'Neck', 38, 'Just below the Adam\'s apple');
+    if (pr.sex === 'female') tape('hipCm', 'Hips', 95, 'Widest point');
 
     const bfEl = el('div', 'ab-bf');
     const bfPaint = () => {
@@ -2284,35 +2363,6 @@
     };
     bfPaint();
     root.appendChild(bfEl);
-
-    // preferred training days
-    const plan = activePlan();
-    if (plan) {
-      root.appendChild(el('div', 'month-label', 'Preferred training days'));
-      const pc = el('div', 'card');
-      const strip = el('div', 'day-strip');
-      plan.prefDays = plan.prefDays || [];
-      ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((ch, i) => {
-        const cell = el('button', 'cell' + (plan.prefDays.includes(i) ? ' today pref' : ''));
-        cell.type = 'button';
-        cell.appendChild(el('span', null, ch));
-        cell.appendChild(el('i'));
-        cell.onclick = async () => {
-          plan.prefDays = plan.prefDays.includes(i)
-            ? plan.prefDays.filter(x => x !== i)
-            : [...plan.prefDays, i].sort((a, b) => a - b);
-          await DB.put('plans', plan);
-          renderSettings();
-        };
-        strip.appendChild(cell);
-      });
-      pc.appendChild(strip);
-      const ph = el('div', 'hist-meta');
-      ph.style.marginTop = '10px';
-      ph.textContent = `${plan.prefDays.length} of ${(plan.days || []).length} training days picked — they show as rings on the Today week strip.`;
-      pc.appendChild(ph);
-      root.appendChild(pc);
-    }
 
     // data controls
     root.appendChild(el('div', 'month-label', 'Data & backup'));
@@ -2395,12 +2445,41 @@
     const totMin = workouts.reduce((a, w) => a + (w.duration || 0), 0);
     const grid = el('div', 'sum-grid');
     grid.appendChild(sumCard(String(workouts.length), 'Sessions'));
-    grid.appendChild(sumCard(fmtKg(totVol) + ' kg', 'Lifetime volume'));
+    grid.appendChild(sumCard(fmtW(totVol), 'Lifetime volume'));
     grid.appendChild(sumCard(totMin + ' min', 'Time trained'));
     const prC = sumCard(String(totPRs), 'Records');
     prC.classList.add('hl');
     grid.appendChild(prC);
     root.appendChild(grid);
+
+    // preferred training days
+    const plan = activePlan();
+    if (plan) {
+      root.appendChild(el('div', 'month-label', 'Preferred training days'));
+      const pc = el('div', 'card');
+      const strip = el('div', 'day-strip');
+      plan.prefDays = plan.prefDays || [];
+      ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((ch, i) => {
+        const cell = el('button', 'cell' + (plan.prefDays.includes(i) ? ' today pref' : ''));
+        cell.type = 'button';
+        cell.appendChild(el('span', null, ch));
+        cell.appendChild(el('i'));
+        cell.onclick = async () => {
+          plan.prefDays = plan.prefDays.includes(i)
+            ? plan.prefDays.filter(x => x !== i)
+            : [...plan.prefDays, i].sort((a, b) => a - b);
+          await DB.put('plans', plan);
+          renderProfile();
+        };
+        strip.appendChild(cell);
+      });
+      pc.appendChild(strip);
+      const ph = el('div', 'hist-meta');
+      ph.style.marginTop = '10px';
+      ph.textContent = `${plan.prefDays.length} of ${(plan.days || []).length} training days picked — they show as rings on the Today week strip.`;
+      pc.appendChild(ph);
+      root.appendChild(pc);
+    }
 
     // body weight — v5: big reading, fine sliding scale, trend, log button
     root.appendChild(el('div', 'month-label', 'Body weight'));
@@ -2413,11 +2492,10 @@
     bwHead.appendChild(el('div', 'micro', "Today's reading"));
     bwCard.appendChild(bwHead);
 
-    let bwv = lastBw ? lastBw.kg : 80;
-    const bwStep = 0.5;   // fixed — main lines every 1 kg
+    let bwv = lastBw ? lastBw.kg : 80;          // always kilos underneath
     const read = el('div', 'bwv-read');
-    const rv = el('div', 'bwv-val num', bwv.toFixed(1));
-    rv.appendChild(el('small', null, ' kg'));
+    const rv = el('div', 'bwv-val num', toW(bwv).toFixed(1));
+    rv.appendChild(el('small', null, ' ' + wUnit()));
     read.appendChild(rv);
     const dEl = el('div', 'bwv-delta num');
     read.appendChild(dEl);
@@ -2426,20 +2504,21 @@
     let logBtn;
     const updDelta = () => {
       if (!lastBw) { dEl.textContent = ''; return; }
-      const d = +(bwv - lastBw.kg).toFixed(1);
+      const d = +(bwv - lastBw.kg).toFixed(3);
       dEl.className = 'bwv-delta num ' + (d < 0 ? 'down' : d > 0 ? 'up' : 'same');
-      dEl.textContent = d === 0 ? 'Same as last' : `${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(1)} kg`;
+      dEl.textContent = d === 0 ? 'Same as last'
+        : `${d > 0 ? '+' : '−'}${Math.abs(toW(d)).toFixed(1)} ${wUnit()}`;
     };
-    const commitBw = v => {
-      bwv = v;
-      rv.firstChild.nodeValue = v.toFixed(1);
+    const commitBw = shown => {
+      bwv = fromW(shown);
+      rv.firstChild.nodeValue = shown.toFixed(1);
       updDelta();
     };
     updDelta();
 
-    // fixed scale — 0.5 steps, main labelled lines at every 1 kg
+    // the scale runs in your unit; a notch is 0.5 kg or 1 lb
     const bwRuler = rulerScale({
-      value: bwv, step: bwStep, tickW: 30, span: 14, min: 20,
+      value: +toW(bwv).toFixed(1), step: wStep(), tickW: 30, span: 14, min: toW(20),
       labelEvery: 2, majorEvery: 2, decimals: 1, cls: 'fine',
       dragOnly: true, onChange: commitBw
     });
@@ -2567,13 +2646,13 @@
     L.push('');
     L.push(`SESSIONS (${workouts.length} total, latest ${ws.length}):`);
     for (const w of ws) {
-      L.push(`${w.date} · ${w.name} · ${w.duration} min · ${fmtKg(w.volume)} kg volume` +
+      L.push(`${w.date} · ${w.name} · ${w.duration} min · ${fmtW(w.volume)} volume` +
         (w.feel ? ` · felt: ${w.feel}` : '') +
         (w.prs && w.prs.length ? ` · ${w.prs.length} PR` : ''));
       const sess = sessions.filter(s => s.date === w.date && s.planId === w.planId);
       for (const s of sess) {
         L.push(`  - ${exName(s.exerciseId)}: ` +
-          s.sets.map(x => x.weight ? `${fmtKg(x.weight)}×${x.reps}` : `${x.reps} reps`).join(', ') +
+          s.sets.map(x => x.weight ? `${fmtWn(x.weight)}×${x.reps}` : `${x.reps} reps`).join(', ') +
           (s.feel ? ` · felt ${s.feel}` : ''));
       }
     }
@@ -2590,14 +2669,14 @@
       arr.sort((a, b) => b.ts - a.ts);
       const lastKg = Math.max(...arr[0].sets.map(x => x.weight || 0));
       const best = Math.round(Math.max(...arr.flatMap(s2 => s2.sets.map(x => est1RM(x.weight || 0, x.reps)))));
-      if (lastKg > 0) L.push(`- ${exName(id)}: ${fmtKg(lastKg)} kg · est 1RM ${best} kg`);
+      if (lastKg > 0) L.push(`- ${exName(id)}: ${fmtW(lastKg)} · est 1RM ${fmtW(best)}`);
     }
     const bws = (await DB.all('bodyweight')).sort((a, b) => a.ts - b.ts);
     if (bws.length) {
       const lastB = bws[bws.length - 1];
       const pastB = [...bws].reverse().find(x => lastB.ts - x.ts >= 25 * 86400000);
       L.push('');
-      L.push(`BODY WEIGHT: ${fmtKg(lastB.kg)} kg (${lastB.date})` +
+      L.push(`BODY WEIGHT: ${fmtW(lastB.kg)} (${lastB.date})` +
         (pastB ? ` · ${(lastB.kg - pastB.kg >= 0 ? '+' : '')}${(lastB.kg - pastB.kg).toFixed(1)} kg over ~30 days` : ''));
     }
     const cds = (await DB.all('cardio')).sort((a, b) => b.ts - a.ts).slice(0, 12);
@@ -2745,7 +2824,7 @@
       return d;
     };
     base.appendChild(bs(String(workouts.length), 'Sessions'));
-    base.appendChild(bs(fmtKg(totVol), 'Kg lifted'));
+    base.appendChild(bs(fmtWn(totVol), wUnit() + ' lifted'));
     base.appendChild(bs(weekStreak(workouts) + 'w', 'Streak'));
     base.appendChild(bs(String(totPRs), 'Records', 'earn'));
     root.appendChild(base);
@@ -2784,7 +2863,7 @@
       };
       const grid = el('div', 'stat-graphs');
       const cur = wk[weeksN - 1], prev = wk[weeksN - 2];
-      grid.appendChild(tile('Volume · kg / week', wk.map(x => x.vol), fmtKg(cur.vol), dTxt(cur.vol, prev.vol, '')));
+      grid.appendChild(tile('Volume · ' + wUnit() + ' / week', wk.map(x => toW(x.vol)), fmtWn(cur.vol), dTxt(cur.vol, prev.vol, '')));
       const hoursTot = Math.round(workouts.reduce((a, w) => a + (w.duration || 0), 0) / 6) / 10;
       grid.appendChild(tile(`Time · ${hoursTot} h total`, wk.map(x => x.min), cur.min + ' min', dTxt(cur.min, prev.min, 'm')));
       grid.appendChild(tile('Sets · per week', wk.map(x => x.sets), String(cur.sets), dTxt(cur.sets, prev.sets, '')));
@@ -2792,7 +2871,7 @@
         const sorted = [...bw].sort((a, b) => a.ts - b.ts);
         const last = sorted[sorted.length - 1];
         const past = sorted.filter(x => last.ts - x.ts >= 25 * 86400000).pop() || sorted[0];
-        grid.appendChild(tile('Body weight · kg', sorted.slice(-12).map(x => x.kg),
+        grid.appendChild(tile('Body weight · ' + wUnit(), sorted.slice(-12).map(x => x.kg),
           last.kg.toFixed(1), dTxt(last.kg, past.kg, '')));
       }
       root.appendChild(el('div', 'micro', 'Last 8 weeks'));
@@ -2842,8 +2921,8 @@
           const pv = prevSess.find(x => x.exerciseId === s2.exerciseId);
           const pvol = pv ? pv.sets.reduce((a, x) => a + (x.weight || 0) * x.reps, 0) : null;
           g.appendChild(el('div', 'c name', ex ? ex.name : '—'));
-          g.appendChild(el('div', 'c best num', best.weight ? `${fmtKg(best.weight)} × ${best.reps}` : `${best.reps} reps`));
-          g.appendChild(el('div', 'c vol num', fmtKg(vol)));
+          g.appendChild(el('div', 'c best num', best.weight ? `${fmtWn(best.weight)} × ${best.reps}` : `${best.reps} reps`));
+          g.appendChild(el('div', 'c vol num', fmtWn(vol)));
           const d = pvol !== null && pvol > 0 ? Math.round((vol - pvol) / pvol * 100) : null;
           g.appendChild(el('div', 'c delta num' + (d === null || d === 0 ? ' none' : ''), d === null ? '—' : (d > 0 ? '+' + d + '%' : d + '%')));
         }
@@ -4127,8 +4206,8 @@
     const stats = el('div', 'det-stats');
     const lastKg = sessions.length ? Math.max(...sessions[0].sets.map(s => s.weight || 0)) : 0;
     const bestRM = sessions.length ? Math.round(Math.max(...sessions.flatMap(s => s.sets.map(x => est1RM(x.weight || 0, x.reps))))) : 0;
-    stats.appendChild(detStat(lastKg ? fmtKg(lastKg) : '—', 'kg', 'Working weight'));
-    stats.appendChild(detStat(bestRM ? String(bestRM) : '—', 'kg', 'Est. 1RM'));
+    stats.appendChild(detStat(lastKg ? fmtWn(lastKg) : '—', wUnit(), 'Working weight'));
+    stats.appendChild(detStat(bestRM ? fmtWn(bestRM) : '—', wUnit(), 'Est. 1RM'));
     stats.appendChild(detStat(String(sessions.length), '', 'Sessions'));
     body.appendChild(stats);
 
