@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v141';
+  const APP_VERSION = 'v142';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2743,32 +2743,38 @@
     master.appendChild(el('i', 'inj-knob'));
     master.onclick = () => {
       localStorage.setItem('injuriesOn', injLive ? '0' : '1');
-      if (!injLive && !injOn.size) setInjuries(new Set([INJURIES[pmInj].key]));
       haptic();
       renderPlanMaker();
     };
     injHead.appendChild(master);
     root.appendChild(injHead);
     const injRow = el('div', 'inj-row' + (injLive ? '' : ' locked'));
+    const toggleInj = i => {
+      const s = getInjuries();
+      const k = INJURIES[i].key;
+      s.has(k) ? s.delete(k) : s.add(k);
+      setInjuries(s);
+      haptic();
+      renderPlanMaker();
+    };
+    // a tag parked on the indicator line so the tap is never a guess
+    const tag = el('button', 'inj-tap', injOn.has(INJURIES[pmInj].key) ? 'Remove' : 'Add');
+    tag.onclick = () => toggleInj(pmInj);
     injRow.appendChild(pickerWheel(INJURIES.map(i => i.label), pmInj,
-      i => { pmInj = i; },
+      i => { pmInj = i; tag.textContent = injOn.has(INJURIES[i].key) ? 'Remove' : 'Add'; },
       'wide short',
       i => (injOn.has(INJURIES[i].key) ? 'flag' : (i % 2 ? 'w11' : 'w15')),
-      i => {
-        const s = getInjuries();
-        const k = INJURIES[i].key;
-        s.has(k) ? s.delete(k) : s.add(k);
-        setInjuries(s);
-        haptic();
-        renderPlanMaker();
-      }));
+      toggleInj));
+    injRow.appendChild(tag);
     root.appendChild(injRow);
     const flagged = INJURIES.filter(i => injOn.has(i.key)).map(i => i.label);
     root.appendChild(el('div', 'inj-note', injLive
       ? (flagged.length
-        ? `${hiddenN} hidden — ${flagged.join(', ')} · tap to add or remove`
-        : 'Tap an area on the dial to add it')
-      : 'No injuries · every exercise available'));
+        ? `${hiddenN} hidden — ${flagged.join(', ')}`
+        : 'Spin to the sore area, then tap Add')
+      : (flagged.length
+        ? `Paused — ${flagged.join(', ')} still saved`
+        : 'Off · every exercise available')));
 
     // the three wheels
     const wheels = el('div', 'cd-wheels pm-wheels');
