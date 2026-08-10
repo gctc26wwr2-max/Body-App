@@ -727,6 +727,7 @@ body { font-size: 14px; }
   font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
 }
 .seg-toggle button.sel { background: var(--lime); color: var(--on-accent); font-weight: 800; }
+.seg-toggle.effort button { height: 34px; font-size: 11.5px; }
 .cd-act { text-transform: uppercase; }
 .cd-wheels { display: flex; gap: 12px; }
 .cd-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
