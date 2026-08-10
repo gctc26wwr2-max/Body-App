@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v126';
+  const APP_VERSION = 'v127';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -213,6 +213,7 @@
     root.innerHTML = '';
     const plan = activePlan();
     const workouts = (await DB.all('workouts')).sort((a, b) => b.ts - a.ts);
+    const cardio = await DB.all('cardio');
 
     // meta row: date left, streak right
     const head = el('header', 'meta-row');
@@ -452,6 +453,22 @@
       const wkVol0 = workouts.filter(x => sameWeek(x.date)).reduce((a, x) => a + (x.volume || 0), 0);
       base.appendChild(bs(fmtKg(wkVol0), 'Kg this week', 'earn'));
       root.appendChild(base);
+
+      // calories burned — today's cardio, or the week's
+      const cdToday = cardio.filter(c => c.date === todayStr());
+      const cdWeek = cardio.filter(c => sameWeek(c.date));
+      if (cdWeek.length) {
+        const useToday = cdToday.length > 0;
+        const src = useToday ? cdToday : cdWeek;
+        const line = el('div', 'burn-line');
+        line.appendChild(el('span', 'l', useToday ? 'Burned today' : 'Burned this week'));
+        const v = el('span', 'v num', src.reduce((a, c) => a + c.calories, 0) + ' kcal');
+        line.appendChild(v);
+        line.appendChild(el('span', 'm num',
+          `${src.reduce((a, c) => a + c.minutes, 0)} min · ${src.length} session${src.length === 1 ? '' : 's'}`));
+        line.onclick = () => { show('cardio'); renderTab(); };
+        root.appendChild(line);
+      }
 
       // primary CTA per state + text links
       if (mode === 'next') {
@@ -2760,15 +2777,14 @@
       const met = metOf(lc.act, env);
       const doneSec = () => Math.min(total, Math.round((lc.acc || 0) + (lc.startedAt ? (Date.now() - lc.startedAt) / 1000 : 0)));
 
+      // the whole frame is the bar: a soft fill that drains behind the numbers
       const live = el('div', 'cd-live' + (lc.startedAt ? '' : ' paused'));
+      const gauge = el('i', 'cd-gauge');
+      live.appendChild(gauge);
       const clock = el('div', 'cd-clock num', '0:00');
       live.appendChild(clock);
       const sub = el('div', 'cd-sub num', '');
       live.appendChild(sub);
-      const track = el('div', 'cd-track');       // a bar that shrinks as time runs out
-      const gauge = el('i', 'cd-gauge');
-      track.appendChild(gauge);
-      live.appendChild(track);
       root.appendChild(live);
 
       const acts = el('div', 'block-actions');
