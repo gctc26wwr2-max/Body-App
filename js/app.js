@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v118';
+  const APP_VERSION = 'v119';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2540,7 +2540,7 @@
   /* Most activities happen both indoors and out, and the burn differs —
      a street run costs more than the same minutes on a treadmill.
      null = that activity doesn't exist in that setting.
-     calories = MET x 3.5 x kg / 200 per minute, scaled by effort. */
+     calories = MET x 3.5 x kg / 200 per minute, the rates assume a normal steady session. */
   const CARDIO_ACTS = [
     { name: 'Walk', indoor: 3.8, outdoor: 3.5 },
     { name: 'Run', indoor: 9.8, outdoor: 10.0 },
@@ -2559,10 +2559,12 @@
     { name: 'Tennis', indoor: 7.3, outdoor: 7.3 },
     { name: 'Skipping Drills', indoor: 10.0, outdoor: 10.0 }
   ];
+  /* effort isn't asked for — the MET rates already assume a normal,
+     steady session. Old records may carry a scale; honour it. */
   const CARDIO_EFFORT = [
-    { key: 'easy', label: 'Easy', mul: 0.8 },
-    { key: 'steady', label: 'Steady', mul: 1 },
-    { key: 'hard', label: 'Hard', mul: 1.3 }
+    { key: 'easy', mul: 0.8 },
+    { key: 'steady', mul: 1 },
+    { key: 'hard', mul: 1.3 }
   ];
   const actsFor = env => CARDIO_ACTS.filter(a => a[env] != null);
   const metOf = (name, env) => {
@@ -2576,7 +2578,6 @@
     set(v) { v ? localStorage.setItem('liveCardio', JSON.stringify(v)) : localStorage.removeItem('liveCardio'); }
   };
   let cardioEnv = localStorage.getItem('cardioEnv') || 'indoor';
-  let cardioEffort = localStorage.getItem('cardioEffort') || 'steady';
   let cardioActName = localStorage.getItem('cardioAct') || 'Run';
   let cardioMins = 20, cardioInt = null, cardioAlerted = false;
 
@@ -2738,7 +2739,7 @@
 
       const kcalEl = el('div', 'cd-kcal num');
       const upd = () => {
-        kcalEl.textContent = `~${cardioKcal(metOf(cardioActName, cardioEnv), cardioMins, kg, cardioEffort)} kcal`;
+        kcalEl.textContent = `~${cardioKcal(metOf(cardioActName, cardioEnv), cardioMins, kg)} kcal`;
       };
 
       const wheels = el('div', 'cd-wheels');
@@ -2757,31 +2758,16 @@
       wheels.appendChild(c2);
       root.appendChild(wheels);
 
-      // effort — the same minutes burn very differently
-      const eff = el('div', 'seg-toggle effort');
-      CARDIO_EFFORT.forEach(e => {
-        const b = el('button', cardioEffort === e.key ? 'sel' : '', e.label);
-        b.onclick = () => {
-          cardioEffort = e.key;
-          localStorage.setItem('cardioEffort', e.key);
-          eff.querySelectorAll('button').forEach(x => x.classList.remove('sel'));
-          b.classList.add('sel');
-          upd();
-        };
-        eff.appendChild(b);
-      });
-      root.appendChild(eff);
-
       upd();
       root.appendChild(kcalEl);
 
       const start = el('button', 'btn-cta big');
       start.style.width = '100%';
       start.appendChild(svgIcon(PLAY, 13));
-      start.appendChild(document.createTextNode(' Start cardio'));
+      start.appendChild(document.createTextNode(' Start'));
       start.onclick = () => {
         liveCardio.set({
-          act: cardioActName, env: cardioEnv, effort: cardioEffort,
+          act: cardioActName, env: cardioEnv,
           mins: cardioMins, startedAt: Date.now()
         });
         cardioAlerted = false;
@@ -2842,7 +2828,7 @@
     }
     await DB.put('cardio', {
       id: DB.uid(), date: todayStr(), ts: Date.now(),
-      activity: lc.act, env, effort: lc.effort || 'steady', minutes: mins, calories: kcal
+      activity: lc.act, env, minutes: mins, calories: kcal
     });
     liveCardio.set(null);
     renderCardio();
