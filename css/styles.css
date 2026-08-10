@@ -761,10 +761,14 @@ body { font-size: 14px; }
 }
 .pw-item.sel .pw-lbl { font-size: 16px; font-weight: 800; color: var(--t1); letter-spacing: -.01em; }
 .cd-kcal { text-align: center; font-size: 15px; font-weight: 800; color: var(--lime); letter-spacing: .04em; }
+.cd-wheels.locked { opacity: .5; pointer-events: none; }
+.seg-toggle button:disabled { opacity: .55; }
 .cd-live {
-  border-radius: 22px; padding: 22px 20px; display: flex; flex-direction: column; gap: 10px;
+  border-radius: 22px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px;
   background: rgba(206,107,61,.08); border: 1px solid rgba(206,107,61,.32); text-align: center;
 }
+.cd-live.paused { background: var(--sunken); border-color: var(--hair-8); }
+.cd-live.paused .cd-clock { color: var(--t3); }
 .cd-act { font-size: 10px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--lime); }
 .cd-clock { font-size: 62px; font-weight: 800; line-height: .9; letter-spacing: -.05em; }
 .cd-sub { font-size: 12.5px; font-weight: 600; color: var(--t3); }
