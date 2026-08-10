@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v161';
+  const APP_VERSION = 'v162';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2767,7 +2767,10 @@
     return [...names.values()].sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  function openPlanMaker() {
+  /* remember which tab sent us here, so leaving lands back where you were */
+  let pmReturn = 'plan';
+  function openPlanMaker(from) {
+    pmReturn = from || 'plan';
     pmDays = [{ name: 'Day A', items: [] }];
     pmDay = 0;
     const si = INJURIES.findIndex(i => i.key === localStorage.getItem('injDial'));
@@ -2827,7 +2830,7 @@
         ok: 'Discard', cancel: 'Keep building', warn: true
       })) return;
       pmDays = null;
-      show('plan'); renderTab();
+      show(pmReturn); renderTab();
     };
     head.appendChild(close);
     root.appendChild(head);
@@ -3103,7 +3106,7 @@
     }
     await DB.put('plans', plan);
     pmDays = null;
-    show('plan');
+    show(pmReturn);
     renderTab();
   }
 
@@ -3587,7 +3590,7 @@
     const start = el('button', 'btn-cta big');
     start.style.width = '100%';
     start.textContent = '＋ Build a new block';
-    start.onclick = () => openPlanMaker();
+    start.onclick = () => openPlanMaker('library');
     root.appendChild(start);
     const live = activePlan();
     const q = queuedPlans();
