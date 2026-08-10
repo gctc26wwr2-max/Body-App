@@ -732,26 +732,34 @@ body { font-size: 14px; }
 .cd-wheels { display: flex; gap: 12px; }
 .cd-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .cd-col:last-child { flex: 0 0 96px; }
+/* a dial: tick marks down the face, a fixed clay indicator, edges falling away */
 .pw {
   position: relative; height: 200px; overflow: hidden; cursor: grab;
   border-radius: 18px; background: var(--sunken); border: 1px solid var(--hair);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24%, #000 76%, transparent);
-  mask-image: linear-gradient(to bottom, transparent, #000 24%, #000 76%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
 }
 .pw:active { cursor: grabbing; }
-.pw-band {
-  position: absolute; top: 50%; margin-top: -20px; left: 6px; right: 6px; height: 40px;
-  border-radius: 12px; background: rgba(206,107,61,.14); border: 1px solid rgba(206,107,61,.3); z-index: 0;
+.pw-ind {
+  position: absolute; top: 50%; margin-top: -1px; left: 14px; width: 30px; height: 2px;
+  background: var(--lime); z-index: 2;
 }
+.pw.wide .pw-ind { left: 12px; }
 .pw-strip { position: absolute; top: 50%; left: 0; right: 0; z-index: 1; will-change: transform; }
 .pw-item {
-  height: 40px; width: 100%; background: none; border: none; padding: 0 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 600; color: var(--t6);
+  height: 40px; width: 100%; background: none; border: none; padding: 0 10px 0 14px;
+  display: flex; align-items: center; gap: 12px;
+}
+.pw-slot { width: 30px; flex: 0 0 auto; display: flex; }
+.pw-item i { height: 2px; background: rgba(255,255,255,.18); display: block; }
+.pw-item i.w20 { width: 20px; } .pw-item i.w15 { width: 15px; } .pw-item i.w11 { width: 11px; }
+.pw-item.sel i { width: 30px; background: var(--lime); }
+.pw-lbl {
+  flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--t6);
+  font-variant-numeric: tabular-nums; text-align: left;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.pw.wide .pw-item { font-size: 15px; }
-.pw-item.sel { font-size: 17px; font-weight: 800; color: var(--t1); letter-spacing: -.01em; }
+.pw-item.sel .pw-lbl { font-size: 16px; font-weight: 800; color: var(--t1); letter-spacing: -.01em; }
 .cd-kcal { text-align: center; font-size: 15px; font-weight: 800; color: var(--lime); letter-spacing: .04em; }
 .cd-live {
   border-radius: 22px; padding: 22px 20px; display: flex; flex-direction: column; gap: 10px;
