@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v115';
+  const APP_VERSION = 'v116';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -178,10 +178,10 @@
   $('#media-viewer-close').onclick = () => { $('#media-viewer-body').innerHTML = ''; $('#media-viewer').hidden = true; };
 
   /* ---------------- navigation ---------------- */
-  const VIEWS = ['today', 'plan', 'stats', 'library', 'profile', 'workout', 'summary', 'detail'];
+  const VIEWS = ['today', 'plan', 'cardio', 'stats', 'library', 'profile', 'workout', 'summary', 'detail'];
   function show(view) {
     VIEWS.forEach(v => $('#view-' + v).hidden = v !== view);
-    const isTab = ['today', 'plan', 'stats', 'library', 'profile'].includes(view);
+    const isTab = ['today', 'plan', 'cardio', 'stats', 'library', 'profile'].includes(view);
     $('#tabbar').hidden = !isTab;
     if (isTab) {
       currentTab = view;
@@ -197,6 +197,7 @@
     plans = await DB.all('plans');
     if (currentTab === 'today') await renderToday();
     else if (currentTab === 'plan') await renderPlanTab();
+    else if (currentTab === 'cardio') await renderCardio();
     else if (currentTab === 'stats') await renderStats();
     else if (currentTab === 'library') renderLibrary();
     else if (currentTab === 'profile') await renderProfile();
@@ -2304,6 +2305,12 @@
       L.push(`BODY WEIGHT: ${fmtKg(lastB.kg)} kg (${lastB.date})` +
         (pastB ? ` · ${(lastB.kg - pastB.kg >= 0 ? '+' : '')}${(lastB.kg - pastB.kg).toFixed(1)} kg over ~30 days` : ''));
     }
+    const cds = (await DB.all('cardio')).sort((a, b) => b.ts - a.ts).slice(0, 12);
+    if (cds.length) {
+      L.push('');
+      L.push('CARDIO (latest):');
+      for (const c of cds) L.push(`- ${c.date} · ${c.activity} · ${c.minutes} min · ${c.calories} kcal`);
+    }
     L.push('');
     L.push('Please review this training history and plan my next block accordingly (same weekly frequency unless you advise otherwise).');
     const text = L.join('\n');
@@ -2315,12 +2322,13 @@
 
   /* ---------------- backup / restore / reset ---------------- */
   async function backupData() {
-    const [exs, pls, sess, wks, bws] = await Promise.all([
-      DB.all('exercises'), DB.all('plans'), DB.all('sessions'), DB.all('workouts'), DB.all('bodyweight')
+    const [exs, pls, sess, wks, bws, cds] = await Promise.all([
+      DB.all('exercises'), DB.all('plans'), DB.all('sessions'), DB.all('workouts'),
+      DB.all('bodyweight'), DB.all('cardio')
     ]);
     const payload = {
-      app: 'rackside', version: 3, exportedAt: new Date().toISOString(),
-      exercises: exs, plans: pls, sessions: sess, workouts: wks, bodyweight: bws
+      app: 'rackside', version: 4, exportedAt: new Date().toISOString(),
+      exercises: exs, plans: pls, sessions: sess, workouts: wks, bodyweight: bws, cardio: cds
     };
     const file = new File([JSON.stringify(payload)], `rackside-backup-${todayStr()}.json`, { type: 'application/json' });
     try {
@@ -2343,7 +2351,7 @@
     if (!data || data.app !== 'rackside') { alert('That file is not a Rackside backup.'); return; }
     if (!confirm('Restore this backup? Records with the same id are overwritten; nothing else is deleted.')) return;
     let n = 0;
-    for (const [store, key] of [['exercises', 'exercises'], ['plans', 'plans'], ['sessions', 'sessions'], ['workouts', 'workouts'], ['bodyweight', 'bodyweight']]) {
+    for (const [store, key] of [['exercises', 'exercises'], ['plans', 'plans'], ['sessions', 'sessions'], ['workouts', 'workouts'], ['bodyweight', 'bodyweight'], ['cardio', 'cardio']]) {
       for (const rec of (data[key] || [])) {
         if (rec && rec.id) { await DB.put(store, rec); n++; }
       }
@@ -2524,6 +2532,259 @@
       `<path d="${area}" fill="rgba(206,107,61,.12)"/>` +
       `<path d="${d}" fill="none" stroke="#CE6B3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` +
       `<circle cx="${X(vals.length - 1).toFixed(1)}" cy="${Y(vals[vals.length - 1]).toFixed(1)}" r="3" fill="#CE6B3D" stroke="#151110" stroke-width="1.5"/></svg>`;
+  }
+
+  /* ============================================================
+     CARDIO
+     ============================================================ */
+  /* MET values — calories = MET x 3.5 x kg / 200 per minute */
+  const CARDIO_TYPES = [
+    { name: 'Walk', met: 3.8 },
+    { name: 'Treadmill Run', met: 9.8 },
+    { name: 'Outdoor Run', met: 10.0 },
+    { name: 'Cycling', met: 7.5 },
+    { name: 'Rowing Machine', met: 7.0 },
+    { name: 'Elliptical', met: 5.5 },
+    { name: 'Stair Climber', met: 9.0 },
+    { name: 'Swimming', met: 8.3 },
+    { name: 'Jump Rope', met: 12.3 },
+    { name: 'HIIT Sprints', met: 12.0 },
+    { name: 'Boxing', met: 9.0 },
+    { name: 'Hiking', met: 6.0 }
+  ];
+  const liveCardio = {
+    get() { try { return JSON.parse(localStorage.getItem('liveCardio') || 'null'); } catch { return null; } },
+    set(v) { v ? localStorage.setItem('liveCardio', JSON.stringify(v)) : localStorage.removeItem('liveCardio'); }
+  };
+  let cardioAct = 1, cardioMins = 20, cardioInt = null, cardioAlerted = false;
+
+  function cardioKcal(met, mins, kg) {
+    return Math.round(met * 3.5 * (kg || 80) / 200 * mins);
+  }
+
+  /* generic picker wheel — a finite list, dragged up/down like iOS */
+  function pickerWheel(labels, index, onChange, cls) {
+    const TICK = 40;
+    let val = Math.max(0, Math.min(labels.length - 1, index));
+    const wrap = el('div', 'pw' + (cls ? ' ' + cls : ''));
+    wrap.appendChild(el('i', 'pw-band'));
+    const strip = el('div', 'pw-strip');
+    labels.forEach((lb, i) => {
+      const t = el('button', 'pw-item', lb);
+      t.dataset.i = i;
+      strip.appendChild(t);
+    });
+    wrap.appendChild(strip);
+
+    const offFor = i => -(i * TICK + TICK / 2);
+    const mark = () => [...strip.children].forEach((t, i) => t.classList.toggle('sel', i === val));
+    const slide = anim => {
+      strip.style.transition = anim ? 'transform .18s ease-out' : 'none';
+      strip.style.transform = `translateY(${offFor(val)}px)`;
+    };
+    const setVal = (i, anim) => {
+      i = Math.max(0, Math.min(labels.length - 1, i));
+      if (i !== val) haptic();
+      val = i;
+      mark(); slide(anim);
+      onChange(val);
+    };
+
+    let sy = null, so = 0, lastN = 0;
+    wrap.style.touchAction = 'none';
+    wrap.addEventListener('pointerdown', e => {
+      sy = e.clientY; so = offFor(val); lastN = 0;
+      strip.style.transition = 'none';
+      wrap.setPointerCapture(e.pointerId);
+    });
+    wrap.addEventListener('pointermove', e => {
+      if (sy === null) return;
+      const dy = e.clientY - sy;
+      strip.style.transform = `translateY(${so + dy}px)`;
+      const n = Math.round(dy / TICK);
+      if (n !== lastN) { lastN = n; haptic(); }
+    });
+    const end = e => {
+      if (sy === null) return;
+      const dy = e.clientY - sy;
+      sy = null;
+      if (Math.abs(dy) < 5) {
+        slide(false);
+        const t = document.elementFromPoint(e.clientX, e.clientY);
+        const item = t && t.closest ? t.closest('.pw-item') : null;
+        if (item) setVal(+item.dataset.i, true);
+        return;
+      }
+      setVal(val - Math.round(dy / TICK), true);
+    };
+    wrap.addEventListener('pointerup', end);
+    wrap.addEventListener('pointercancel', () => { if (sy !== null) { sy = null; slide(false); } });
+
+    mark(); slide(false);
+    return wrap;
+  }
+
+  async function renderCardio() {
+    const root = $('#view-cardio');
+    root.innerHTML = '';
+    clearInterval(cardioInt);
+    const [logs, bw] = await Promise.all([DB.all('cardio'), DB.all('bodyweight')]);
+    logs.sort((a, b) => b.ts - a.ts);
+    const kg = bw.length ? [...bw].sort((a, b) => a.ts - b.ts).pop().kg : 80;
+    const lc = liveCardio.get();
+
+    const head = el('header', 't-head');
+    const hl = el('div');
+    const wkLogs = logs.filter(x => sameWeek(x.date));
+    hl.appendChild(el('div', 't-date',
+      wkLogs.length
+        ? `${wkLogs.reduce((a, x) => a + x.minutes, 0)} min · ${wkLogs.reduce((a, x) => a + x.calories, 0)} kcal this week`
+        : 'Nothing logged this week'));
+    hl.appendChild(el('h1', 't-title', 'Cardio'));
+    head.appendChild(hl);
+    root.appendChild(head);
+
+    if (lc) {
+      // ---- live session ----
+      const total = lc.mins * 60;
+      const left = () => Math.max(0, Math.ceil((lc.startedAt + total * 1000 - Date.now()) / 1000));
+      const done = () => Math.min(total, Math.round((Date.now() - lc.startedAt) / 1000));
+      const type = CARDIO_TYPES.find(t => t.name === lc.act) || CARDIO_TYPES[0];
+
+      const live = el('div', 'cd-live');
+      live.appendChild(el('div', 'cd-act', lc.act));
+      const clock = el('div', 'cd-clock num', fmtClock(left()));
+      live.appendChild(clock);
+      const sub = el('div', 'cd-sub num', '');
+      live.appendChild(sub);
+      const bar = el('div', 'rest-bar');
+      const fill = el('div');
+      bar.appendChild(fill);
+      live.appendChild(bar);
+      root.appendChild(live);
+
+      const acts = el('div', 'block-actions');
+      const fin = el('button', 'btn-cta big', 'Finish & save');
+      fin.style.cssText = 'flex:1;width:auto;align-self:stretch;margin-top:0';
+      fin.onclick = () => finishCardio(false);
+      const stop = el('button', 'btn-ghost', 'Discard');
+      stop.onclick = async () => {
+        if (!await appConfirm({ title: 'Discard this cardio?', body: 'Nothing will be saved.', ok: 'Discard', cancel: 'Keep going', warn: true })) return;
+        liveCardio.set(null);
+        renderCardio();
+      };
+      acts.append(fin, stop);
+      root.appendChild(acts);
+
+      const tick = () => {
+        const l = left(), d = done();
+        clock.textContent = fmtClock(l);
+        sub.textContent = `${Math.round(d / 60)} of ${lc.mins} min · ~${cardioKcal(type.met, d / 60, kg)} kcal`;
+        fill.style.width = (100 - Math.min(100, d / total * 100)) + '%';
+        if (l <= 0 && !cardioAlerted) {
+          cardioAlerted = true;
+          beep();
+          if (navigator.vibrate) navigator.vibrate([300, 120, 300]);
+          clearInterval(cardioInt);
+          finishCardio(true);
+        }
+      };
+      tick();
+      cardioInt = setInterval(tick, 500);
+    } else {
+      // ---- setup: two wheels ----
+      cardioAlerted = false;
+      const minsList = Array.from({ length: 24 }, (_, i) => (i + 1) * 5);
+      if (!minsList.includes(cardioMins)) cardioMins = 20;
+
+      const kcalEl = el('div', 'cd-kcal num');
+      const upd = () => {
+        const t = CARDIO_TYPES[cardioAct];
+        kcalEl.textContent = `~${cardioKcal(t.met, cardioMins, kg)} kcal`;
+      };
+
+      const wheels = el('div', 'cd-wheels');
+      const c1 = el('div', 'cd-col');
+      c1.appendChild(el('div', 'micro', 'Activity'));
+      c1.appendChild(pickerWheel(CARDIO_TYPES.map(t => t.name), cardioAct, i => { cardioAct = i; upd(); }, 'wide'));
+      wheels.appendChild(c1);
+      const c2 = el('div', 'cd-col');
+      c2.appendChild(el('div', 'micro', 'Minutes'));
+      c2.appendChild(pickerWheel(minsList.map(String), minsList.indexOf(cardioMins),
+        i => { cardioMins = minsList[i]; upd(); }));
+      wheels.appendChild(c2);
+      root.appendChild(wheels);
+
+      upd();
+      root.appendChild(kcalEl);
+
+      const start = el('button', 'btn-cta big');
+      start.style.width = '100%';
+      start.appendChild(svgIcon(PLAY, 13));
+      start.appendChild(document.createTextNode(' Start cardio'));
+      start.onclick = () => {
+        liveCardio.set({ act: CARDIO_TYPES[cardioAct].name, mins: cardioMins, startedAt: Date.now() });
+        cardioAlerted = false;
+        renderCardio();
+      };
+      root.appendChild(start);
+    }
+
+    // ---- history ----
+    if (logs.length) {
+      root.appendChild(el('div', 'micro', 'History'));
+      const rail = el('div', 'plan-rail');
+      logs.slice(0, 20).forEach(x => {
+        const r = el('div', 'hrow');
+        const node = el('i', 'ex-node small');
+        node.appendChild(el('i'));
+        r.appendChild(node);
+        const c = el('div', 'hrow-body');
+        c.appendChild(el('div', 'hrow-date', dateOf(x.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })));
+        c.appendChild(el('div', 'hrow-name', x.activity));
+        c.appendChild(el('div', 'hrow-meta num', `${x.minutes} min · ${x.calories} kcal`));
+        r.appendChild(c);
+        const del = el('button', 'hist-del', '✕');
+        del.onclick = async e => {
+          e.stopPropagation();
+          if (!confirm(`Delete ${x.activity} from ${x.date}?`)) return;
+          await DB.del('cardio', x.id);
+          renderCardio();
+        };
+        r.appendChild(del);
+        rail.appendChild(r);
+      });
+      root.appendChild(rail);
+    }
+  }
+
+  async function finishCardio(auto) {
+    const lc = liveCardio.get();
+    if (!lc) return;
+    clearInterval(cardioInt);
+    const total = lc.mins * 60;
+    const secs = Math.min(total, Math.max(1, Math.round((Date.now() - lc.startedAt) / 1000)));
+    const mins = Math.max(1, Math.round(secs / 60));
+    const bw = await DB.all('bodyweight');
+    const kg = bw.length ? [...bw].sort((a, b) => a.ts - b.ts).pop().kg : 80;
+    const type = CARDIO_TYPES.find(t => t.name === lc.act) || CARDIO_TYPES[0];
+    const kcal = cardioKcal(type.met, mins, kg);
+    const ok = await appConfirm({
+      title: auto ? 'Time!' : 'Finish cardio?',
+      body: `${lc.act} · ${mins} min · about ${kcal} kcal burned.`,
+      ok: 'Save', cancel: auto ? 'Discard' : 'Keep going'
+    });
+    if (!ok) {
+      if (auto) liveCardio.set(null);
+      renderCardio();
+      return;
+    }
+    await DB.put('cardio', {
+      id: DB.uid(), date: todayStr(), ts: Date.now(),
+      activity: lc.act, minutes: mins, calories: kcal
+    });
+    liveCardio.set(null);
+    renderCardio();
   }
 
   /* ============================================================
