@@ -247,7 +247,7 @@ body { font-size: 14px; }
   padding: 14px 12px calc(12px + min(var(--safe-bottom), 34px));
 }
 .tabbar button {
-  width: 64px; background: none; border: none;
+  flex: 1; min-width: 0; max-width: 72px; background: none; border: none;
   display: flex; flex-direction: column; align-items: center; gap: 5px;
   font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
   color: var(--t5);
@@ -719,6 +719,40 @@ body { font-size: 14px; }
 .pv-name { font-size: 14px; font-weight: 600; }
 .pv-meta { font-size: 12px; color: var(--t5); margin-top: 2px; font-variant-numeric: tabular-nums; }
 .pv-go { margin-left: auto; color: var(--t6); font-size: 16px; padding-right: 2px; }
+
+/* ============ CARDIO ============ */
+.cd-wheels { display: flex; gap: 12px; }
+.cd-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.cd-col:last-child { flex: 0 0 96px; }
+.pw {
+  position: relative; height: 200px; overflow: hidden; cursor: grab;
+  border-radius: 18px; background: var(--sunken); border: 1px solid var(--hair);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24%, #000 76%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 24%, #000 76%, transparent);
+}
+.pw:active { cursor: grabbing; }
+.pw-band {
+  position: absolute; top: 50%; margin-top: -20px; left: 6px; right: 6px; height: 40px;
+  border-radius: 12px; background: rgba(206,107,61,.14); border: 1px solid rgba(206,107,61,.3); z-index: 0;
+}
+.pw-strip { position: absolute; top: 50%; left: 0; right: 0; z-index: 1; will-change: transform; }
+.pw-item {
+  height: 40px; width: 100%; background: none; border: none; padding: 0 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 600; color: var(--t6);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pw.wide .pw-item { font-size: 15px; }
+.pw-item.sel { font-size: 17px; font-weight: 800; color: var(--t1); letter-spacing: -.01em; }
+.cd-kcal { text-align: center; font-size: 15px; font-weight: 800; color: var(--lime); letter-spacing: .04em; }
+.cd-live {
+  border-radius: 22px; padding: 22px 20px; display: flex; flex-direction: column; gap: 10px;
+  background: rgba(206,107,61,.08); border: 1px solid rgba(206,107,61,.32); text-align: center;
+}
+.cd-act { font-size: 10px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--lime); }
+.cd-clock { font-size: 62px; font-weight: 800; line-height: .9; letter-spacing: -.05em; }
+.cd-sub { font-size: 12.5px; font-weight: 600; color: var(--t3); }
+.cd-live .rest-bar { margin-top: 4px; }
 
 /* ============ STATS (v5) ============ */
 .stat-graphs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
