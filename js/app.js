@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v156';
+  const APP_VERSION = 'v157';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2353,6 +2353,11 @@
       L.push('MOVEMENTS TO AVOID: ' + avoiding.join(', '));
       L.push('(Please substitute rather than remove — keep every movement pattern covered.)');
     }
+    {
+      const own = getEquip();
+      const missing = (window.EQUIPMENT || []).filter(q => !q.always && !own.has(q.key)).map(q => q.label);
+      if (missing.length) { L.push(''); L.push('NO ACCESS TO: ' + missing.join(', ')); }
+    }
     L.push('');
     L.push('Please review this training history and plan my next block accordingly (same weekly frequency unless you advise otherwise).');
     const text = L.join('\n');
@@ -2371,7 +2376,7 @@
     const payload = {
       app: 'rackside', version: 5, exportedAt: new Date().toISOString(),
       exercises: exs, plans: pls, sessions: sess, workouts: wks, bodyweight: bws, cardio: cds,
-      injuries: [...getInjuries()], injuriesOn: injEnabled()
+      injuries: [...getInjuries()], injuriesOn: injEnabled(), equip: [...getEquip()]
     };
     const file = new File([JSON.stringify(payload)], `rackside-backup-${todayStr()}.json`, { type: 'application/json' });
     try {
@@ -2401,6 +2406,7 @@
     }
     if (Array.isArray(data.injuries)) setInjuries(new Set(data.injuries));
     if (typeof data.injuriesOn === 'boolean') localStorage.setItem('injuriesOn', data.injuriesOn ? '1' : '0');
+    if (Array.isArray(data.equip)) setEquip(new Set(data.equip));
     alert(`Restored ${n} records from ${data.exportedAt ? data.exportedAt.slice(0, 10) : 'backup'}.`);
     renderTab();
   }
@@ -2644,6 +2650,31 @@
   /* master switch — with the log off nothing is hidden and the dial sits frozen */
   const injEnabled = () => localStorage.getItem('injuriesOn') === '1';
 
+  /* Equipment — the kit you own. Everything is on until you say otherwise,
+     and bodyweight can never be switched off. */
+  const equipKeys = () => (window.EQUIPMENT || []).map(q => q.key);
+  function getEquip() {
+    const raw = localStorage.getItem('equip');
+    if (raw === null) return new Set(equipKeys());
+    try {
+      const s = new Set(JSON.parse(raw));
+      (window.EQUIPMENT || []).forEach(q => { if (q.always) s.add(q.key); });
+      return s;
+    } catch { return new Set(equipKeys()); }
+  }
+  const setEquip = set => localStorage.setItem('equip', JSON.stringify([...set]));
+  function equipOf(ex) {
+    const name = typeof ex === 'string' ? ex : ex.name;
+    const m = (window.EXERCISE_EQUIP || {})[name];
+    if (m) return m;
+    for (const [re, kit] of (window.EQUIP_INFER || [])) if (re.test(name)) return kit;
+    return ['bodyweight'];
+  }
+  const equipOK = ex => {
+    const own = getEquip();
+    return equipOf(ex).every(k => own.has(k));
+  };
+
   /* What an exercise is: [pattern, ...stress tags]. Mapped first, then read
      from the name, then from the muscle group — so nothing slips through
      untagged just because it was typed in by hand. */
@@ -2751,8 +2782,10 @@
     root.innerHTML = '';
     const all = pmExerciseList();
     const tags = injuryTags();
-    const lib = all.filter(x => !isRisky(x, tags));
-    const hiddenN = all.length - lib.length;
+    const kitOK = all.filter(equipOK);
+    const noKitN = all.length - kitOK.length;
+    const lib = kitOK.filter(x => !isRisky(x, tags));
+    const hiddenN = kitOK.length - lib.length;
     if (pmEx >= lib.length) pmEx = 0;
 
     /* anything already in the plan that a new injury rules out is swapped for
@@ -2760,10 +2793,10 @@
     const swaps = [];
     const stuck = [];
     pmDays.forEach(d => d.items.forEach(it => {
-      if (!isRisky(all.find(x => x.name === it.name) || it.name, tags)) return;
+      const known = all.find(x => x.name === it.name) || it.name;
+      if (!isRisky(known, tags) && equipOK(known)) return;
       const taken = new Set(d.items.map(x => x.name));
-      const sub = substituteFor(all.find(x => x.name === it.name) || it.name,
-        lib.filter(c => !taken.has(c.name)));
+      const sub = substituteFor(known, lib.filter(c => !taken.has(c.name)));
       if (sub) {
         swaps.push(`${it.name} → ${sub.name}`);
         it.swappedFrom = it.name;
@@ -2885,6 +2918,8 @@
         ? `${hiddenN} hidden — ${flagged.join(', ')}`
         : 'Spin to the sore area, then tap Add')
       : 'No injuries · every exercise available'));
+    if (noKitN) root.appendChild(el('div', 'inj-note',
+      `${noKitN} more need kit you have switched off — Block Master › Equipment`));
     if (swaps.length) root.appendChild(el('div', 'inj-swap', 'Swapped: ' + swaps.join(' · ')));
     if (stuck.length) root.appendChild(el('div', 'inj-swap warn',
       'No safe stand-in for ' + stuck.join(', ') + ' — remove it or drop that injury.'));
@@ -3502,19 +3537,108 @@
   let libFilter = 'All', libQuery = '';
   const LIB_GROUPS = ['All', ...new Set((window.EXERCISE_LIBRARY || []).map(i => i.group))];
 
+  /* Block Master — building a block, the exercises it can draw on, and the
+     kit you actually have, all in one place because they decide each other. */
+  let masterTab = 'new';
+
   function renderLibrary() {
     const root = $('#view-library');
     root.innerHTML = '';
+    const owned = getEquip();
+    const usable = (window.EXERCISE_LIBRARY || []).filter(equipOK);
     const head = el('header', 't-head');
     const hl = el('div');
-    hl.appendChild(el('div', 't-date', `${exercises.length} in my list · ${(window.EXERCISE_LIBRARY || []).length} in catalog`));
-    hl.appendChild(el('h1', 't-title', 'Library'));
+    hl.appendChild(el('div', 't-date',
+      `${usable.length} of ${(window.EXERCISE_LIBRARY || []).length} exercises · ${owned.size} kit`));
+    hl.appendChild(el('h1', 't-title', 'Block Master'));
     head.appendChild(hl);
-    const add = el('button', 'chip-btn', '＋ Own');
-    add.onclick = () => openExerciseForm(null);
-    head.appendChild(add);
     root.appendChild(head);
 
+    const seg = el('div', 'seg-toggle master-seg');
+    [['new', 'New block'], ['exercises', 'Library'], ['equipment', 'Equipment']].forEach(([k, lbl]) => {
+      const b = el('button', masterTab === k ? 'sel' : '', lbl);
+      b.onclick = () => { masterTab = k; renderLibrary(); };
+      seg.appendChild(b);
+    });
+    root.appendChild(seg);
+
+    if (masterTab === 'new') return renderMasterNew(root);
+    if (masterTab === 'equipment') return renderMasterEquip(root);
+    renderMasterLib(root);
+  }
+
+  function renderMasterNew(root) {
+    const start = el('button', 'btn-cta big');
+    start.style.width = '100%';
+    start.textContent = '＋ Build a new block';
+    start.onclick = () => openPlanMaker();
+    root.appendChild(start);
+    const live = activePlan();
+    const q = queuedPlans();
+    if (!plans.length) {
+      root.appendChild(el('div', 'coach-note',
+        'Three dials — sets, exercise, reps — and the block builds itself. Injuries and the kit you own decide what it can pick from.'));
+      return;
+    }
+    root.appendChild(el('div', 'micro', 'Your blocks'));
+    const list = el('div', 'ex-index');
+    [...plans].sort((a, b) => b.createdAt - a.createdAt).forEach(p => {
+      const r = el('div', 'exi-row');
+      const state = p === live ? 'Running' : (p.queued ? 'Queued' : (planFinished(p) ? 'Done' : 'Idle'));
+      r.appendChild(el('div', 'exi-num', state === 'Running' ? '▶' : (state === 'Queued' ? '⋯' : '·')));
+      const nm = el('div', 'exi-name', p.name);
+      nm.appendChild(el('span', 'exi-sub', `${p.days.length} day${p.days.length === 1 ? '' : 's'} · ${state}`));
+      r.appendChild(nm);
+      list.appendChild(r);
+    });
+    root.appendChild(list);
+  }
+
+  function renderMasterEquip(root) {
+    const owned = getEquip();
+    root.appendChild(el('div', 'coach-note',
+      'Switch off anything you have not got. The block builder will not pick an exercise that needs it.'));
+    const grid = el('div', 'equip-grid');
+    (window.EQUIPMENT || []).forEach(q => {
+      const on = q.always || owned.has(q.key);
+      const b = el('button', 'equip-tile' + (on ? ' on' : '') + (q.always ? ' fixed' : ''));
+      const img = document.createElement('img');
+      img.src = `icons/equip/${q.key}.png`;
+      img.alt = '';
+      img.loading = 'lazy';
+      b.appendChild(img);
+      b.appendChild(el('span', 'equip-lbl', q.label));
+      const n = (window.EXERCISE_LIBRARY || []).filter(x => equipOf(x).includes(q.key)).length;
+      b.appendChild(el("span", "equip-n", q.always ? "always" : `${n} move${n === 1 ? "" : "s"}`));
+      if (!q.always) b.onclick = () => {
+        const s = getEquip();
+        s.has(q.key) ? s.delete(q.key) : s.add(q.key);
+        setEquip(s);
+        haptic();
+        renderLibrary();
+      };
+      grid.appendChild(b);
+    });
+    root.appendChild(grid);
+    const all = (window.EXERCISE_LIBRARY || []);
+    const off = all.length - all.filter(equipOK).length;
+    const acts = el('div', 'equip-acts');
+    const allBtn = el('button', 'btn-ghost', 'Select all');
+    allBtn.onclick = () => { setEquip(new Set((window.EQUIPMENT || []).map(q => q.key))); renderLibrary(); };
+    const noneBtn = el('button', 'btn-ghost', 'Home only');
+    noneBtn.onclick = () => { setEquip(new Set(['bodyweight', 'mat'])); renderLibrary(); };
+    acts.appendChild(allBtn);
+    acts.appendChild(noneBtn);
+    root.appendChild(acts);
+    root.appendChild(el('div', 'inj-note', off
+      ? `${off} exercises need kit you have switched off`
+      : 'Everything in the catalog is available'));
+  }
+
+  function renderMasterLib(root) {
+    const add = el('button', 'chip-btn wide', '＋ Add your own exercise');
+    add.onclick = () => openExerciseForm(null);
+    root.appendChild(add);
     const search = el('input', 'search-input');
     search.type = 'search';
     search.placeholder = 'Search exercises…';
