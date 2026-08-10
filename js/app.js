@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v172';
+  const APP_VERSION = 'v173';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -214,7 +214,7 @@
   $('#media-viewer-close').onclick = () => { $('#media-viewer-body').innerHTML = ''; $('#media-viewer').hidden = true; };
 
   /* ---------------- navigation ---------------- */
-  const VIEWS = ['today', 'plan', 'cardio', 'stats', 'library', 'profile', 'workout', 'summary', 'detail', 'planmaker'];
+  const VIEWS = ['today', 'plan', 'cardio', 'stats', 'library', 'profile', 'workout', 'summary', 'detail', 'planmaker', 'about'];
   function show(view) {
     VIEWS.forEach(v => $('#view-' + v).hidden = v !== view);
     const isTab = ['today', 'plan', 'cardio', 'stats', 'library', 'profile'].includes(view);
@@ -2063,6 +2063,71 @@
       root.appendChild(emp);
     }
   }
+  /* Horizontal option rail — the ruler language applied to a short list of
+     choices. Swipe it or tap an option; it snaps to the nearest and ticks. */
+  function optionRail(labels, index, onChange) {
+    const TICK = 96;
+    let val = Math.max(0, Math.min(labels.length - 1, index < 0 ? 0 : index));
+    const wrap = el('div', 'or-rail');
+    wrap.appendChild(el('i', 'or-ind'));
+    const strip = el('div', 'or-strip');
+    labels.forEach((lb, i) => {
+      const t = el('button', 'or-item');
+      t.dataset.i = i;
+      t.style.width = TICK + 'px';
+      t.appendChild(el('i'));
+      t.appendChild(el('span', 'or-lbl', lb));
+      strip.appendChild(t);
+    });
+    wrap.appendChild(strip);
+
+    const offFor = i => -(i * TICK + TICK / 2);
+    const mark = () => [...strip.children].forEach((t, i) => t.classList.toggle('sel', i === val));
+    const put = off => { strip.style.transform = `translateX(${off}px)`; };
+    const slide = anim => {
+      strip.style.transition = anim ? 'transform .2s ease-out' : 'none';
+      put(offFor(val));
+    };
+    const setVal = (i, anim) => {
+      i = Math.max(0, Math.min(labels.length - 1, i));
+      if (i !== val) haptic();
+      val = i; mark(); slide(anim); onChange(val);
+    };
+
+    let sx = null, so = 0, lastN = 0;
+    wrap.style.touchAction = 'none';
+    wrap.addEventListener('pointerdown', e => {
+      sx = e.clientX; so = offFor(val); lastN = 0;
+      strip.style.transition = 'none';
+      wrap.setPointerCapture(e.pointerId);
+    });
+    wrap.addEventListener('pointermove', e => {
+      if (sx === null) return;
+      const dx = e.clientX - sx;
+      put(so + dx);
+      const n = Math.round(dx / TICK);
+      if (n !== lastN) { lastN = n; haptic(); }
+    });
+    const end = e => {
+      if (sx === null) return;
+      const dx = e.clientX - sx;
+      sx = null;
+      if (Math.abs(dx) < 5) {
+        slide(false);
+        const t = document.elementFromPoint(e.clientX, e.clientY);
+        const item = t && t.closest ? t.closest('.or-item') : null;
+        if (item) setVal(+item.dataset.i, true);
+        return;
+      }
+      setVal(val - Math.round(dx / TICK), true);
+    };
+    wrap.addEventListener('pointerup', end);
+    wrap.addEventListener('pointercancel', () => { if (sx !== null) { sx = null; slide(false); } });
+
+    mark(); slide(false);
+    return wrap;
+  }
+
   /* ---------------- about you ----------------
      A handful of one-time answers that actually change what a block says.
      Stored on this device like everything else. */
@@ -2110,6 +2175,122 @@
     ? Math.round(8 + items.reduce((a, it) => a + it.sets * 2.5, 0))
     : 0;
 
+  /* The About you screen — every answer on a slide, nothing to type. */
+  function openAbout() { show('about'); renderAbout(); }
+
+  function renderAbout() {
+    const root = $('#view-about');
+    root.innerHTML = '';
+    const pr = getProfile();
+
+    const head = el('div', 'w-head pm-head');
+    const hl = el('div', 'w-left');
+    hl.appendChild(el('div', 't-date', 'Shapes every block you build'));
+    hl.appendChild(el('h1', 'pm-name-static', 'About you'));
+    head.appendChild(hl);
+    const close = el('button', 'w-chip', '✕');
+    close.onclick = () => { show('profile'); renderTab(); };
+    head.appendChild(close);
+    root.appendChild(head);
+
+    /* one block per answer: label, live readout, slide */
+    const slide = (label, readout, node, hint) => {
+      const b = el('div', 'ab-row');
+      const h = el('div', 'ab-head');
+      h.appendChild(el('div', 'micro', label));
+      h.appendChild(readout);
+      b.appendChild(h);
+      b.appendChild(node);
+      if (hint) b.appendChild(el('div', 'ab-hint', hint));
+      root.appendChild(b);
+      return b;
+    };
+
+    // ---- choices ----
+    const goalOut = el('div', 'ab-val' + (pr.goal ? '' : ' unset'),
+      (GOALS.find(g => g.key === pr.goal) || {}).reps || 'not set');
+    slide('Goal', goalOut,
+      optionRail(GOALS.map(g => g.label), GOALS.findIndex(g => g.key === pr.goal), i => {
+        setProfile({ goal: GOALS[i].key });
+        goalOut.textContent = GOALS[i].reps; goalOut.classList.remove('unset');
+        goalHint.textContent = GOALS[i].note;
+      }));
+    const goalHint = el('div', 'ab-hint', (GOALS.find(g => g.key === pr.goal) || {}).note
+      || 'Sets the rep range a new block starts on');
+    root.appendChild(goalHint);
+
+    const lvOut = el('div', 'ab-val' + (pr.level ? '' : ' unset'),
+      (LEVELS.find(l => l.key === pr.level) || {}).label || 'not set');
+    slide('Experience', lvOut,
+      optionRail(LEVELS.map(l => l.label), LEVELS.findIndex(l => l.key === pr.level), i => {
+        setProfile({ level: LEVELS[i].key });
+        lvOut.textContent = LEVELS[i].label; lvOut.classList.remove('unset');
+        lvHint.textContent = LEVELS[i].note;
+      }));
+    const lvHint = el('div', 'ab-hint', (LEVELS.find(l => l.key === pr.level) || {}).note
+      || 'How fast the weight should climb');
+    root.appendChild(lvHint);
+
+    const sexOut = el('div', 'ab-val' + (pr.sex ? '' : ' unset'),
+      pr.sex === 'female' ? 'Female' : pr.sex === 'male' ? 'Male' : 'not set');
+    slide('Sex', sexOut,
+      optionRail(['Male', 'Female'], pr.sex === 'female' ? 1 : pr.sex === 'male' ? 0 : -1, i => {
+        setProfile({ sex: i ? 'female' : 'male' });
+        sexOut.textContent = i ? 'Female' : 'Male';
+        renderAbout();                       // hips appear or disappear
+      }), 'Used for the body-fat estimate');
+
+    // ---- numbers, all on rulers ----
+    const num = (key, label, unit, def, step, min, decimals, hint) => {
+      const out = el('div', 'ab-val');
+      let set = pr[key] != null;
+      const paint = v => {
+        out.textContent = (decimals ? v.toFixed(decimals) : String(v)) + ' ' + unit + (set ? '' : ' · not set');
+        out.classList.toggle('unset', !set);
+      };
+      const start = set ? +pr[key] : def;
+      paint(start);
+      const r = rulerScale({
+        value: start, step, tickW: 30, span: 14, min,
+        labelEvery: decimals ? 2 : 5, majorEvery: decimals ? 2 : 5, decimals,
+        dragOnly: true, cls: decimals ? 'fine' : '',
+        onChange: v => { set = true; paint(v); setProfile({ [key]: v }); bfPaint(); }
+      });
+      slide(label, out, r.el, hint);
+    };
+    num('sessionMins', 'Time per session', 'min', 60, 5, 15, 0, 'Each day gets a clock in the builder');
+    num('age', 'Age', 'yrs', 30, 1, 12, 0);
+    num('heightCm', 'Height', 'cm', 175, 1, 100, 0);
+    num('waistCm', 'Waist', 'cm', 85, 0.5, 40, 1, 'At the navel, tape level, breathe out');
+    num('neckCm', 'Neck', 'cm', 38, 0.5, 20, 1, 'Just below the Adam\'s apple');
+    if (pr.sex === 'female') num('hipCm', 'Hips', 'cm', 95, 0.5, 50, 1, 'Widest point');
+
+    const bfEl = el('div', 'ab-bf');
+    const bfPaint = () => {
+      const cur = getProfile();
+      const bf = navyBodyFat(cur);
+      if (bf) {
+        bfEl.textContent = `Body fat ≈ ${bf}%  ·  tape beats the bathroom scale — watch the trend`;
+      } else {
+        const need = [['heightCm', 'height'], ['waistCm', 'waist'], ['neckCm', 'neck']]
+          .concat(cur.sex === 'female' ? [['hipCm', 'hips']] : [])
+          .filter(([k]) => cur[k] == null).map(([, n]) => n);
+        bfEl.textContent = need.length
+          ? 'Body fat needs ' + need.join(', ')
+          : 'Body fat needs your sex set';
+      }
+      bfEl.classList.toggle('on', !!bf);
+    };
+    bfPaint();
+    root.appendChild(bfEl);
+
+    const done = el('button', 'btn-cta big');
+    done.style.width = '100%';
+    done.textContent = 'Done';
+    done.onclick = () => { show('profile'); renderTab(); };
+    root.appendChild(done);
+  }
+
   /* ============================================================
      PROFILE (overview + data controls)
      ============================================================ */
@@ -2140,69 +2321,28 @@
     grid.appendChild(prC);
     root.appendChild(grid);
 
-    // about you — the answers that change what a block says
+    // about you — one row here, the whole thing on its own screen
     root.appendChild(el('div', 'month-label', 'About you'));
-    const you = el('div', 'card you-card');
-    const pr = getProfile();
-
-    const row = (label, node, hint) => {
-      const r = el('div', 'you-row');
-      const h = el('div', 'you-head');
-      h.appendChild(el('div', 'micro', label));
-      if (hint) h.appendChild(el('div', 'you-hint', hint));
-      r.appendChild(h);
-      r.appendChild(node);
-      return r;
-    };
-
-    you.appendChild(row('Goal',
-      segToggle(GOALS.map(g => [g.key, g.label]), pr.goal || '',
-        k => { setProfile({ goal: k }); renderProfile(); }, 'you-seg'),
-      goalOf() ? `${goalOf().reps} reps · ${goalOf().note}` : 'Sets the rep ranges a new block starts from'));
-
-    you.appendChild(row('Experience',
-      segToggle(LEVELS.map(l => [l.key, l.label]), pr.level || '',
-        k => { setProfile({ level: k }); renderProfile(); }, 'you-seg'),
-      (LEVELS.find(l => l.key === pr.level) || {}).note || 'How fast the weight should climb'));
-
-    you.appendChild(row('Time per session',
-      segToggle(SESSION_MINS.map(m => [String(m), m + 'm']), String(pr.sessionMins || ''),
-        k => { setProfile({ sessionMins: +k }); renderProfile(); }, 'you-seg'),
-      pr.sessionMins ? 'The builder warns when a day runs over' : 'Decides how many exercises fit a day'));
-
-    you.appendChild(row('Sex',
-      segToggle([['male', 'Male'], ['female', 'Female']], pr.sex || '',
-        k => { setProfile({ sex: k }); renderProfile(); }, 'you-seg'),
-      'Used for the body-fat estimate and calories'));
-
-    const nums = el('div', 'you-nums');
-    const numField = (key, label, unit, min, max) => {
-      const f = el('label', 'you-num');
-      f.appendChild(el('span', null, label));
-      const i = document.createElement('input');
-      i.type = 'number'; i.inputMode = 'decimal'; i.placeholder = unit;
-      i.min = min; i.max = max;
-      if (pr[key] != null) i.value = pr[key];
-      i.onchange = () => {
-        const v = parseFloat(i.value);
-        setProfile({ [key]: Number.isFinite(v) && v >= min && v <= max ? v : null });
-        renderProfile();
-      };
-      f.appendChild(i);
-      nums.appendChild(f);
-    };
-    numField('age', 'Age', 'yrs', 12, 100);
-    numField('heightCm', 'Height', 'cm', 100, 230);
-    numField('waistCm', 'Waist', 'cm', 40, 200);
-    numField('neckCm', 'Neck', 'cm', 20, 70);
-    if (pr.sex === 'female') numField('hipCm', 'Hips', 'cm', 50, 200);
-    you.appendChild(row('Measurements', nums, 'Waist and neck give a body-fat estimate'));
-
-    const bf = navyBodyFat(pr);
-    you.appendChild(el('div', 'you-bf', bf
-      ? `Body fat ≈ ${bf}%  ·  tape beats the bathroom scale, watch the trend`
-      : 'Add height, waist and neck for a body-fat estimate'));
-    root.appendChild(you);
+    {
+      const pr = getProfile();
+      const g = GOALS.find(x => x.key === pr.goal), lv = LEVELS.find(x => x.key === pr.level);
+      const bits = [];
+      if (g) bits.push(g.label);
+      if (lv) bits.push(lv.label);
+      if (pr.sessionMins) bits.push(pr.sessionMins + ' min');
+      const bf = navyBodyFat(pr);
+      if (bf) bits.push(bf + '% fat');
+      const open = el('button', 'card you-open');
+      const left = el('div');
+      left.appendChild(el('div', 'you-open-t', bits.length ? bits.join(' · ') : 'Not set up yet'));
+      left.appendChild(el('div', 'you-open-s', bits.length
+        ? 'Goal, experience, session length and measurements'
+        : 'Answer six things once and blocks come out tailored'));
+      open.appendChild(left);
+      open.appendChild(el('div', 'you-open-go', '›'));
+      open.onclick = () => openAbout();
+      root.appendChild(open);
+    }
 
     // preferred training days
     const plan = activePlan();
