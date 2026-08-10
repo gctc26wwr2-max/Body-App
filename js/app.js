@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v130';
+  const APP_VERSION = 'v131';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2032,73 +2032,6 @@
     }
     if (!planRailShared && workouts.length) root.appendChild(hRail);
 
-    // last session comparison — closes the page
-    if (workouts.length >= 2) {
-      const last = workouts[0];
-      const prev = workouts.find(x => x.name === last.name && x.id !== last.id);
-      if (prev) {
-        const c2 = el('div', 'cmp-flat');
-        const h = el('div', 'cmp-head');
-        h.appendChild(el('div', 'a', `Last ${last.name} vs previous`));
-        h.appendChild(el('div', 'b', last.duration + ' min'));
-        c2.appendChild(h);
-        const g = el('div', 'cmp-grid');
-        ['Exercise', 'Best set', 'Volume', 'Δ'].forEach(t => g.appendChild(el('div', 'h', t)));
-        const lastSess = sessions.filter(s => s.date === last.date && s.planId === last.planId);
-        const prevSess = sessions.filter(s => s.date === prev.date && s.planId === prev.planId);
-        for (const s of lastSess.slice(0, 6)) {
-          const ex = exercises.find(e => e.id === s.exerciseId);
-          const best = s.sets.reduce((a, x) => (x.weight || 0) > (a.weight || 0) ? x : a, s.sets[0]);
-          const vol = s.sets.reduce((a, x) => a + (x.weight || 0) * x.reps, 0);
-          const pv = prevSess.find(x => x.exerciseId === s.exerciseId);
-          const pvol = pv ? pv.sets.reduce((a, x) => a + (x.weight || 0) * x.reps, 0) : null;
-          g.appendChild(el('div', 'c name', ex ? ex.name : '—'));
-          g.appendChild(el('div', 'c best num', best.weight ? `${fmtKg(best.weight)} × ${best.reps}` : `${best.reps} reps`));
-          g.appendChild(el('div', 'c vol num', fmtKg(vol)));
-          const d = pvol !== null && pvol > 0 ? Math.round((vol - pvol) / pvol * 100) : null;
-          g.appendChild(el('div', 'c delta num' + (d === null || d === 0 ? ' none' : ''), d === null ? '—' : (d > 0 ? '+' + d + '%' : d + '%')));
-        }
-        c2.appendChild(g);
-        root.appendChild(c2);
-      }
-    }
-
-    // queued blocks waiting their turn
-    const queue = queuedPlans();
-    if (queue.length) {
-      root.appendChild(el('div', 'micro', 'Up next'));
-      queue.forEach(q => {
-        const c = el('div', 'queue-row');
-        const cc = el('div');
-        cc.appendChild(el('div', 'q-name', q.name));
-        cc.appendChild(el('div', 'q-meta num',
-          `${q.days.length}× / week · ${q.weeks} weeks · ` + q.days.map(d => d.name).join(' · ')));
-        c.appendChild(cc);
-        const go = el('button', 'q-go', 'Start now');
-        go.onclick = async () => {
-          if (!await appConfirm({
-            title: 'Start this block now?',
-            body: `"${plan ? plan.name : 'The current block'}" will be closed and this one takes over.`,
-            ok: 'Start', cancel: 'Keep waiting'
-          })) return;
-          if (plan && !planFinished(plan)) { plan.finishedAt = Date.now(); await DB.put('plans', plan); }
-          q.queued = false;
-          q.createdAt = Date.now();
-          await DB.put('plans', q);
-          renderTab();
-        };
-        c.appendChild(go);
-        const del = el('button', 'hist-del', '✕');
-        del.onclick = async () => {
-          if (!confirm(`Delete queued "${q.name}"?`)) return;
-          await DB.del('plans', q.id);
-          renderTab();
-        };
-        c.appendChild(del);
-        root.appendChild(c);
-      });
-    }
-
     // pause / delete — buttons at the very bottom of the page
     if (plan) {
       const delRow = el('div', 'block-actions');
@@ -2487,9 +2420,10 @@
   async function renderStats() {
     const root = $('#view-stats');
     root.innerHTML = '';
-    const [sessions, workouts, bw] = await Promise.all([
+    const [sessions, workoutsRaw, bw] = await Promise.all([
       DB.all('sessions'), DB.all('workouts'), DB.all('bodyweight')
     ]);
+    const workouts = workoutsRaw.sort((a, b) => b.ts - a.ts);   // newest first
     const plan = activePlan();
 
     const head = el('header', 't-head');
@@ -2595,6 +2529,34 @@
       cg.appendChild(col);
     });
     root.appendChild(cg);
+
+    // ---- last session vs the one before ----
+    if (workouts.length >= 2) {
+      const last = workouts[0];
+      const prev = workouts.find(x => x.name === last.name && x.id !== last.id);
+      if (prev) {
+        root.appendChild(el('div', 'micro', `Last ${last.name} vs previous`));
+        const c2 = el('div', 'cmp-flat');
+        const g = el('div', 'cmp-grid');
+        ['Exercise', 'Best set', 'Volume', 'Δ'].forEach(t => g.appendChild(el('div', 'h', t)));
+        const lastSess = sessions.filter(s2 => s2.date === last.date && s2.planId === last.planId);
+        const prevSess = sessions.filter(s2 => s2.date === prev.date && s2.planId === prev.planId);
+        for (const s2 of lastSess.slice(0, 6)) {
+          const ex = exercises.find(e => e.id === s2.exerciseId);
+          const best = s2.sets.reduce((a, x) => (x.weight || 0) > (a.weight || 0) ? x : a, s2.sets[0]);
+          const vol = s2.sets.reduce((a, x) => a + (x.weight || 0) * x.reps, 0);
+          const pv = prevSess.find(x => x.exerciseId === s2.exerciseId);
+          const pvol = pv ? pv.sets.reduce((a, x) => a + (x.weight || 0) * x.reps, 0) : null;
+          g.appendChild(el('div', 'c name', ex ? ex.name : '—'));
+          g.appendChild(el('div', 'c best num', best.weight ? `${fmtKg(best.weight)} × ${best.reps}` : `${best.reps} reps`));
+          g.appendChild(el('div', 'c vol num', fmtKg(vol)));
+          const d = pvol !== null && pvol > 0 ? Math.round((vol - pvol) / pvol * 100) : null;
+          g.appendChild(el('div', 'c delta num' + (d === null || d === 0 ? ' none' : ''), d === null ? '—' : (d > 0 ? '+' + d + '%' : d + '%')));
+        }
+        c2.appendChild(g);
+        root.appendChild(c2);
+      }
+    }
 
     // ---- recent records ----
     const prList = [];
