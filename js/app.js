@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v165';
+  const APP_VERSION = 'v166';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2242,6 +2242,25 @@
   }
 
   /* ---------------- body weight line graph (inline SVG) ---------------- */
+  /* Smooth line through the points — Catmull-Rom control points, with the
+     handles clamped to each segment's own range so the curve never bulges
+     past a peak or dips under a trough it never actually reached. */
+  function smoothPath(P) {
+    const f = n => n.toFixed(1);
+    if (P.length < 3) return P.map((p, i) => (i ? 'L' : 'M') + f(p[0]) + ' ' + f(p[1])).join(' ');
+    let d = 'M' + f(P[0][0]) + ' ' + f(P[0][1]);
+    const t = 0.22;
+    for (let i = 0; i < P.length - 1; i++) {
+      const p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || P[i + 1];
+      const loY = Math.min(p1[1], p2[1]), hiY = Math.max(p1[1], p2[1]);
+      const cy = y => Math.max(loY, Math.min(hiY, y));
+      const c1x = p1[0] + (p2[0] - p0[0]) * t, c1y = cy(p1[1] + (p2[1] - p0[1]) * t);
+      const c2x = p2[0] - (p3[0] - p1[0]) * t, c2y = cy(p2[1] - (p3[1] - p1[1]) * t);
+      d += ' C' + f(c1x) + ' ' + f(c1y) + ' ' + f(c2x) + ' ' + f(c2y) + ' ' + f(p2[0]) + ' ' + f(p2[1]);
+    }
+    return d;
+  }
+
   function bwGraphSVG(entries) {
     const W = 320, H = 116, padL = 34, padR = 12, padT = 10, padB = 20;
     const x0 = entries[0].ts, x1 = entries[entries.length - 1].ts;
@@ -2251,7 +2270,7 @@
     const X = t => padL + (t - x0) / Math.max(x1 - x0, 1) * (W - padL - padR);
     const Y = v => padT + (hi - v) / (hi - lo) * (H - padT - padB);
     const P = entries.map(e => [X(e.ts), Y(e.kg)]);
-    const line = P.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+    const line = smoothPath(P);
     const area = line + ` L${P[P.length - 1][0].toFixed(1)} ${(H - padB).toFixed(1)} L${P[0][0].toFixed(1)} ${(H - padB).toFixed(1)} Z`;
     const fmtD = ts => new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     const grid = [hi, (hi + lo) / 2, lo].map(v =>
@@ -2593,7 +2612,7 @@
     const lo = Math.min(...vals), hi = Math.max(...vals);
     const X = i => 3 + i / (vals.length - 1) * (w - 10);
     const Y = v => hi === lo ? h / 2 : 4 + (hi - v) / (hi - lo) * (h - 10);
-    const d = vals.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join(' ');
+    const d = smoothPath(vals.map((v, i) => [X(i), Y(v)]));
     const area = d + ` L${X(vals.length - 1).toFixed(1)} ${h - 2} L${X(0).toFixed(1)} ${h - 2} Z`;
     return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">` +
       `<path d="${area}" fill="rgba(206,107,61,.12)"/>` +
