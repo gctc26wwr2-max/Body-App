@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v120';
+  const APP_VERSION = 'v121';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -38,6 +38,7 @@
   let pickCallback = null;
   let pickFilter = 'All';
   let statsLift = null;
+  let planHistOpen = false;   // Plan tab shows the last few sessions until asked
   let detailReturn = null;   // where the detail screen goes back to
 
   const todayStr = () => {
@@ -1897,10 +1898,13 @@
       root.appendChild(c);
     }
 
-    // history — continues on the same timeline as the days, newest first
+    // history — continues on the same timeline as the days, newest first.
+    // Only the last few show until you ask for the rest.
     const hRail = planRailShared || el('div', 'plan-rail');
+    const HIST_SHOWN = 3;
+    const histList = planHistOpen ? workouts : workouts.slice(0, HIST_SHOWN);
     let curMonth = '';
-    workouts.forEach((w, i) => {
+    histList.forEach((w, i) => {
       const m = dateOf(w.date).toLocaleDateString('en-US', { month: 'long' });
       if (m !== curMonth) { curMonth = m; hRail.appendChild(el('div', 'month-label', m)); }
       const r = el('div', 'hrow' + (i > 4 ? ' old' : ''));
@@ -1964,6 +1968,15 @@
       wrap.appendChild(det2);
       hRail.appendChild(wrap);
     });
+    if (workouts.length > HIST_SHOWN) {
+      const more = el('div', 'text-links inset');
+      const b = el('button', null, planHistOpen
+        ? 'Show less'
+        : `Show all ${workouts.length} sessions`);
+      b.onclick = () => { planHistOpen = !planHistOpen; renderTab(); };
+      more.appendChild(b);
+      hRail.appendChild(more);
+    }
     if (!planRailShared && workouts.length) root.appendChild(hRail);
 
     // last session comparison — closes the page
