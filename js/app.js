@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v169';
+  const APP_VERSION = 'v170';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2164,8 +2164,10 @@
       dragOnly: true, onChange: commitBw
     });
     /* no tap-to-set here: the reading only moves if you actually swipe it,
-       so brushing the card on the way past leaves it alone */
+       so brushing the card on the way past leaves it alone — and the hint
+       says so, or a tap that does nothing just reads as broken */
     bwCard.appendChild(bwRuler.el);
+    bwCard.appendChild(el('div', 'bwv-hint', 'Swipe the scale to adjust'));
 
     // 30-day trend
     {
