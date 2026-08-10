@@ -814,6 +814,15 @@ body { font-size: 14px; }
   font-family: var(--cond); font-size: 22px; font-weight: 800;
   letter-spacing: -.02em; text-transform: uppercase; color: var(--t1); text-align: center;
 }
+.move-close {
+  min-width: 160px; height: 46px; padding: 0 26px; border-radius: 15px; border: none;
+  background: var(--lime); color: var(--on-accent);
+  font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+}
+.move-close:active { opacity: .78; }
+/* the corner ✕ would just be a second way out of the same screen */
+#media-viewer-body:has(.move-demo) ~ #media-viewer-close,
+#media-viewer:has(.move-demo) #media-viewer-close { display: none; }
 .pm-search {
   width: 100%; height: 40px; padding: 0 14px; border-radius: 12px;
   background: var(--sunken); border: 1px solid var(--hair); color: var(--t1);
