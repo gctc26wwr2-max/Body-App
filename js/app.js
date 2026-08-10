@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v154';
+  const APP_VERSION = 'v155';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2698,6 +2698,10 @@
       const wrap = el('div', 'move-demo');
       wrap.appendChild(demoEl(slug, null, false));
       wrap.appendChild(el('div', 'move-name', ex.name));
+      // close sits right under the clip, not away up in the corner
+      const done = el('button', 'move-close', 'Close');
+      done.onclick = () => { body.innerHTML = ''; $('#media-viewer').hidden = true; };
+      wrap.appendChild(done);
       body.appendChild(wrap);
       $('#media-viewer').hidden = false;
       return;
