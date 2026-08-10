@@ -779,17 +779,20 @@ body { font-size: 14px; }
 .cd-gauge {
   position: absolute; left: 0; top: 0; bottom: 0; width: 100%; z-index: 0;
   background: linear-gradient(90deg,
-    rgba(206,107,61,.42) 0%, rgba(206,107,61,.30) 55%, rgba(206,107,61,.14) 88%, rgba(206,107,61,0) 100%);
+    var(--lime) 0%, var(--lime) 62%, rgba(206,107,61,.55) 88%, rgba(206,107,61,0) 100%);
   transition: width .5s linear;
 }
+.cd-live .cd-clock { color: #FFF7F1; text-shadow: 0 1px 2px rgba(23,10,4,.25); }
+.cd-live .cd-sub { color: rgba(255,247,241,.85); }
 .cd-live > div { position: relative; z-index: 1; }   /* numbers stay readable on top */
 .cd-live.paused { border-color: var(--hair-8); }
 .cd-live.paused .cd-gauge {
   background: linear-gradient(90deg,
-    rgba(255,255,255,.12) 0%, rgba(255,255,255,.08) 55%, rgba(255,255,255,.03) 88%, rgba(255,255,255,0) 100%);
+    rgba(255,255,255,.14) 0%, rgba(255,255,255,.10) 62%, rgba(255,255,255,.04) 88%, rgba(255,255,255,0) 100%);
   transition: none;
 }
-.cd-live.paused .cd-clock { color: var(--t3); }
+.cd-live.paused .cd-clock { color: var(--t3); text-shadow: none; }
+.cd-live.paused .cd-sub { color: var(--t5); }
 .cd-act { font-size: 10px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--lime); }
 .cd-clock { font-size: 62px; font-weight: 800; line-height: .9; letter-spacing: -.05em; }
 .cd-sub { font-size: 12.5px; font-weight: 600; color: var(--t3); }
