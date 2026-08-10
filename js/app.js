@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v147';
+  const APP_VERSION = 'v148';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2345,10 +2345,13 @@
       L.push('CARDIO (latest):');
       for (const c of cds) L.push(`- ${c.date} · ${c.activity}${c.env ? ' (' + c.env + ')' : ''} · ${c.minutes} min · ${c.calories} kcal`);
     }
-    const inj = injEnabled() ? INJURIES.filter(i => getInjuries().has(i.key)).map(i => i.label) : [];
-    if (inj.length) {
+    const injOnNow = injEnabled() ? INJURIES.filter(i => getInjuries().has(i.key)) : [];
+    if (injOnNow.length) {
+      const avoiding = [...new Set(injOnNow.flatMap(i => i.avoid))];
       L.push('');
-      L.push('INJURIES / AVOIDING: ' + inj.join(', '));
+      L.push('INJURIES: ' + injOnNow.map(i => i.label).join(', '));
+      L.push('MOVEMENTS TO AVOID: ' + avoiding.join(', '));
+      L.push('(Please substitute rather than remove — keep every movement pattern covered.)');
     }
     L.push('');
     L.push('Please review this training history and plan my next block accordingly (same weekly frequency unless you advise otherwise).');
@@ -2621,17 +2624,18 @@
   let pmDays = null, pmDay = 0, pmSets = 2, pmEx = 0, pmReps = 2, pmName = '';
   let pmInj = 0;
 
-  /* Injury log — what to keep out of the wheel while something hurts.
-     Lists are cautious on purpose; "Show all" overrides them any time. */
+  /* Injury log — each area rules out the movements that load it, never a list
+     of exercise names. Anything tagged in js/library.js is covered the moment
+     it exists, including exercises added later. */
   const INJURIES = [
-    { key: 'back', label: 'Lower back', avoid: ['Deadlift', 'Sumo Deadlift', 'Barbell Row', 'T-Bar Row', 'Squat', 'Front Squat', 'Romanian Deadlift', 'Back Extension', 'Clean and Press', 'Thruster', 'Kettlebell Swing', 'Ab Wheel Rollout', 'Russian Twist', 'Hanging Leg Raise', 'Upright Row'] },
-    { key: 'shoulder', label: 'Shoulder', avoid: ['Overhead Press', 'Dumbbell Shoulder Press', 'Machine Shoulder Press', 'Arnold Press', 'Upright Row', 'Bench Press', 'Incline Dumbbell Press', 'Chest Dip', 'Lateral Raise', 'Front Raise', 'Push-Up', 'Clean and Press', 'Thruster', 'Wall Ball', 'Battle Ropes', 'Pull-Up'] },
-    { key: 'knee', label: 'Knee', avoid: ['Squat', 'Front Squat', 'Goblet Squat', 'Lunge', 'Bulgarian Split Squat', 'Leg Press', 'Step-Up', 'Leg Extension', 'Jump Rope', 'HIIT Sprints', 'Burpee', 'Wall Ball', 'Thruster', 'Mountain Climbers'] },
-    { key: 'elbow', label: 'Elbow', avoid: ['Barbell Curl', 'Dumbbell Curl', 'Hammer Curl', 'Preacher Curl', 'Concentration Curl', 'Triceps Pushdown', 'Skull Crusher', 'Overhead Triceps Extension', 'Close-Grip Bench Press', 'Chest Dip', 'Pull-Up'] },
-    { key: 'wrist', label: 'Wrist', avoid: ['Push-Up', 'Front Squat', 'Clean and Press', 'Thruster', 'Barbell Curl', 'Ab Wheel Rollout', 'Burpee', 'Mountain Climbers', 'Plank', 'Side Plank', 'Battle Ropes'] },
-    { key: 'neck', label: 'Neck', avoid: ['Shrug', 'Upright Row', 'Overhead Press', 'Crunch', 'Bicycle Crunch', 'Russian Twist', 'Deadlift'] },
-    { key: 'hip', label: 'Hip', avoid: ['Squat', 'Lunge', 'Bulgarian Split Squat', 'Hip Thrust', 'Leg Press', 'Deadlift', 'Sumo Deadlift', 'Step-Up', 'Hanging Leg Raise', 'Glute Bridge'] },
-    { key: 'ankle', label: 'Ankle', avoid: ['Calf Raise', 'Jump Rope', 'HIIT Sprints', 'Burpee', 'Lunge', 'Step-Up', 'Treadmill Run', 'Mountain Climbers'] }
+    { key: 'back', label: 'Lower back', avoid: ['spineload', 'hinge', 'spineflex', 'spinerot'] },
+    { key: 'shoulder', label: 'Shoulder', avoid: ['overhead', 'shoulder'] },
+    { key: 'knee', label: 'Knee', avoid: ['knee', 'impact'] },
+    { key: 'elbow', label: 'Elbow', avoid: ['elbow'] },
+    { key: 'wrist', label: 'Wrist', avoid: ['wrist'] },
+    { key: 'neck', label: 'Neck', avoid: ['neck', 'spineflex'] },
+    { key: 'hip', label: 'Hip', avoid: ['hip', 'hinge'] },
+    { key: 'ankle', label: 'Ankle', avoid: ['ankle', 'impact'] }
   ];
   const getInjuries = () => {
     try { return new Set(JSON.parse(localStorage.getItem('injuries') || '[]')); } catch { return new Set(); }
@@ -2639,12 +2643,42 @@
   const setInjuries = set => localStorage.setItem('injuries', JSON.stringify([...set]));
   /* master switch — with the log off nothing is hidden and the dial sits frozen */
   const injEnabled = () => localStorage.getItem('injuriesOn') === '1';
-  function avoidedNames() {
-    if (!injEnabled()) return new Set();
+
+  /* What an exercise is: [pattern, ...stress tags]. Mapped first, then read
+     from the name, then from the muscle group — so nothing slips through
+     untagged just because it was typed in by hand. */
+  function moveOf(ex) {
+    const name = typeof ex === 'string' ? ex : ex.name;
+    const group = typeof ex === 'string' ? null : ex.group;
+    const m = (window.MOVEMENTS || {})[name];
+    if (m) return m;
+    for (const [re, tags] of (window.MOVE_INFER || [])) if (re.test(name)) return tags;
+    return (window.MOVE_BY_GROUP || {})[group] || ['other'];
+  }
+  const patternOf = ex => moveOf(ex)[0];
+  const stressOf = ex => moveOf(ex).slice(1);
+
+  function injuryTags() {
+    const t = new Set();
+    if (!injEnabled()) return t;
     const on = getInjuries();
-    const out = new Set();
-    INJURIES.forEach(i => { if (on.has(i.key)) i.avoid.forEach(n => out.add(n)); });
-    return out;
+    INJURIES.forEach(i => { if (on.has(i.key)) i.avoid.forEach(x => t.add(x)); });
+    return t;
+  }
+  const isRisky = (ex, tags) => stressOf(ex).some(t => tags.has(t));
+
+  /* Substitution — the point of tagging patterns. A ruled-out lift is replaced
+     by one doing the same job; failing that, one from the same family, so a
+     sore shoulder never leaves a plan with no pressing in it at all. */
+  function substituteFor(ex, allowed) {
+    const fam = window.MOVE_FAMILY || {};
+    const pat = patternOf(ex);
+    const group = typeof ex === 'string' ? null : ex.group;
+    const score = c => (patternOf(c) === pat ? 0 : 1) + (c.group && c.group === group ? 0 : 0.5);
+    const pool = allowed.filter(c => c.name !== (ex.name || ex)
+      && (patternOf(c) === pat || fam[patternOf(c)] === fam[pat]));
+    if (!pool.length) return null;
+    return pool.sort((a, b) => score(a) - score(b))[0];
   }
 
   function pmExerciseList() {
@@ -2668,10 +2702,29 @@
     const root = $('#view-planmaker');
     root.innerHTML = '';
     const all = pmExerciseList();
-    const avoid = avoidedNames();
-    const lib = all.filter(x => !avoid.has(x.name));
+    const tags = injuryTags();
+    const lib = all.filter(x => !isRisky(x, tags));
     const hiddenN = all.length - lib.length;
     if (pmEx >= lib.length) pmEx = 0;
+
+    /* anything already in the plan that a new injury rules out is swapped for
+       the nearest safe equivalent rather than silently left in */
+    const swaps = [];
+    const stuck = [];
+    pmDays.forEach(d => d.items.forEach(it => {
+      if (!isRisky(all.find(x => x.name === it.name) || it.name, tags)) return;
+      const taken = new Set(d.items.map(x => x.name));
+      const sub = substituteFor(all.find(x => x.name === it.name) || it.name,
+        lib.filter(c => !taken.has(c.name)));
+      if (sub) {
+        swaps.push(`${it.name} → ${sub.name}`);
+        it.swappedFrom = it.name;
+        it.name = sub.name;
+      } else {
+        it.stuck = true;
+        stuck.push(it.name);
+      }
+    }));
 
     const head = el('div', 'w-head pm-head');
     const hl = el('div', 'w-left');
@@ -2784,6 +2837,9 @@
         ? `${hiddenN} hidden — ${flagged.join(', ')}`
         : 'Spin to the sore area, then tap Add')
       : 'No injuries · every exercise available'));
+    if (swaps.length) root.appendChild(el('div', 'inj-swap', 'Swapped: ' + swaps.join(' · ')));
+    if (stuck.length) root.appendChild(el('div', 'inj-swap warn',
+      'No safe stand-in for ' + stuck.join(', ') + ' — remove it or drop that injury.'));
 
     // the three wheels
     const wheels = el('div', 'cd-wheels pm-wheels');
@@ -2825,9 +2881,11 @@
       root.appendChild(el('div', 'micro', day.name));
       const idx = el('div', 'ex-index');
       day.items.forEach((it, i) => {
-        const r = el('div', 'exi-row');
+        const r = el('div', 'exi-row' + (it.stuck ? ' stuck' : ''));
         r.appendChild(el('div', 'exi-num', String(i + 1).padStart(2, '0')));
-        r.appendChild(el('div', 'exi-name', it.name));
+        const nm = el('div', 'exi-name', it.name);
+        if (it.swappedFrom) nm.appendChild(el('span', 'exi-sub', `was ${it.swappedFrom}`));
+        r.appendChild(nm);
         r.appendChild(el('div', 'exi-scheme', `${it.sets} × ${it.repLo}–${it.repHi}`));
         const x = el('button', 'hist-del', '✕');
         x.onclick = () => { day.items.splice(i, 1); renderPlanMaker(); };
@@ -2843,8 +2901,8 @@
     const create = el('button', 'btn-cta big');
     create.style.width = '100%';
     create.textContent = 'Create block';
-    create.disabled = !filled.length;
-    create.style.opacity = filled.length ? '1' : '.4';
+    create.disabled = !filled.length || !!stuck.length;
+    create.style.opacity = create.disabled ? '.4' : '1';
     create.onclick = () => createPlanFromMaker();
     root.appendChild(create);
   }

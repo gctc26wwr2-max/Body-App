@@ -782,6 +782,18 @@ body { font-size: 14px; }
 .inj-sw.sm .inj-knob { top: 2px; left: 2px; width: 22px; height: 22px; }
 .inj-sw.sm.on .inj-knob { transform: translateX(22px); }
 .inj-note { display: flex; align-items: center; gap: 10px; font-size: 11.5px; font-weight: 600; color: var(--t5); }
+.inj-swap {
+  font-size: 11.5px; font-weight: 600; color: var(--lime); line-height: 1.35;
+  padding: 8px 12px; border-radius: 12px;
+  background: rgba(206,107,61,.1); border: 1px solid var(--amber-border);
+}
+.inj-swap.warn { color: var(--amber); }
+.exi-sub {
+  display: block; font-size: 10.5px; font-weight: 600; color: var(--t5);
+  letter-spacing: 0; text-transform: none; margin-top: 2px;
+}
+.exi-row.stuck { border-color: var(--amber-border); }
+.exi-row.stuck .exi-name { color: var(--amber); }
 .pm-name {
   width: 100%; background: none; border: none; padding: 0; color: var(--t1);
   font-family: var(--cond); font-size: 30px; font-weight: 800;
