@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v128';
+  const APP_VERSION = 'v129';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -107,9 +107,23 @@
   const planFinished = p => !!p.finishedAt;
 
   function activePlan() {
-    const open = plans.filter(p => !planFinished(p));
+    const open = plans.filter(p => !planFinished(p) && !p.queued);
     if (open.length) return open.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
-    return plans.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0] || null;
+    return plans.filter(p => !p.queued).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0] || null;
+  }
+  const queuedPlans = () => plans.filter(p => p.queued).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+  /* when nothing is running any more, the next queued block takes over */
+  async function promoteQueued() {
+    const running = plans.some(p => !planFinished(p) && !p.queued);
+    if (running) return false;
+    const next = queuedPlans()[0];
+    if (!next) return false;
+    next.queued = false;
+    next.createdAt = Date.now();
+    await DB.put('plans', next);
+    plans = await DB.all('plans');
+    return true;
   }
   const blockNumber = plan => plans.slice().sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).findIndex(p => p.id === plan.id) + 1;
 
@@ -172,6 +186,26 @@
     });
   }
 
+  /* same dialog, but with more than two ways out */
+  function appChoose({ title, body, options }) {
+    return new Promise(res => {
+      const back = el('div', 'modal-back');
+      const m = el('div', 'modal');
+      m.appendChild(el('div', 'modal-title', title));
+      if (body) m.appendChild(el('div', 'modal-body', body));
+      const acts = el('div', 'modal-acts stack');
+      options.forEach(o => {
+        const b = el('button', o.primary ? 'btn-lime' : 'btn-ghost', o.label);
+        b.onclick = () => { back.remove(); res(o.value); };
+        acts.appendChild(b);
+      });
+      m.appendChild(acts);
+      back.appendChild(m);
+      back.onclick = e => { if (e.target === back) { back.remove(); res(null); } };
+      document.body.appendChild(back);
+    });
+  }
+
   /* ---------------- sheets ---------------- */
   function openSheet(id) { closeSheets(); $('#sheet-backdrop').hidden = false; $(id).hidden = false; }
   function closeSheets() { $('#sheet-backdrop').hidden = true; $$('.sheet').forEach(s => s.hidden = true); }
@@ -180,7 +214,7 @@
   $('#media-viewer-close').onclick = () => { $('#media-viewer-body').innerHTML = ''; $('#media-viewer').hidden = true; };
 
   /* ---------------- navigation ---------------- */
-  const VIEWS = ['today', 'plan', 'cardio', 'stats', 'library', 'profile', 'workout', 'summary', 'detail'];
+  const VIEWS = ['today', 'plan', 'cardio', 'stats', 'library', 'profile', 'workout', 'summary', 'detail', 'planmaker'];
   function show(view) {
     VIEWS.forEach(v => $('#view-' + v).hidden = v !== view);
     const isTab = ['today', 'plan', 'cardio', 'stats', 'library', 'profile'].includes(view);
@@ -197,6 +231,7 @@
   async function renderTab() {
     exercises = (await DB.all('exercises')).sort((a, b) => a.name.localeCompare(b.name));
     plans = await DB.all('plans');
+    await promoteQueued();
     if (currentTab === 'today') await renderToday();
     else if (currentTab === 'plan') await renderPlanTab();
     else if (currentTab === 'cardio') await renderCardio();
@@ -1814,7 +1849,7 @@
     head.appendChild(hl);
     if (!plan) {
       const nb = el('button', 'chip-btn', '＋ New block');
-      nb.onclick = () => openPlanForm(null);
+      nb.onclick = () => openPlanMaker();
       head.appendChild(nb);
     }
     root.appendChild(head);
@@ -2028,6 +2063,42 @@
       }
     }
 
+    // queued blocks waiting their turn
+    const queue = queuedPlans();
+    if (queue.length) {
+      root.appendChild(el('div', 'micro', 'Up next'));
+      queue.forEach(q => {
+        const c = el('div', 'queue-row');
+        const cc = el('div');
+        cc.appendChild(el('div', 'q-name', q.name));
+        cc.appendChild(el('div', 'q-meta num',
+          `${q.days.length}× / week · ${q.weeks} weeks · ` + q.days.map(d => d.name).join(' · ')));
+        c.appendChild(cc);
+        const go = el('button', 'q-go', 'Start now');
+        go.onclick = async () => {
+          if (!await appConfirm({
+            title: 'Start this block now?',
+            body: `"${plan ? plan.name : 'The current block'}" will be closed and this one takes over.`,
+            ok: 'Start', cancel: 'Keep waiting'
+          })) return;
+          if (plan && !planFinished(plan)) { plan.finishedAt = Date.now(); await DB.put('plans', plan); }
+          q.queued = false;
+          q.createdAt = Date.now();
+          await DB.put('plans', q);
+          renderTab();
+        };
+        c.appendChild(go);
+        const del = el('button', 'hist-del', '✕');
+        del.onclick = async () => {
+          if (!confirm(`Delete queued "${q.name}"?`)) return;
+          await DB.del('plans', q.id);
+          renderTab();
+        };
+        c.appendChild(del);
+        root.appendChild(c);
+      });
+    }
+
     // pause / delete — buttons at the very bottom of the page
     if (plan) {
       const delRow = el('div', 'block-actions');
@@ -2059,7 +2130,7 @@
       // start a fresh block — centred, below the block actions
       const nbRow = el('div', 'new-block-row');
       const nb = el('button', 'btn-cta big new-block-btn', '＋ New block');
-      nb.onclick = () => openPlanForm(null);
+      nb.onclick = () => openPlanMaker();
       nbRow.appendChild(nb);
       root.appendChild(nbRow);
     }
@@ -2561,6 +2632,181 @@
       `<path d="${area}" fill="rgba(206,107,61,.12)"/>` +
       `<path d="${d}" fill="none" stroke="#CE6B3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` +
       `<circle cx="${X(vals.length - 1).toFixed(1)}" cy="${Y(vals[vals.length - 1]).toFixed(1)}" r="3" fill="#CE6B3D" stroke="#151110" stroke-width="1.5"/></svg>`;
+  }
+
+  /* ============================================================
+     PLAN MAKER — three wheels: sets, exercise, reps
+     ============================================================ */
+  const PM_SETS = [1, 2, 3, 4, 5, 6];
+  const PM_REPS = [
+    { label: '5–8', lo: 5, hi: 8 },
+    { label: '6–10', lo: 6, hi: 10 },
+    { label: '8–10', lo: 8, hi: 10 },
+    { label: '8–12', lo: 8, hi: 12 },
+    { label: '10–12', lo: 10, hi: 12 },
+    { label: '12–15', lo: 12, hi: 15 },
+    { label: '15–20', lo: 15, hi: 20 },
+    { label: '20–30', lo: 20, hi: 30 }
+  ];
+  let pmDays = null, pmDay = 0, pmSets = 2, pmEx = 0, pmReps = 2;
+
+  function pmExerciseList() {
+    const names = new Map();
+    (window.EXERCISE_LIBRARY || []).forEach(i => names.set(i.name, i));
+    exercises.forEach(e => { if (!names.has(e.name)) names.set(e.name, e); });
+    return [...names.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  function openPlanMaker() {
+    pmDays = [{ name: 'Day A', items: [] }];
+    pmDay = 0;
+    show('planmaker');
+    renderPlanMaker();
+  }
+
+  function renderPlanMaker() {
+    const root = $('#view-planmaker');
+    root.innerHTML = '';
+    const lib = pmExerciseList();
+    if (pmEx >= lib.length) pmEx = 0;
+
+    const head = el('div', 'w-head pm-head');
+    const hl = el('div', 'w-left');
+    hl.appendChild(el('div', 't-date', `${pmDays.reduce((a, d) => a + d.items.length, 0)} exercises`));
+    hl.appendChild(el('h1', 't-title', 'New block'));
+    head.appendChild(hl);
+    const close = el('button', 'w-chip', '✕');
+    close.onclick = () => { show('plan'); renderTab(); };
+    head.appendChild(close);
+    root.appendChild(head);
+
+    // days
+    const days = el('div', 'pm-days');
+    pmDays.forEach((d, i) => {
+      const b = el('button', 'pm-day' + (i === pmDay ? ' sel' : ''), d.name);
+      b.onclick = () => { pmDay = i; renderPlanMaker(); };
+      days.appendChild(b);
+    });
+    if (pmDays.length < 6) {
+      const add = el('button', 'pm-day add', '+');
+      add.onclick = () => {
+        pmDays.push({ name: 'Day ' + String.fromCharCode(65 + pmDays.length), items: [] });
+        pmDay = pmDays.length - 1;
+        renderPlanMaker();
+      };
+      days.appendChild(add);
+    }
+    root.appendChild(days);
+
+    // the three wheels
+    const wheels = el('div', 'cd-wheels pm-wheels');
+    const c1 = el('div', 'cd-col pm-sets');
+    c1.appendChild(el('div', 'micro', 'Sets'));
+    c1.appendChild(pickerWheel(PM_SETS.map(String), PM_SETS.indexOf(pmSets),
+      i => { pmSets = PM_SETS[i]; }, null, () => 'w15'));
+    wheels.appendChild(c1);
+    const c2 = el('div', 'cd-col');
+    c2.appendChild(el('div', 'micro', 'Exercise'));
+    c2.appendChild(pickerWheel(lib.map(x => x.name), pmEx, i => { pmEx = i; }, 'wide',
+      i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15'))));
+    wheels.appendChild(c2);
+    const c3 = el('div', 'cd-col pm-reps');
+    c3.appendChild(el('div', 'micro', 'Reps'));
+    c3.appendChild(pickerWheel(PM_REPS.map(r => r.label), pmReps, i => { pmReps = i; }, null,
+      i => (i % 2 ? 'w11' : 'w15')));
+    wheels.appendChild(c3);
+    root.appendChild(wheels);
+
+    const addBtn = el('button', 'btn-cta big');
+    addBtn.style.width = '100%';
+    addBtn.textContent = `Add to ${pmDays[pmDay].name}`;
+    addBtn.onclick = () => {
+      const item = pmExerciseList()[pmEx];
+      pmDays[pmDay].items.push({
+        name: item.name, sets: pmSets,
+        repLo: PM_REPS[pmReps].lo, repHi: PM_REPS[pmReps].hi
+      });
+      haptic();
+      renderPlanMaker();
+    };
+    root.appendChild(addBtn);
+
+    // what's in this day
+    const day = pmDays[pmDay];
+    if (day.items.length) {
+      root.appendChild(el('div', 'micro', day.name));
+      const idx = el('div', 'ex-index');
+      day.items.forEach((it, i) => {
+        const r = el('div', 'exi-row');
+        r.appendChild(el('div', 'exi-num', String(i + 1).padStart(2, '0')));
+        r.appendChild(el('div', 'exi-name', it.name));
+        r.appendChild(el('div', 'exi-scheme', `${it.sets} × ${it.repLo}–${it.repHi}`));
+        const x = el('button', 'hist-del', '✕');
+        x.onclick = () => { day.items.splice(i, 1); renderPlanMaker(); };
+        r.appendChild(x);
+        idx.appendChild(r);
+      });
+      root.appendChild(idx);
+    } else {
+      root.appendChild(el('div', 'coach-note', 'Pick sets, an exercise and a rep range, then add it to the day.'));
+    }
+
+    const filled = pmDays.filter(d => d.items.length);
+    const create = el('button', 'btn-cta big');
+    create.style.width = '100%';
+    create.textContent = 'Create block';
+    create.disabled = !filled.length;
+    create.style.opacity = filled.length ? '1' : '.4';
+    create.onclick = () => createPlanFromMaker();
+    root.appendChild(create);
+  }
+
+  async function createPlanFromMaker() {
+    const filled = pmDays.filter(d => d.items.length);
+    if (!filled.length) return;
+    const current = activePlan();
+    const busy = current && !planFinished(current);
+    let mode = 'now';
+    if (busy) {
+      mode = await appChoose({
+        title: 'You have a block running',
+        body: `"${current.name}" is still going. Start this one after it, or replace it now?`,
+        options: [
+          { label: 'Queue for later', value: 'queue', primary: true },
+          { label: 'Replace now', value: 'replace' },
+          { label: 'Cancel', value: null }
+        ]
+      });
+      if (!mode) return;
+    }
+
+    const days = [];
+    for (const d of filled) {
+      const items = [];
+      for (const it of d.items) {
+        const libItem = (window.EXERCISE_LIBRARY || []).find(l => l.name === it.name)
+          || exercises.find(e => e.name === it.name)
+          || { name: it.name, group: 'Other', notes: '' };
+        const ex = await ensureExercise(libItem);
+        items.push({ exerciseId: ex.id, sets: it.sets, repLo: it.repLo, repHi: it.repHi, kg: 0 });
+      }
+      days.push({ name: d.name, items });
+    }
+    const plan = {
+      id: DB.uid(), createdAt: Date.now(),
+      name: 'Block ' + (plans.length + 1),
+      weeks: 4, days, prefDays: (current && current.prefDays) || [0, 2, 4],
+      startDate: null, completed: [], finishedAt: null,
+      queued: mode === 'queue'
+    };
+    if (mode === 'replace') {
+      current.finishedAt = Date.now();
+      await DB.put('plans', current);
+    }
+    await DB.put('plans', plan);
+    pmDays = null;
+    show('plan');
+    renderTab();
   }
 
   /* ============================================================
