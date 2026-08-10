@@ -1295,3 +1295,25 @@ body { font-size: 14px; }
 .empty-state p { color: var(--t3); margin: 4px 0 14px; font-size: 14px; }
 
 [hidden] { display: none !important; }
+
+/* ---------- Block Master ---------- */
+.master-seg { margin-bottom: 2px; }
+.master-seg button { font-size: 11.5px; letter-spacing: .04em; }
+.chip-btn.wide { width: 100%; height: 44px; border-radius: 14px; }
+.equip-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.equip-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 14px 6px 11px; border-radius: 16px;
+  background: var(--sunken); border: 1px solid var(--hair); color: var(--t4);
+  transition: opacity .15s ease, border-color .15s ease, background .15s ease;
+  opacity: .38;
+}
+.equip-tile img { width: 34px; height: 34px; display: block; }
+.equip-lbl { font-size: 11.5px; font-weight: 700; color: var(--t3); text-align: center; line-height: 1.15; }
+.equip-n { font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--t5); }
+.equip-tile.on { opacity: 1; border-color: var(--amber-border); background: rgba(206,107,61,.08); }
+.equip-tile.on .equip-lbl { color: var(--t1); }
+.equip-tile.fixed { opacity: 1; border-style: dashed; }
+.equip-tile:not(.on) img { filter: grayscale(1); }
+.equip-acts { display: flex; gap: 10px; }
+.equip-acts .btn-ghost { flex: 1; }

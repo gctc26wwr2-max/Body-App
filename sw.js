@@ -1,6 +1,6 @@
 /* Service worker: caches the app shell so it opens instantly and works offline.
    User data (exercises, media, sessions, plans) lives in IndexedDB, not here. */
-const CACHE = 'body-app-v156';
+const CACHE = 'body-app-v157';
 const ASSETS = [
   './',
   './index.html',
@@ -17,7 +17,23 @@ const ASSETS = [
   './fonts/Archivo-500.woff2',
   './fonts/Archivo-600.woff2',
   './fonts/Archivo-700.woff2',
-  './fonts/Archivo-800.woff2'
+  './fonts/Archivo-800.woff2',
+  './icons/equip/bodyweight.png',
+  './icons/equip/barbell.png',
+  './icons/equip/dumbbell.png',
+  './icons/equip/kettlebell.png',
+  './icons/equip/bench.png',
+  './icons/equip/rack.png',
+  './icons/equip/machine.png',
+  './icons/equip/cable.png',
+  './icons/equip/bar.png',
+  './icons/equip/band.png',
+  './icons/equip/mat.png',
+  './icons/equip/ball.png',
+  './icons/equip/rope.png',
+  './icons/equip/cardio.png',
+  './icons/equip/wheel.png',
+  './icons/equip/pool.png'
   
   
 ];
