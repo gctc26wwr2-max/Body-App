@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v127';
+  const APP_VERSION = 'v128';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -143,12 +143,12 @@
      opened exercise page (animFor) */
   function thumbFor(ex, extra) {
     if (ex && ex.demo) return demoEl(ex.demo, extra, true);
-    const ph = el('div', 'demo-anim ph' + (extra ? ' ' + extra : ''), '🏋️');
+    const ph = el('div', 'demo-anim ph' + (extra ? ' ' + extra : ''));
     return ph;
   }
   function animFor(ex, extra) {
     if (ex && ex.demo) return demoEl(ex.demo, extra, false);
-    const ph = el('div', 'demo-anim ph' + (extra ? ' ' + extra : ''), '🏋️');
+    const ph = el('div', 'demo-anim ph' + (extra ? ' ' + extra : ''));
     return ph;
   }
 
@@ -1275,7 +1275,7 @@
     pill.classList.toggle('bottom', !$('#view-detail').hidden);
     if (justDone && !inWorkout) {
       pill.hidden = false;
-      $('#pill-time').textContent = 'GO! 💪';
+      $('#pill-time').textContent = 'GO';
       setTimeout(() => { pill.hidden = true; updatePill(); }, 4000);
       return;
     }
@@ -1746,7 +1746,7 @@
     title.innerHTML = 'Banked.' + (w.prs.length ? `<br>${w.prs.length} PR${w.prs.length > 1 ? 's' : ''}.` : '');
     head.appendChild(title);
     if (plan && plan.finishedAt) {
-      head.appendChild(el('div', 'sum-body', `🎉 That was the last session of the block — all ${plan.weeks || 4} weeks done. Renew your plan from Today.`));
+      head.appendChild(el('div', 'sum-body', `That was the last session of the block — all ${plan.weeks || 4} weeks done. Renew your plan from Today.`));
     } else {
       head.appendChild(el('div', 'sum-body', 'Progress is saved. Weights you hit today are pre-loaded for next time.'));
     }
@@ -1845,7 +1845,7 @@
       const bhl = el('div');
       bhl.appendChild(el('div', 'micro', plan.name));
       bhl.appendChild(el('div', 'pb-week num',
-        plan.pausedAt ? 'Paused ⏸' :
+        plan.pausedAt ? 'Paused' :
         (planFinished(plan) ? 'Complete' : (curWeek ? `Week ${curWeek} of ${weeks}` : 'Not started'))));
       bh.appendChild(bhl);
       const editB = el('button', 'rest-edit', 'Edit');
@@ -2066,7 +2066,6 @@
 
     if (!workouts.length && !plan) {
       const emp = el('div', 'empty-state');
-      emp.appendChild(el('div', 'e-icon', '🗓️'));
       emp.appendChild(el('p', null, 'No block yet — build one to start training.'));
       root.appendChild(emp);
     }
@@ -2218,7 +2217,7 @@
     hint.textContent = (lbTs ? `Last backup ${new Date(lbTs).toLocaleDateString('en-GB')} · ` : 'Never backed up · ')
       + 'in the share sheet choose "Save to Files" → iCloud Drive. Do it monthly — a reminder appears on Today. Photos/videos you attached are not included.';
     dc.appendChild(hint);
-    const report = el('button', 'btn-ghost', '📝 Report for Claude');
+    const report = el('button', 'btn-ghost', 'Report for Claude');
     report.style.cssText = 'width:100%;margin-bottom:10px;color:var(--lime);border-color:var(--lime-border)';
     report.onclick = shareReport;
     dc.appendChild(report);
@@ -2431,7 +2430,6 @@
 
     if (!sessions.length) {
       const emp = el('div', 'empty-state');
-      emp.appendChild(el('div', 'e-icon', '📈'));
       emp.appendChild(el('p', null, 'Log workouts and your progress appears here.'));
       root.appendChild(emp);
       return;
@@ -2908,7 +2906,6 @@
       }
     } else {
       const emp = el('div', 'empty-state');
-      emp.appendChild(el('div', 'e-icon', '🏃'));
       emp.appendChild(el('p', null, 'Pick an activity and press Start.'));
       root.appendChild(emp);
     }
