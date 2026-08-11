@@ -161,6 +161,67 @@ window.EXERCISE_DEMOS = {
   "Triceps Pushdown": "triceps-pushdown",
   "Upright Row": "upright-row",
   "Wall Ball": "wall-ball"
+,
+
+  /* --- clips for the exercises added from the content library --- */
+  "Box Squat": "box-squat",
+  "Dumbbell Squat": "dumbbell-squat",
+  "Bodyweight Squat": "bodyweight-squat",
+  "Smith Machine Squat": "smith-machine-squat",
+  "Hack Squat Machine": "hack-squat-machine",
+  "Pistol Squat": "pistol-squat",
+  "Deficit Deadlift": "deficit-deadlift",
+  "Trap Bar Deadlift": "trap-bar-deadlift",
+  "Rack Pull": "rack-pull",
+  "Stiff-Leg Deadlift": "stiff-leg-deadlift",
+  "Good Morning": "good-morning",
+  "Glute-Ham Raise": "glute-ham-raise",
+  "Reverse Hyperextension": "reverse-hyperextension",
+  "Cable Pull-Through": "cable-pull-through",
+  "Walking Lunge": "walking-lunge",
+  "Split Squat": "split-squat",
+  "Incline Barbell Bench Press": "incline-barbell-bench-press",
+  "Decline Barbell Bench Press": "decline-barbell-bench-press",
+  "Floor Press": "floor-press",
+  "Dumbbell Bench Press": "dumbbell-bench-press",
+  "Smith Machine Bench Press": "smith-machine-bench-press",
+  "Incline Push-Up": "incline-push-up",
+  "Bench Dip": "bench-dip",
+  "Assisted Dip Machine": "assisted-dip-machine",
+  "Push Press": "push-press",
+  "Seated Dumbbell Press": "seated-dumbbell-press",
+  "Handstand Push-Up": "handstand-push-up",
+  "Chin-Up": "chin-up",
+  "Close-Grip Lat Pulldown": "close-grip-lat-pulldown",
+  "Single-Arm Lat Pulldown": "single-arm-lat-pulldown",
+  "Straight-Arm Pulldown": "straight-arm-pulldown",
+  "Inverted Row": "inverted-row",
+  "Rope Climb": "rope-climb",
+  "Cable Lateral Raise": "cable-lateral-raise",
+  "Dumbbell Shrug": "dumbbell-shrug",
+  "Band Pull-Apart": "band-pull-apart",
+  "Cable External Rotation": "cable-external-rotation",
+  "EZ-Bar Curl": "ez-bar-curl",
+  "Incline Dumbbell Curl": "incline-dumbbell-curl",
+  "Cable Biceps Curl": "cable-biceps-curl",
+  "Biceps Curl Machine": "biceps-curl-machine",
+  "Reverse Curl": "reverse-curl",
+  "Rope Triceps Pushdown": "rope-triceps-pushdown",
+  "Triceps Extension Machine": "triceps-extension-machine",
+  "Wrist Curl": "wrist-curl",
+  "Seated Leg Curl": "seated-leg-curl",
+  "Seated Calf Raise": "seated-calf-raise",
+  "Sit-Up": "sit-up",
+  "Power Clean": "power-clean",
+  "Hang Clean": "hang-clean",
+  "Power Snatch": "power-snatch",
+  "Kettlebell Clean": "kettlebell-clean",
+  "Kettlebell Snatch": "kettlebell-snatch",
+  "Turkish Get-Up": "turkish-get-up",
+  "Medicine Ball Slam": "medicine-ball-slam",
+  "Box Jump": "box-jump",
+  "Sled Push": "sled-push",
+  "Sled Drag": "sled-drag"
 };
 window.EXERCISE_LIBRARY.forEach(item => {
   const d = window.EXERCISE_DEMOS[item.name];
@@ -289,6 +350,18 @@ window.EXERCISE_LIBRARY.forEach(item => {
   { name: "Neck Extension", group: "Shoulders", notes: "A controlled backward nod against resistance, training the muscles behind the neck." },
   { name: "Neck Flexion", group: "Shoulders", notes: "A controlled forward nod against resistance, training the muscles at the front of the neck." }
 ].forEach(item => window.EXERCISE_LIBRARY.push(item));
+
+/* Apostrophes differ between the catalog and the clip map — "Farmer's Carry"
+   against "Farmer’s Carry" — which quietly cost that row its clip, so match
+   on a normalised key rather than the raw name. */
+(() => {
+  const key = s => s.replace(/[\u2019\u02BC]/g, "'");
+  const byKey = {};
+  for (const n in window.EXERCISE_DEMOS) byKey[key(n)] = window.EXERCISE_DEMOS[n];
+  window.EXERCISE_LIBRARY.forEach(item => {
+    if (!item.demo && byKey[key(item.name)]) item.demo = byKey[key(item.name)];
+  });
+})();
 
 /* Ready-made starter program (back-friendly, low spinal load) —
    installable with one tap from Today / Plan when no block exists. */
