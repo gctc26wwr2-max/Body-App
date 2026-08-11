@@ -1480,3 +1480,7 @@ body { font-size: 14px; }
 }
 .blk-day-meta { font-size: 11px; color: var(--t6); }
 .blk-preview .pv-row:last-child { border-bottom: none; }
+
+/* the deload sits at the end of the block and is not a working week */
+.week-seg button.deload { color: var(--amber); letter-spacing: .04em; }
+.week-seg button.deload.current { background: var(--amber); color: var(--on-accent); }
