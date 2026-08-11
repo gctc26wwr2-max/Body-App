@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v187';
+  const APP_VERSION = 'v188';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -4043,33 +4043,53 @@
      need it. Fetched once, on the first visit to the library, then kept in
      memory. The service worker keeps a copy after that, so it works offline. */
   let CONTENT = null, contentPending = null;
+  const MUSCLE_NAME = {};   // taxonomy id → the name a person would use
+  const LIB_BY_ID = {};     // content id → library record, for the primary muscles
 
   function loadContent() {
     if (CONTENT) return Promise.resolve(CONTENT);
     if (contentPending) return contentPending;
-    contentPending = fetch('data/exercise-content.json')
+    const grab = (url, fail) => fetch(url)
       .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
-      .then(j => {
-        CONTENT = new Map((j.content || []).map(c => [c.id, c]));
-        return CONTENT;
-      })
-      .catch(() => {
-        /* Offline on a first run, or the file moved. The list still works —
-           every row falls back to its own coaching note. */
-        CONTENT = new Map();
-        return CONTENT;
-      });
+      .catch(() => fail);
+    contentPending = Promise.all([
+      grab('data/exercise-content.json', { content: [] }),
+      /* small enough to come along for the ride; it carries which muscles are
+         primary, which the content layer does not record */
+      grab('data/exercise-library.json', { exercises: [] })
+    ]).then(([c, l]) => {
+      CONTENT = new Map((c.content || []).map(x => [x.id, x]));
+      ((c.muscle_taxonomy && c.muscle_taxonomy.muscles) || [])
+        .forEach(m => { MUSCLE_NAME[m.id] = m.display || m.id; });
+      (l.exercises || []).forEach(e => { LIB_BY_ID[e.id] = e; });
+      return CONTENT;
+    });
     return contentPending;
   }
 
   /* A catalog item's demo slug is usually the content id; a handful differ,
      and three items carry no slug at all and match by name. */
-  function contentFor(item) {
-    if (!CONTENT || !item) return null;
+  function contentIdFor(item) {
+    if (!item) return null;
+    const byEx = window.CONTENT_BY_EXNAME || {};
+    /* the name is the reliable key; the demo slug is only a fallback for the
+       older entries, and stopped matching once clips were filed under their
+       own names. Apostrophes differ between the two files, so normalise. */
+    const key = s => String(s || '').replace(/[’ʼ]/g, "'");
+    if (!contentIdFor._byKey) {
+      contentIdFor._byKey = {};
+      for (const n in byEx) contentIdFor._byKey[key(n)] = byEx[n];
+    }
+    const hit = contentIdFor._byKey[key(item.name)];
+    if (hit) return hit;
     const alias = window.CONTENT_ALIAS || {}, byName = window.CONTENT_BY_NAME || {};
     const slug = item.demo || byName[(item.name || '').toLowerCase()];
-    if (!slug) return null;
-    return CONTENT.get(alias[slug] || slug) || null;
+    return slug ? (alias[slug] || slug) : null;
+  }
+  function contentFor(item) {
+    if (!CONTENT || !item) return null;
+    const id = contentIdFor(item);
+    return (id && CONTENT.get(id)) || null;
   }
 
   /* Block Master — building a block, the exercises it can draw on, and the
@@ -4346,6 +4366,67 @@
   /* ============================================================
      EXERCISE DETAIL
      ============================================================ */
+  /* The detail page can be reached without ever opening the library, so it
+     asks for the content itself rather than assuming it is already loaded. */
+  async function contentForDetail(ex) {
+    await loadContent();
+    return contentFor(ex);
+  }
+
+  /* Which muscles the taxonomy says this movement works, split into the ones
+     doing the job and the ones helping. The content layer lists what to draw;
+     the library record says which of those are primary. */
+  function muscleSets(ex, con) {
+    if (!con) return null;
+    const m = con.media || {};
+    const drawn = [...(m.muscle_map_front || []), ...(m.muscle_map_back || [])];
+    if (!drawn.length) return null;
+    const lib = LIB_BY_ID[contentIdFor(ex)];
+    const alias = window.MUSCLE_ALIAS || {};
+    const expand = list => new Set((list || []).flatMap(t => alias[t] || []));
+    const pri = expand(lib && lib.primary);
+    /* nothing to go on — treat everything drawn as primary rather than
+       greying out the whole figure */
+    const primary = drawn.filter(id => pri.has(id));
+    return primary.length
+      ? { primary: new Set(primary), secondary: new Set(drawn.filter(id => !pri.has(id))) }
+      : { primary: new Set(drawn), secondary: new Set() };
+  }
+
+  function musclePanel(ex, con) {
+    const sets = muscleSets(ex, con);
+    if (!sets || !window.BODY_SVG) return null;
+    const wrap = el('div', 'det-sec');
+    wrap.appendChild(el('div', 'micro', 'Muscles worked'));
+
+    const figs = el('div', 'an-row');
+    for (const [view, label] of [['front', 'Front'], ['back', 'Back']]) {
+      const col = el('div', 'an-col');
+      const holder = el('div', 'an-holder');
+      holder.innerHTML = window.BODY_SVG[view];
+      holder.querySelectorAll('[data-m]').forEach(node => {
+        const id = node.getAttribute('data-m');
+        if (sets.primary.has(id)) node.classList.add('pri');
+        else if (sets.secondary.has(id)) node.classList.add('sec');
+      });
+      col.appendChild(holder);
+      col.appendChild(el('div', 'an-cap', label));
+      figs.appendChild(col);
+    }
+    wrap.appendChild(figs);
+
+    /* named, so it reads without having to decode the picture */
+    const names = el('div', 'an-chips');
+    const show = (ids, cls) => [...ids]
+      .map(id => MUSCLE_NAME[id] || id)
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .forEach(n => names.appendChild(el('span', cls, n)));
+    show(sets.primary, 'pri');
+    show(sets.secondary, 'sec');
+    wrap.appendChild(names);
+    return wrap;
+  }
+
   async function openDetail(exId, from) {
     detailReturn = from || 'library';
     const ex = await DB.get('exercises', exId);
@@ -4368,6 +4449,18 @@
     if (isBarbell(ex)) tags.appendChild(el('span', null, 'Barbell'));
     if (ex.rest) tags.appendChild(el('span', null, 'Rest ' + fmtClock(ex.rest)));
     body.appendChild(tags);
+
+    /* the written entry, if this movement has one — what it is for, and which
+       muscles it actually works */
+    const con = await contentForDetail(ex);
+    if (con && con.description) {
+      const d = el('div', 'det-sec');
+      d.appendChild(el('div', 'micro', 'What it is for'));
+      d.appendChild(el('div', 'det-desc', con.description));
+      body.appendChild(d);
+    }
+    const muscles = musclePanel(ex, con);
+    if (muscles) body.appendChild(muscles);
 
     if (ex.notes) {
       const cuesWrap = el('div');

@@ -1420,3 +1420,34 @@ body { font-size: 14px; }
   margin-top: 10px; font-size: 12px; line-height: 1.4;
   color: var(--t5); text-align: center;
 }
+
+/* ---------- muscles worked ---------- */
+.det-sec { margin-top: 22px; }
+.det-sec .micro { margin-bottom: 10px; }
+.det-desc { font-size: 14px; line-height: 1.55; color: var(--t2); }
+
+.an-row { display: flex; gap: 10px; }
+.an-col {
+  flex: 1; background: var(--sunken); border: 1px solid var(--hair);
+  border-radius: 16px; padding: 12px 8px 8px;
+}
+.an-holder { display: flex; justify-content: center; }
+.an-fig { width: 100%; max-width: 130px; height: auto; display: block; }
+.an-cap {
+  text-align: center; font-size: 10px; font-weight: 700; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--t5); margin-top: 6px;
+}
+/* the body itself, then the two levels of involvement over it */
+.an-fig .an-skin { fill: var(--ctrl); }
+.an-fig [data-m] { fill: var(--ctrl); transition: fill .2s ease; }
+.an-fig [data-m].sec { fill: rgba(206,107,61,.34); }
+.an-fig [data-m].pri { fill: var(--lime); }
+
+.an-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.an-chips span {
+  font-size: 11px; font-weight: 600; padding: 5px 9px; border-radius: 8px;
+  border: 1px solid var(--hair); color: var(--t3);
+}
+.an-chips span.pri {
+  background: rgba(206,107,61,.14); border-color: var(--lime-border); color: var(--lime);
+}
