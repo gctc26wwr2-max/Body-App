@@ -1410,3 +1410,9 @@ body { font-size: 14px; }
 .pref-panel { padding: 4px 16px 16px; border-bottom: 1px solid var(--hair); }
 .pref-list .pref-panel:last-child { border-bottom: none; }
 .pref-panel .ab-hint { margin-top: 8px; }
+
+/* why the Delete button is absent on a library exercise */
+.det-locked {
+  margin-top: 10px; font-size: 12px; line-height: 1.4;
+  color: var(--t5); text-align: center;
+}
