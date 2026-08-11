@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v185';
+  const APP_VERSION = 'v186';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -4320,11 +4320,21 @@
     renderTab();
   }
 
+  /* The catalog belongs to the app, not to the user: deleting one of its
+     exercises would take the logged history with it, and the row would come
+     straight back as an unadded library item anyway. Only exercises somebody
+     wrote themselves can be removed. Records saved before this flag existed
+     are judged by whether the catalog recognises the name. */
+  const CATALOG_NAMES = new Set((window.EXERCISE_LIBRARY || []).map(i => i.name.toLowerCase()));
+  const isCatalogName = n => CATALOG_NAMES.has(String(n || '').toLowerCase());
+  const isCustomEx = ex => !!ex && (ex.custom === true
+    || (ex.custom === undefined && !isCatalogName(ex.name)));
+
   async function ensureExercise(item) {
     let ex = exercises.find(e => e.name.toLowerCase() === item.name.toLowerCase());
     if (ex) return ex;
     ex = {
-      id: DB.uid(), createdAt: Date.now(), mediaIds: [],
+      id: DB.uid(), createdAt: Date.now(), mediaIds: [], custom: false,
       name: item.name, group: item.group, notes: item.notes, demo: item.demo || null
     };
     await DB.put('exercises', ex);
@@ -4442,6 +4452,16 @@
     const editBtn = el('button', 'btn-ghost', 'Edit');
     editBtn.onclick = () => openExerciseForm(ex);
     acts.appendChild(editBtn);
+    if (!isCustomEx(ex)) {
+      /* library exercise — nothing to delete, so say why rather than leaving
+         a dead button or a confirm that refuses */
+      body.appendChild(acts);
+      body.appendChild(el('div', 'det-locked',
+        'Part of the exercise library, so it stays put. Exercises you add yourself can be deleted.'));
+      root.appendChild(body);
+      show('detail');
+      return;
+    }
     const delBtn = el('button', 'btn-ghost', 'Delete');
     delBtn.onclick = async () => {
       const plansAll = await DB.all('plans');
@@ -4538,9 +4558,17 @@
     const ex = editingExerciseId
       ? await DB.get('exercises', editingExerciseId)
       : { id: DB.uid(), createdAt: Date.now(), mediaIds: [] };
+    /* settle what this exercise is before the name changes — otherwise
+       renaming a library exercise would make it look like the user's own and
+       hand them a Delete button for it */
+    const wasCustom = editingExerciseId ? isCustomEx(ex) : null;
     ex.name = f.name.value.trim();
     ex.group = f.group.value;
     ex.notes = f.notes.value.trim();
+    /* Anything written here is the user's own and stays deletable — unless
+       they have typed the name of something already in the catalog, in which
+       case it is that exercise and the catalog's rules apply. */
+    ex.custom = editingExerciseId ? wasCustom : !isCatalogName(ex.name);
     if (!ex.demo) {
       const item = (window.EXERCISE_LIBRARY || []).find(i => i.demo && i.name.toLowerCase() === ex.name.toLowerCase());
       if (item) ex.demo = item.demo;
