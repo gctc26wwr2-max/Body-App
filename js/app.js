@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v182';
+  const APP_VERSION = 'v183';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -3422,8 +3422,8 @@
     if (stuck.length) root.appendChild(el('div', 'inj-swap warn',
       'No safe stand-in for ' + stuck.join(', ') + ' — remove it or drop that injury.'));
 
-    /* narrowing the wheel — 76 exercises is a lot to spin past, so pick a
-       body part or type a couple of letters and the dial shrinks to match */
+    /* narrowing the wheel — the whole catalog is far too much to spin past,
+       so pick a body part or type a couple of letters and the dial shrinks */
     let shown = lib;
     const facets = el('div', 'pm-find');
     const groups = ['All', ...[...new Set(lib.map(x => x.group))].sort()];
