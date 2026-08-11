@@ -163,6 +163,22 @@ window.EXERCISE_DEMOS = {
   "Wall Ball": "wall-ball"
 ,
 
+  /* --- second pass: matches the first search missed --- */
+  "Single-Leg Romanian Deadlift": "single-leg-romanian-deadlift",
+  "Nordic Hamstring Curl": "nordic-hamstring-curl",
+  "Smith Machine Split Squat": "smith-machine-split-squat",
+  "Pec Deck / Machine Fly": "pec-deck-machine-fly",
+  "Suspension Trainer Row": "suspension-trainer-row",
+  "Leg Press Calf Raise": "leg-press-calf-raise",
+  "Hip Abduction Machine": "hip-abduction-machine",
+  "Hip Adduction Machine": "hip-adduction-machine",
+  "Cable Glute Kickback": "cable-glute-kickback",
+  "Cable Woodchop": "cable-woodchop",
+  "Broad Jump": "broad-jump",
+  "Incline Treadmill Walk": "incline-treadmill-walk",
+  "Triceps Kickback": "triceps-kickback",
+  "Reverse Wrist Curl": "reverse-wrist-curl",
+
   /* --- clips for the exercises added from the content library --- */
   "Box Squat": "box-squat",
   "Dumbbell Squat": "dumbbell-squat",
