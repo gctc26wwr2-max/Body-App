@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v189';
+  const APP_VERSION = 'v190';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -4404,10 +4404,20 @@
       const col = el('div', 'an-col');
       const holder = el('div', 'an-holder');
       holder.innerHTML = window.BODY_SVG[view];
+      /* the drawing is coarser than the taxonomy, so fold the muscles onto
+         the regions it has; a region lights at the strongest level any of the
+         muscles landing on it reaches */
+      const T = window.TAXON_REGION || {};
+      const regions = level => {
+        const out = new Set();
+        level.forEach(id => [].concat(T[id] || []).forEach(r => out.add(r)));
+        return out;
+      };
+      const pri = regions(sets.primary), sec = regions(sets.secondary);
       holder.querySelectorAll('[data-m]').forEach(node => {
-        const id = node.getAttribute('data-m');
-        if (sets.primary.has(id)) node.classList.add('pri');
-        else if (sets.secondary.has(id)) node.classList.add('sec');
+        const r = node.getAttribute('data-m');
+        if (pri.has(r)) node.classList.add('pri');
+        else if (sec.has(r)) node.classList.add('sec');
       });
       col.appendChild(holder);
       col.appendChild(el('div', 'an-cap', label));
