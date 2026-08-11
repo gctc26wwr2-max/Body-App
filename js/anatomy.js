@@ -1,18 +1,21 @@
 /* Front and back body diagrams for the "muscles worked" panel.
 
    The anatomy is the body model from body-highlighter (MIT, (c) 2020 GV79) —
-   see js/anatomy-model.LICENSE. Its polygons have been run through a closed
-   Catmull-Rom spline so every muscle belly is curved rather than faceted: the
-   geometry is the model's, the corners are gone.
+   see js/anatomy-model.LICENSE. Its polygons run through a closed Catmull-Rom
+   spline so every muscle belly is curved rather than faceted.
+
+   Drawn in two layers. The model leaves gaps between its muscles and has no
+   silhouette of its own, so the same shapes go down first, fattened and dark,
+   to form a body behind. The muscles then sit on that, and the gaps read as
+   the shadow between them — separation without outlining anything.
 
    Its regions are coarser than the taxonomy in exercise-content.json: no
    separate upper and lower chest, no split between the three trapezius bands,
    no brachialis apart from the biceps. TAXON_REGION folds the 34 taxonomy
-   muscles onto the regions it does draw, so the figure highlights the right
-   area even when it cannot show the exact head. The chips under the diagram
-   still name the precise muscle.
+   muscles onto the regions it does draw. The chips under the diagram still
+   name the precise muscle.
 
-   Every shape carries data-m="<region>". app.js only adds classes. */
+   Only the top layer carries data-m; app.js adds classes to those. */
 (() => {
 const FRONT_D = [
   ["chest", ["M51.84 41.63 C51.84 41.63 51.02 55.10 51.02 55.10 C51.02 55.10 57.96 57.96 57.96 57.96 C57.96 57.96 67.76 55.51 67.76 55.51 C67.76 55.51 70.61 47.35 70.61 47.35 C70.61 47.35 62.04 41.63 62.04 41.63 C62.04 41.63 51.84 41.63 51.84 41.63Z","M29.80 46.53 C28.78 48.78 29.59 53.61 31.43 55.51 C33.27 57.41 38.03 58.03 40.82 57.96 C43.61 57.89 47.01 57.76 48.16 55.10 C49.32 52.45 49.52 44.22 47.76 42.04 C45.99 39.86 40.54 41.29 37.55 42.04 C34.56 42.79 30.82 44.29 29.80 46.53Z"]],
@@ -47,22 +50,24 @@ const BACK_D = [
   ["right-soleus", ["M69.79 195.74 C69.79 195.74 71.91 195.74 71.91 195.74 C71.91 195.74 73.62 198.30 73.62 198.30 C73.62 198.30 71.91 213.19 71.91 213.19 C71.91 213.19 70.21 219.57 70.21 219.57 C70.21 219.57 67.23 202.13 67.23 202.13 C67.23 202.13 69.79 195.74 69.79 195.74Z"]]
 ];
 
-  const paths = list => list.map(([g, ds]) =>
-    ds.map(d => `<path data-m="${g}" d="${d}"/>`).join('')).join('');
+  const layer = (list, cls, tagged) => '<g class="' + cls + '">'
+    + list.map(([g, ds]) => ds.map(d =>
+        '<path ' + (tagged ? 'data-m="' + g + '" ' : '') + 'd="' + d + '"/>').join('')).join('')
+    + '</g>';
 
-  /* a little depth on a lit muscle, so it reads as tissue rather than a
-     flat fill; referenced by class from the stylesheet */
+  /* a little depth on a lit muscle, so it reads as tissue rather than a flat fill */
   const DEFS = '<defs>'
     + '<linearGradient id="anPri" x1="0" y1="0" x2="0" y2="1">'
-    + '<stop offset="0" stop-color="#E08A5B"/><stop offset="1" stop-color="#C05F30"/></linearGradient>'
+    + '<stop offset="0" stop-color="#E28C5C"/><stop offset="1" stop-color="#BE5C2D"/></linearGradient>'
     + '<linearGradient id="anSec" x1="0" y1="0" x2="0" y2="1">'
-    + '<stop offset="0" stop-color="#7A4830"/><stop offset="1" stop-color="#5E3624"/></linearGradient>'
+    + '<stop offset="0" stop-color="#7C4A31"/><stop offset="1" stop-color="#5C3523"/></linearGradient>'
     + '</defs>';
 
-  const wrap = inner => '<svg class="an-fig" viewBox="0 0 100 200" '
-    + 'xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + DEFS + inner + '</svg>';
+  const wrap = list => '<svg class="an-fig" viewBox="0 0 100 200" '
+    + 'xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + DEFS
+    + layer(list, 'an-base', false) + layer(list, 'an-mus', true) + '</svg>';
 
-  window.BODY_SVG = { front: wrap(paths(FRONT_D)), back: wrap(paths(BACK_D)) };
+  window.BODY_SVG = { front: wrap(FRONT_D), back: wrap(BACK_D) };
 })();
 
 /* Taxonomy muscle → the region the model actually draws. Where the model is
