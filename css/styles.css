@@ -1484,3 +1484,9 @@ body { font-size: 14px; }
 /* the deload sits at the end of the block and is not a working week */
 .week-seg button.deload { color: var(--amber); letter-spacing: .04em; }
 .week-seg button.deload.current { background: var(--amber); color: var(--on-accent); }
+
+/* the block-length dial sits on its own — full width, but short, since it is
+   one number and should not take the screen the way the exercise wheel does */
+.pm-weeks { margin-top: 4px; }
+.pm-weeks .cd-col { flex: 1; }
+.pm-weeks .pw { height: 104px; }

@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v196';
+  const APP_VERSION = 'v197';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -3098,6 +3098,9 @@
      PLAN MAKER — three wheels: sets, exercise, reps
      ============================================================ */
   const PM_SETS = Array.from({ length: 20 }, (_, i) => i + 1);
+  /* how long the block runs before it is done with you — the deload, if you
+     want one, is a week on top of these */
+  const PM_WEEKS = [3, 4, 5, 6, 8, 10, 12];
   const PM_REPS = [
     { label: '5–8', lo: 5, hi: 8 },
     { label: '6–10', lo: 6, hi: 10 },
@@ -3112,7 +3115,7 @@
   let pmInj = 0, pmGroup = 'All', pmQuery = '', pmKitOpen = false;
   /* a fifth, lighter week on the end of the block — on by default, because a
      four-week block run flat out is where people stall */
-  let pmDeload = true;
+  let pmDeload = true, pmWeeks = 4;
 
   /* Injury log — each area rules out the movements that load it, never a list
      of exercise names. Anything tagged in js/library.js is covered the moment
@@ -3262,7 +3265,7 @@
     const g = goalOf();
     if (g) pmReps = g.repIx;              // your goal picks the starting rep range
     pmName = 'Block ' + (plans.length + 1);
-    pmDeload = true;
+    pmDeload = true; pmWeeks = 4;
     show('planmaker');
     renderPlanMaker();
   }
@@ -3424,7 +3427,17 @@
     else root.appendChild(el('div', 'inj-note', noKitN
       ? `${noKitN} exercises need kit you have switched off`
       : 'Every exercise available'));
-    /* deload — the block runs four hard weeks, then optionally a fifth at
+    /* how long the block runs, on the same dial as the reps */
+    const wkRow = el('div', 'cd-wheels pm-weeks');
+    const wkCol = el('div', 'cd-col');
+    wkCol.appendChild(el('div', 'micro', 'Weeks'));
+    wkCol.appendChild(pickerWheel(PM_WEEKS.map(String), PM_WEEKS.indexOf(pmWeeks),
+      i => { pmWeeks = PM_WEEKS[i]; paintWeeks(); }, 'wide',
+      i => (PM_WEEKS[i] % 4 === 0 ? 'w20' : (PM_WEEKS[i] % 2 ? 'w11' : 'w15'))));
+    wkRow.appendChild(wkCol);
+    root.appendChild(wkRow);
+
+    /* deload — the block runs its weeks hard, then optionally one more at
        reduced sets and load so the next block starts fresh */
     const dlHead = el('div', 'inj-head');
     dlHead.appendChild(el('div', 'micro', 'Deload week'));
@@ -3432,12 +3445,19 @@
     root.appendChild(segToggle(
       [['on', 'Yes'], ['off', 'No']],
       pmDeload ? 'on' : 'off',
-      k => { pmDeload = k === 'on'; renderPlanMaker(); },
+      k => { pmDeload = k === 'on'; paintWeeks(); },
       'defer'
     ));
-    root.appendChild(el('div', 'inj-note', pmDeload
-      ? 'Five weeks — the last one at two thirds of the sets and lighter, to let the work land'
-      : 'Four weeks, all at full effort'));
+    const wkNote = el('div', 'inj-note');
+    root.appendChild(wkNote);
+    /* the wheel moves without a re-render, so the line under it is repainted
+       on its own rather than rebuilding the whole screen mid-spin */
+    function paintWeeks() {
+      wkNote.textContent = pmDeload
+        ? `${pmWeeks + 1} weeks — ${pmWeeks} at full effort, then one at two thirds of the sets and lighter`
+        : `${pmWeeks} weeks, all at full effort`;
+    }
+    paintWeeks();
 
     if (swaps.length) root.appendChild(el('div', 'inj-swap', 'Swapped: ' + swaps.join(' · ')));
     if (stuck.length) root.appendChild(el('div', 'inj-swap warn',
@@ -3608,7 +3628,7 @@
     const plan = {
       id: DB.uid(), createdAt: Date.now(),
       name: (pmName || '').trim() || 'Block ' + (plans.length + 1),
-      weeks: pmDeload ? 5 : 4, deload: pmDeload,
+      weeks: pmWeeks + (pmDeload ? 1 : 0), deload: pmDeload,
       days, prefDays: (current && current.prefDays) || [0, 2, 4],
       startDate: null, completed: [], finishedAt: null,
       queued: mode === 'queue'
