@@ -1487,6 +1487,6 @@ body { font-size: 14px; }
 
 /* the block-length dial sits on its own — full width, but short, since it is
    one number and should not take the screen the way the exercise wheel does */
-.pm-weeks { margin-top: 4px; }
-.pm-weeks .cd-col { flex: 1; }
-.pm-weeks .pw { height: 104px; }
+/* the weeks rail carries plain numbers, so the tick spacing is tighter and
+   the selected value is given the tabular figures the rest of the app uses */
+.or-rail .or-lbl { font-variant-numeric: tabular-nums; }

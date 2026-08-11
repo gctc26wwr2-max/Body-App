@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v197';
+  const APP_VERSION = 'v198';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2091,8 +2091,10 @@
   }
   /* Horizontal option rail — the ruler language applied to a short list of
      choices. Swipe it or tap an option; it snaps to the nearest and ticks. */
-  function optionRail(labels, index, onChange) {
-    const TICK = 96;
+  function optionRail(labels, index, onChange, tickW) {
+    // short labels (plain numbers) want a tighter tick so more of the range
+    // is on screen at once; word labels keep the roomy default
+    const TICK = tickW || 96;
     let val = Math.max(0, Math.min(labels.length - 1, index < 0 ? 0 : index));
     const wrap = el('div', 'or-rail');
     wrap.appendChild(el('i', 'or-ind'));
@@ -3427,15 +3429,13 @@
     else root.appendChild(el('div', 'inj-note', noKitN
       ? `${noKitN} exercises need kit you have switched off`
       : 'Every exercise available'));
-    /* how long the block runs, on the same dial as the reps */
-    const wkRow = el('div', 'cd-wheels pm-weeks');
-    const wkCol = el('div', 'cd-col');
-    wkCol.appendChild(el('div', 'micro', 'Weeks'));
-    wkCol.appendChild(pickerWheel(PM_WEEKS.map(String), PM_WEEKS.indexOf(pmWeeks),
-      i => { pmWeeks = PM_WEEKS[i]; paintWeeks(); }, 'wide',
-      i => (PM_WEEKS[i] % 4 === 0 ? 'w20' : (PM_WEEKS[i] % 2 ? 'w11' : 'w15'))));
-    wkRow.appendChild(wkCol);
-    root.appendChild(wkRow);
+    /* how long the block runs — swiped sideways, the same rail the goal and
+       level questions use, so the screen keeps one direction of travel */
+    const wkHead = el('div', 'inj-head');
+    wkHead.appendChild(el('div', 'micro', 'Weeks'));
+    root.appendChild(wkHead);
+    root.appendChild(optionRail(PM_WEEKS.map(String), PM_WEEKS.indexOf(pmWeeks),
+      i => { pmWeeks = PM_WEEKS[i]; paintWeeks(); }, 62));
 
     /* deload — the block runs its weeks hard, then optionally one more at
        reduced sets and load so the next block starts fresh */
