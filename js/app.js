@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v186';
+  const APP_VERSION = 'v187';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -4449,19 +4449,22 @@
     backBtn.title = detailReturn === 'workout' ? 'Back to workout' : 'Back';
     backBtn.onclick = goBackFromDetail;
     acts.appendChild(backBtn);
-    const editBtn = el('button', 'btn-ghost', 'Edit');
-    editBtn.onclick = () => openExerciseForm(ex);
-    acts.appendChild(editBtn);
     if (!isCustomEx(ex)) {
-      /* library exercise — nothing to delete, so say why rather than leaving
-         a dead button or a confirm that refuses */
+      /* a premade exercise: not the user's to change or remove. Renaming one
+         would also strip its injury and equipment tags, which are keyed by
+         name. Say so rather than leaving controls that refuse. */
+      acts.classList.add('solo');
       body.appendChild(acts);
       body.appendChild(el('div', 'det-locked',
-        'Part of the exercise library, so it stays put. Exercises you add yourself can be deleted.'));
+        'Part of the exercise library, so it cannot be edited or deleted. '
+        + 'Add your own exercise if you want one you can change.'));
       root.appendChild(body);
       show('detail');
       return;
     }
+    const editBtn = el('button', 'btn-ghost', 'Edit');
+    editBtn.onclick = () => openExerciseForm(ex);
+    acts.appendChild(editBtn);
     const delBtn = el('button', 'btn-ghost', 'Delete');
     delBtn.onclick = async () => {
       const plansAll = await DB.all('plans');
@@ -4503,6 +4506,9 @@
      EXERCISE FORM (own exercises)
      ============================================================ */
   function openExerciseForm(ex) {
+    /* the form only ever edits the user's own; premade exercises are read-only
+       and there is no route here for them, but refuse anyway */
+    if (ex && !isCustomEx(ex)) return;
     editingExerciseId = ex ? ex.id : null;
     pendingMedia = [];
     const form = $('#form-exercise');
