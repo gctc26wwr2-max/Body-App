@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v181';
+  const APP_VERSION = 'v182';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -4038,6 +4038,40 @@
   let libFilter = 'All', libQuery = '';
   const LIB_GROUPS = ['All', ...new Set((window.EXERCISE_LIBRARY || []).map(i => i.group))];
 
+  /* The written content for each movement lives in its own file rather than in
+     the bundle — it is far larger than the app itself and most sessions never
+     need it. Fetched once, on the first visit to the library, then kept in
+     memory. The service worker keeps a copy after that, so it works offline. */
+  let CONTENT = null, contentPending = null;
+
+  function loadContent() {
+    if (CONTENT) return Promise.resolve(CONTENT);
+    if (contentPending) return contentPending;
+    contentPending = fetch('data/exercise-content.json')
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+      .then(j => {
+        CONTENT = new Map((j.content || []).map(c => [c.id, c]));
+        return CONTENT;
+      })
+      .catch(() => {
+        /* Offline on a first run, or the file moved. The list still works —
+           every row falls back to its own coaching note. */
+        CONTENT = new Map();
+        return CONTENT;
+      });
+    return contentPending;
+  }
+
+  /* A catalog item's demo slug is usually the content id; a handful differ,
+     and three items carry no slug at all and match by name. */
+  function contentFor(item) {
+    if (!CONTENT || !item) return null;
+    const alias = window.CONTENT_ALIAS || {}, byName = window.CONTENT_BY_NAME || {};
+    const slug = item.demo || byName[(item.name || '').toLowerCase()];
+    if (!slug) return null;
+    return CONTENT.get(alias[slug] || slug) || null;
+  }
+
   /* Block Master — building a block, the exercises it can draw on, and the
      kit you actually have, all in one place because they decide each other. */
   let masterTab = 'new';
@@ -4206,6 +4240,13 @@
     list.id = 'lib-list-root';
     root.appendChild(list);
     renderLibList(list);
+
+    /* Draw immediately with the short notes, then fill the descriptions in
+       when the content arrives. Nothing waits on the network. */
+    if (!CONTENT) loadContent().then(() => {
+      const live = $('#lib-list-root');
+      if (live) renderLibList(live);
+    });
   }
 
   function renderLibList(list) {
@@ -4227,11 +4268,16 @@
       const th = el('div', 'lr-thumb');
       th.appendChild(thumbFor(r.mine ? r.ex : r.item));
       row.appendChild(th);
-      const c = el('div');
+      const c = el('div', 'lr-text');
       const nm = el('div', 'lr-name', name);
       if (r.mine) nm.appendChild(el('span', 'mine-tag', 'MINE'));
       c.appendChild(nm);
       c.appendChild(el('div', 'lr-meta', group));
+      /* The written summary if this movement has one, otherwise its own
+         coaching note — every row says something either way. */
+      const con = contentFor(r.mine ? r.ex : r.item);
+      const desc = (con && con.summary) || (r.mine ? r.ex.notes : r.item.notes) || '';
+      if (desc) c.appendChild(el('div', 'lr-desc', desc));
       row.appendChild(c);
       if (r.mine) {
         row.onclick = () => openDetail(r.ex.id, 'library');

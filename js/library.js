@@ -492,3 +492,44 @@ window.EQUIP_INFER = [
   [/plank|crunch|sit[-\s]?up|dead ?bug|bird ?dog|bridge|twist/i, ['mat']],
   [/bench|step[-\s]?up|split squat|preacher/i, ['bench']]
 ];
+
+/* ---- Content layer ----------------------------------------------------
+   data/exercise-content.json is keyed by its own ids. Most of this catalog's
+   `demo` slugs match those ids exactly; these are the ones that don't.
+   Anything absent from both stays uncovered and falls back to its own notes —
+   Swimming and Bicycle Crunch have no equivalent in the content set. */
+window.CONTENT_ALIAS = {
+  'incline-dumbbell-press': 'db-incline-press',
+  'dumbbell-fly': 'db-fly',
+  'cable-crossover': 'cable-fly',
+  'chest-dip': 'dip',
+  'dumbbell-row': 'db-row',
+  'deadlift': 'conventional-deadlift',
+  'dumbbell-shoulder-press': 'db-shoulder-press',
+  'shrug': 'barbell-shrug',
+  'dumbbell-curl': 'db-curl',
+  'skull-crusher': 'skullcrusher',
+  'close-grip-bench-press': 'close-grip-bench',
+  'squat': 'back-squat',
+  'lunge': 'forward-lunge',
+  'romanian-deadlift': 'rdl',
+  'leg-curl': 'lying-leg-curl',
+  'calf-raise': 'standing-calf-raise',
+  'ab-wheel-rollout': 'ab-wheel',
+  'mountain-climbers': 'mountain-climber',
+  'cycling': 'stationary-bike',
+  'rowing-machine': 'rowing-erg',
+  'hiit-sprints': 'treadmill-run',
+  'kettlebell-swing': 'kb-swing',
+  'clean-and-press': 'clean-and-jerk',
+  'thruster': 'kb-goblet-clean',
+  'burpee': 'burpee',
+  'farmers-carry': 'farmers-carry'
+};
+
+/* The three catalog items with no demo slug, matched by name instead. */
+window.CONTENT_BY_NAME = {
+  'burpee': 'burpee',
+  'farmer’s carry': 'farmers-carry',
+  "farmer's carry": 'farmers-carry'
+};
