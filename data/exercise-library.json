@@ -1,0 +1,408 @@
+{
+  "$comment": "Seed exercise library for a training app. Tag-based so injury filtering works on movement patterns and joint stress, not on individual exercise names. Add new exercises by tagging them - the filter logic never changes.",
+  "version": "1.0",
+
+  "schema": {
+    "id": "stable slug - never change once shipped, it's your DB key",
+    "name": "display name",
+    "aliases": "other common names, for search",
+    "equipment": "primary equipment class - see equipment_classes",
+    "pattern": "movement pattern - see patterns",
+    "primary": "main muscles worked",
+    "secondary": "assisting muscles",
+    "joints": "joints under meaningful load",
+    "flags": "risk/constraint flags - THIS is what injury filtering reads",
+    "unilateral": "true if one limb at a time",
+    "skill": "1 = beginner safe, 2 = needs coaching, 3 = technical/advanced"
+  },
+
+  "equipment_classes": [
+    "barbell", "dumbbell", "kettlebell", "machine_selectorised", "machine_plate_loaded",
+    "cable", "smith", "bodyweight", "suspension", "band", "specialty_bar", "cardio_machine", "accessory"
+  ],
+
+  "patterns": [
+    "horizontal_push", "vertical_push", "horizontal_pull", "vertical_pull",
+    "squat", "hinge", "lunge", "carry", "rotation", "anti_rotation",
+    "anti_extension", "anti_lateral_flexion", "isolation_upper", "isolation_lower",
+    "olympic", "conditioning"
+  ],
+
+  "flags": {
+    "overhead": "arm elevated above head under load",
+    "spinal_load_axial": "compressive load through the spine (bar on back, standing loaded)",
+    "spinal_flexion_loaded": "rounding of the spine under load",
+    "spinal_extension_end_range": "arching at end range",
+    "spinal_rotation_loaded": "twisting under load",
+    "deep_knee_flexion": "knee bending past ~100 degrees",
+    "knee_shear_anterior": "open-chain load pulling tibia forward",
+    "hip_deep_flexion": "hip closed past ~110 degrees",
+    "shoulder_er_end_range": "end-range external rotation (e.g. bottom of bench, back rack)",
+    "shoulder_impingement_risk": "internally rotated elevation, e.g. upright row, lateral raise past 90",
+    "wrist_extension_loaded": "loaded wrist bent back (front rack, push-up, dip)",
+    "elbow_valgus": "inward stress at elbow",
+    "grip_intensive": "grip fails before the target muscle",
+    "impact": "jumping/landing forces",
+    "ballistic": "fast explosive load, harder to abort mid-rep",
+    "valsalva_heavy": "typically performed with heavy breath-hold - flag for BP/cardiac",
+    "prone": "lying face down - flag for pregnancy",
+    "supine": "lying face up - flag for late pregnancy",
+    "inverted": "head below heart",
+    "requires_spotter": "failure is dangerous without a spotter",
+    "unstable_load": "load shifts during the rep",
+    "high_skill": "technique-dependent, higher injury cost when done badly"
+  },
+
+  "injury_rules": {
+    "$comment": "Map user-reported injury to flags/patterns to exclude. Exclusion only - never prescribe. Always offer a same-pattern substitute so the program doesn't end up with holes. Let the user re-enable anything manually.",
+    "shoulder_impingement": {
+      "exclude_flags": ["overhead", "shoulder_impingement_risk"],
+      "caution_flags": ["shoulder_er_end_range"],
+      "substitute_from": ["horizontal_push", "horizontal_pull"]
+    },
+    "shoulder_instability_dislocation": {
+      "exclude_flags": ["overhead", "shoulder_er_end_range", "ballistic"],
+      "caution_flags": ["horizontal_push"],
+      "substitute_from": ["horizontal_pull", "isolation_upper"]
+    },
+    "rotator_cuff": {
+      "exclude_flags": ["overhead", "shoulder_impingement_risk", "ballistic"],
+      "caution_flags": ["shoulder_er_end_range"],
+      "substitute_from": ["horizontal_pull", "isolation_upper"]
+    },
+    "ac_joint": {
+      "exclude_flags": ["overhead"],
+      "caution_flags": ["horizontal_push"],
+      "substitute_from": ["horizontal_pull", "isolation_lower"]
+    },
+    "lower_back_disc": {
+      "exclude_flags": ["spinal_flexion_loaded", "spinal_load_axial", "spinal_rotation_loaded"],
+      "caution_flags": ["hinge", "valsalva_heavy"],
+      "substitute_from": ["machine_selectorised", "isolation_lower", "anti_extension"]
+    },
+    "lower_back_general": {
+      "exclude_flags": ["spinal_flexion_loaded"],
+      "caution_flags": ["spinal_load_axial", "hinge"],
+      "substitute_from": ["machine_selectorised", "anti_extension"]
+    },
+    "spondylolisthesis": {
+      "exclude_flags": ["spinal_extension_end_range", "spinal_load_axial", "impact"],
+      "caution_flags": ["hinge"],
+      "substitute_from": ["anti_extension", "machine_selectorised"]
+    },
+    "si_joint": {
+      "exclude_flags": ["spinal_rotation_loaded", "impact"],
+      "caution_flags": ["lunge", "hinge"],
+      "substitute_from": ["machine_selectorised", "anti_rotation"]
+    },
+    "knee_patellofemoral": {
+      "exclude_flags": ["deep_knee_flexion", "impact"],
+      "caution_flags": ["knee_shear_anterior"],
+      "substitute_from": ["hinge", "isolation_lower"]
+    },
+    "knee_acl": {
+      "exclude_flags": ["knee_shear_anterior", "impact", "ballistic"],
+      "caution_flags": ["deep_knee_flexion", "unilateral"],
+      "substitute_from": ["hinge", "machine_selectorised"]
+    },
+    "knee_meniscus": {
+      "exclude_flags": ["deep_knee_flexion", "spinal_rotation_loaded", "impact"],
+      "caution_flags": ["lunge"],
+      "substitute_from": ["machine_selectorised", "isolation_lower"]
+    },
+    "hip_impingement_fai": {
+      "exclude_flags": ["hip_deep_flexion"],
+      "caution_flags": ["deep_knee_flexion", "squat"],
+      "substitute_from": ["hinge", "isolation_lower"]
+    },
+    "hamstring_strain": {
+      "exclude_flags": ["ballistic", "impact"],
+      "caution_flags": ["hinge"],
+      "substitute_from": ["squat", "machine_selectorised"]
+    },
+    "groin_adductor": {
+      "exclude_flags": ["ballistic", "impact"],
+      "caution_flags": ["lunge"],
+      "substitute_from": ["machine_selectorised", "isolation_lower"]
+    },
+    "achilles_calf": {
+      "exclude_flags": ["impact", "ballistic"],
+      "caution_flags": ["lunge"],
+      "substitute_from": ["machine_selectorised", "isolation_lower"]
+    },
+    "ankle_sprain": {
+      "exclude_flags": ["impact", "ballistic"],
+      "caution_flags": ["unilateral", "lunge"],
+      "substitute_from": ["machine_selectorised", "hinge"]
+    },
+    "elbow_tendinopathy": {
+      "exclude_flags": ["elbow_valgus", "grip_intensive"],
+      "caution_flags": ["vertical_pull"],
+      "substitute_from": ["machine_selectorised", "isolation_lower"]
+    },
+    "wrist": {
+      "exclude_flags": ["wrist_extension_loaded", "grip_intensive"],
+      "caution_flags": ["horizontal_push"],
+      "substitute_from": ["machine_selectorised", "isolation_lower"]
+    },
+    "hernia_repair": {
+      "exclude_flags": ["valsalva_heavy", "spinal_flexion_loaded", "impact"],
+      "caution_flags": ["carry", "anti_extension"],
+      "substitute_from": ["machine_selectorised", "isolation_upper"]
+    },
+    "hypertension_cardiac": {
+      "exclude_flags": ["valsalva_heavy", "inverted"],
+      "caution_flags": ["overhead", "carry"],
+      "substitute_from": ["machine_selectorised", "conditioning"]
+    },
+    "pregnancy_later": {
+      "exclude_flags": ["supine", "prone", "impact", "valsalva_heavy", "spinal_flexion_loaded"],
+      "caution_flags": ["spinal_load_axial"],
+      "substitute_from": ["machine_selectorised", "cable"]
+    }
+  },
+
+  "equipment_inventory": {
+    "$comment": "For a gym-profile feature: user ticks what they have access to, you filter the library. Home/commercial/minimal presets included.",
+    "free_weights": [
+      "olympic barbell (20kg)", "womens barbell (15kg)", "training bar (10-15kg)", "fixed-weight barbells",
+      "dumbbells (adjustable)", "dumbbells (fixed pairs)", "kettlebells", "weight plates (bumper)",
+      "weight plates (iron)", "fractional plates", "collars/clips", "medicine ball", "slam ball",
+      "wall ball", "sandbag", "weighted vest", "ankle weights"
+    ],
+    "specialty_bars": [
+      "EZ curl bar", "trap/hex bar", "safety squat bar", "cambered bar", "swiss/football bar",
+      "log bar", "axle bar", "landmine attachment"
+    ],
+    "racks_benches": [
+      "power rack", "squat stands", "half rack", "smith machine", "flat bench", "adjustable bench",
+      "decline bench", "preacher curl bench", "hyperextension/45-degree back extension", "GHD",
+      "dip station", "pull-up bar", "plyo boxes", "step platform"
+    ],
+    "cable_and_machines": [
+      "cable crossover / functional trainer", "lat pulldown", "seated row", "chest press machine",
+      "shoulder press machine", "pec deck / chest fly", "rear delt fly machine", "leg press",
+      "hack squat", "pendulum squat", "belt squat", "leg extension", "seated leg curl",
+      "lying leg curl", "hip thrust machine", "glute kickback machine", "hip abduction",
+      "hip adduction", "standing calf raise", "seated calf raise", "assisted pull-up/dip machine",
+      "t-bar row", "chest-supported row", "preacher curl machine", "triceps extension machine",
+      "ab crunch machine", "back extension machine", "torso rotation machine", "smith machine",
+      "reverse hyper", "neck harness/machine"
+    ],
+    "cardio_conditioning": [
+      "treadmill", "rowing machine (erg)", "assault/air bike", "upright bike", "recumbent bike",
+      "spin bike", "elliptical", "stair climber", "ski erg", "curved manual treadmill",
+      "sled (push/pull)", "battle ropes", "jump rope", "agility ladder", "climbing rope"
+    ],
+    "accessories": [
+      "resistance bands (loop)", "resistance bands (tube with handles)", "mini bands", "TRX/suspension trainer",
+      "ab wheel", "foam roller", "yoga mat", "lifting straps", "wrist wraps", "knee sleeves",
+      "lifting belt", "chalk", "dip belt", "parallettes", "gymnastic rings", "balance/BOSU ball",
+      "swiss/stability ball", "sliders/valslides", "hip circle", "grip trainer"
+    ],
+    "presets": {
+      "minimal_home": ["adjustable dumbbells", "resistance bands (loop)", "yoga mat", "pull-up bar"],
+      "home_gym": ["olympic barbell (20kg)", "weight plates (bumper)", "power rack", "adjustable bench", "adjustable dumbbells", "kettlebells", "pull-up bar", "resistance bands (loop)"],
+      "commercial_gym": "assume all of cable_and_machines + free_weights + racks_benches + cardio_conditioning",
+      "hotel_gym": ["dumbbells (fixed pairs)", "treadmill", "upright bike", "cable crossover / functional trainer", "adjustable bench", "yoga mat"]
+    }
+  },
+
+  "exercises": [
+    {"id":"back-squat","name":"Barbell Back Squat","aliases":["high bar squat"],"equipment":"barbell","pattern":"squat","primary":["quadriceps","glutes"],"secondary":["adductors","spinal_erectors","hamstrings"],"joints":["knee","hip","spine_lumbar"],"flags":["spinal_load_axial","deep_knee_flexion","hip_deep_flexion","valsalva_heavy","requires_spotter","shoulder_er_end_range"],"unilateral":false,"skill":2},
+    {"id":"low-bar-squat","name":"Low Bar Back Squat","aliases":[],"equipment":"barbell","pattern":"squat","primary":["glutes","quadriceps"],"secondary":["hamstrings","spinal_erectors"],"joints":["knee","hip","spine_lumbar","shoulder"],"flags":["spinal_load_axial","hip_deep_flexion","shoulder_er_end_range","valsalva_heavy","requires_spotter"],"unilateral":false,"skill":3},
+    {"id":"front-squat","name":"Barbell Front Squat","aliases":[],"equipment":"barbell","pattern":"squat","primary":["quadriceps"],"secondary":["glutes","upper_back","core"],"joints":["knee","hip","wrist","spine_lumbar"],"flags":["spinal_load_axial","deep_knee_flexion","wrist_extension_loaded","valsalva_heavy"],"unilateral":false,"skill":3},
+    {"id":"box-squat","name":"Box Squat","aliases":[],"equipment":"barbell","pattern":"squat","primary":["glutes","quadriceps"],"secondary":["hamstrings"],"joints":["knee","hip","spine_lumbar"],"flags":["spinal_load_axial","valsalva_heavy"],"unilateral":false,"skill":2},
+    {"id":"ssb-squat","name":"Safety Squat Bar Squat","aliases":[],"equipment":"specialty_bar","pattern":"squat","primary":["quadriceps","glutes"],"secondary":["upper_back"],"joints":["knee","hip","spine_lumbar"],"flags":["spinal_load_axial","deep_knee_flexion","valsalva_heavy"],"unilateral":false,"skill":2},
+    {"id":"goblet-squat","name":"Goblet Squat","aliases":[],"equipment":"dumbbell","pattern":"squat","primary":["quadriceps","glutes"],"secondary":["core"],"joints":["knee","hip"],"flags":["deep_knee_flexion"],"unilateral":false,"skill":1},
+    {"id":"db-squat","name":"Dumbbell Squat","aliases":[],"equipment":"dumbbell","pattern":"squat","primary":["quadriceps","glutes"],"secondary":[],"joints":["knee","hip"],"flags":["deep_knee_flexion","grip_intensive"],"unilateral":false,"skill":1},
+    {"id":"smith-squat","name":"Smith Machine Squat","aliases":[],"equipment":"smith","pattern":"squat","primary":["quadriceps","glutes"],"secondary":[],"joints":["knee","hip","spine_lumbar"],"flags":["spinal_load_axial","deep_knee_flexion"],"unilateral":false,"skill":1},
+    {"id":"hack-squat","name":"Hack Squat Machine","aliases":[],"equipment":"machine_plate_loaded","pattern":"squat","primary":["quadriceps"],"secondary":["glutes"],"joints":["knee","hip"],"flags":["deep_knee_flexion"],"unilateral":false,"skill":1},
+    {"id":"pendulum-squat","name":"Pendulum Squat","aliases":[],"equipment":"machine_plate_loaded","pattern":"squat","primary":["quadriceps"],"secondary":["glutes"],"joints":["knee","hip"],"flags":["deep_knee_flexion"],"unilateral":false,"skill":1},
+    {"id":"belt-squat","name":"Belt Squat","aliases":[],"equipment":"machine_plate_loaded","pattern":"squat","primary":["quadriceps","glutes"],"secondary":[],"joints":["knee","hip"],"flags":["deep_knee_flexion"],"unilateral":false,"skill":1},
+    {"id":"leg-press","name":"Leg Press","aliases":["45 degree leg press"],"equipment":"machine_plate_loaded","pattern":"squat","primary":["quadriceps","glutes"],"secondary":["hamstrings"],"joints":["knee","hip"],"flags":["deep_knee_flexion","hip_deep_flexion"],"unilateral":false,"skill":1},
+    {"id":"single-leg-press","name":"Single-Leg Press","aliases":[],"equipment":"machine_plate_loaded","pattern":"squat","primary":["quadriceps","glutes"],"secondary":[],"joints":["knee","hip"],"flags":["deep_knee_flexion"],"unilateral":true,"skill":1},
+    {"id":"bodyweight-squat","name":"Bodyweight Squat","aliases":["air squat"],"equipment":"bodyweight","pattern":"squat","primary":["quadriceps","glutes"],"secondary":[],"joints":["knee","hip"],"flags":["deep_knee_flexion"],"unilateral":false,"skill":1},
+    {"id":"wall-sit","name":"Wall Sit","aliases":[],"equipment":"bodyweight","pattern":"squat","primary":["quadriceps"],"secondary":[],"joints":["knee"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"pistol-squat","name":"Pistol Squat","aliases":["single leg squat"],"equipment":"bodyweight","pattern":"squat","primary":["quadriceps","glutes"],"secondary":["core"],"joints":["knee","hip","ankle"],"flags":["deep_knee_flexion","high_skill"],"unilateral":true,"skill":3},
+
+    {"id":"conventional-deadlift","name":"Conventional Deadlift","aliases":[],"equipment":"barbell","pattern":"hinge","primary":["glutes","hamstrings","spinal_erectors"],"secondary":["lats","traps","quadriceps"],"joints":["hip","knee","spine_lumbar"],"flags":["spinal_load_axial","grip_intensive","valsalva_heavy","spinal_flexion_loaded"],"unilateral":false,"skill":3},
+    {"id":"sumo-deadlift","name":"Sumo Deadlift","aliases":[],"equipment":"barbell","pattern":"hinge","primary":["glutes","quadriceps","adductors"],"secondary":["hamstrings","spinal_erectors"],"joints":["hip","knee","spine_lumbar"],"flags":["spinal_load_axial","grip_intensive","valsalva_heavy","hip_deep_flexion"],"unilateral":false,"skill":3},
+    {"id":"trap-bar-deadlift","name":"Trap Bar Deadlift","aliases":["hex bar deadlift"],"equipment":"specialty_bar","pattern":"hinge","primary":["glutes","quadriceps","hamstrings"],"secondary":["traps","spinal_erectors"],"joints":["hip","knee","spine_lumbar"],"flags":["spinal_load_axial","grip_intensive","valsalva_heavy"],"unilateral":false,"skill":2},
+    {"id":"rdl","name":"Romanian Deadlift","aliases":["RDL"],"equipment":"barbell","pattern":"hinge","primary":["hamstrings","glutes"],"secondary":["spinal_erectors"],"joints":["hip","spine_lumbar"],"flags":["spinal_load_axial","grip_intensive"],"unilateral":false,"skill":2},
+    {"id":"db-rdl","name":"Dumbbell Romanian Deadlift","aliases":[],"equipment":"dumbbell","pattern":"hinge","primary":["hamstrings","glutes"],"secondary":["spinal_erectors"],"joints":["hip","spine_lumbar"],"flags":["grip_intensive"],"unilateral":false,"skill":1},
+    {"id":"single-leg-rdl","name":"Single-Leg Romanian Deadlift","aliases":[],"equipment":"dumbbell","pattern":"hinge","primary":["hamstrings","glutes"],"secondary":["core"],"joints":["hip","spine_lumbar","ankle"],"flags":[],"unilateral":true,"skill":2},
+    {"id":"stiff-leg-deadlift","name":"Stiff-Leg Deadlift","aliases":[],"equipment":"barbell","pattern":"hinge","primary":["hamstrings"],"secondary":["glutes","spinal_erectors"],"joints":["hip","spine_lumbar"],"flags":["spinal_load_axial","spinal_flexion_loaded","grip_intensive"],"unilateral":false,"skill":3},
+    {"id":"deficit-deadlift","name":"Deficit Deadlift","aliases":[],"equipment":"barbell","pattern":"hinge","primary":["hamstrings","glutes"],"secondary":["spinal_erectors","quadriceps"],"joints":["hip","knee","spine_lumbar"],"flags":["spinal_load_axial","spinal_flexion_loaded","grip_intensive","valsalva_heavy"],"unilateral":false,"skill":3},
+    {"id":"rack-pull","name":"Rack Pull","aliases":[],"equipment":"barbell","pattern":"hinge","primary":["glutes","spinal_erectors"],"secondary":["traps","lats"],"joints":["hip","spine_lumbar"],"flags":["spinal_load_axial","grip_intensive","valsalva_heavy"],"unilateral":false,"skill":2},
+    {"id":"good-morning","name":"Good Morning","aliases":[],"equipment":"barbell","pattern":"hinge","primary":["hamstrings","spinal_erectors"],"secondary":["glutes"],"joints":["hip","spine_lumbar"],"flags":["spinal_load_axial","spinal_flexion_loaded"],"unilateral":false,"skill":3},
+    {"id":"hip-thrust","name":"Barbell Hip Thrust","aliases":[],"equipment":"barbell","pattern":"hinge","primary":["glutes"],"secondary":["hamstrings"],"joints":["hip"],"flags":["supine","spinal_extension_end_range"],"unilateral":false,"skill":1},
+    {"id":"machine-hip-thrust","name":"Hip Thrust Machine","aliases":[],"equipment":"machine_plate_loaded","pattern":"hinge","primary":["glutes"],"secondary":["hamstrings"],"joints":["hip"],"flags":["spinal_extension_end_range"],"unilateral":false,"skill":1},
+    {"id":"glute-bridge","name":"Glute Bridge","aliases":[],"equipment":"bodyweight","pattern":"hinge","primary":["glutes"],"secondary":["hamstrings"],"joints":["hip"],"flags":["supine"],"unilateral":false,"skill":1},
+    {"id":"back-extension","name":"45-Degree Back Extension","aliases":["hyperextension"],"equipment":"machine_selectorised","pattern":"hinge","primary":["spinal_erectors","glutes"],"secondary":["hamstrings"],"joints":["hip","spine_lumbar"],"flags":["spinal_extension_end_range","prone"],"unilateral":false,"skill":1},
+    {"id":"ghd-raise","name":"Glute-Ham Raise","aliases":["GHR"],"equipment":"machine_plate_loaded","pattern":"hinge","primary":["hamstrings"],"secondary":["glutes","spinal_erectors"],"joints":["knee","hip"],"flags":["prone","high_skill"],"unilateral":false,"skill":3},
+    {"id":"nordic-curl","name":"Nordic Hamstring Curl","aliases":[],"equipment":"bodyweight","pattern":"hinge","primary":["hamstrings"],"secondary":[],"joints":["knee"],"flags":["high_skill"],"unilateral":false,"skill":3},
+    {"id":"reverse-hyper","name":"Reverse Hyperextension","aliases":[],"equipment":"machine_plate_loaded","pattern":"hinge","primary":["glutes","spinal_erectors"],"secondary":["hamstrings"],"joints":["hip","spine_lumbar"],"flags":["prone","spinal_extension_end_range"],"unilateral":false,"skill":1},
+    {"id":"cable-pull-through","name":"Cable Pull-Through","aliases":[],"equipment":"cable","pattern":"hinge","primary":["glutes","hamstrings"],"secondary":[],"joints":["hip"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"kb-swing","name":"Kettlebell Swing","aliases":["russian swing"],"equipment":"kettlebell","pattern":"hinge","primary":["glutes","hamstrings"],"secondary":["core","shoulders"],"joints":["hip","spine_lumbar"],"flags":["ballistic","grip_intensive"],"unilateral":false,"skill":2},
+
+    {"id":"walking-lunge","name":"Walking Lunge","aliases":[],"equipment":"dumbbell","pattern":"lunge","primary":["quadriceps","glutes"],"secondary":["hamstrings","adductors"],"joints":["knee","hip","ankle"],"flags":["deep_knee_flexion","grip_intensive"],"unilateral":true,"skill":2},
+    {"id":"reverse-lunge","name":"Reverse Lunge","aliases":[],"equipment":"dumbbell","pattern":"lunge","primary":["glutes","quadriceps"],"secondary":["hamstrings"],"joints":["knee","hip"],"flags":["deep_knee_flexion"],"unilateral":true,"skill":1},
+    {"id":"forward-lunge","name":"Forward Lunge","aliases":[],"equipment":"dumbbell","pattern":"lunge","primary":["quadriceps","glutes"],"secondary":[],"joints":["knee","hip"],"flags":["deep_knee_flexion","knee_shear_anterior"],"unilateral":true,"skill":2},
+    {"id":"bulgarian-split-squat","name":"Bulgarian Split Squat","aliases":["rear foot elevated split squat","RFESS"],"equipment":"dumbbell","pattern":"lunge","primary":["quadriceps","glutes"],"secondary":["adductors"],"joints":["knee","hip"],"flags":["deep_knee_flexion","hip_deep_flexion"],"unilateral":true,"skill":2},
+    {"id":"split-squat","name":"Split Squat","aliases":[],"equipment":"dumbbell","pattern":"lunge","primary":["quadriceps","glutes"],"secondary":[],"joints":["knee","hip"],"flags":["deep_knee_flexion"],"unilateral":true,"skill":1},
+    {"id":"step-up","name":"Step-Up","aliases":[],"equipment":"dumbbell","pattern":"lunge","primary":["quadriceps","glutes"],"secondary":["hamstrings"],"joints":["knee","hip"],"flags":["deep_knee_flexion"],"unilateral":true,"skill":1},
+    {"id":"lateral-lunge","name":"Lateral Lunge","aliases":["side lunge"],"equipment":"dumbbell","pattern":"lunge","primary":["adductors","glutes","quadriceps"],"secondary":[],"joints":["knee","hip"],"flags":["deep_knee_flexion"],"unilateral":true,"skill":2},
+    {"id":"curtsy-lunge","name":"Curtsy Lunge","aliases":[],"equipment":"dumbbell","pattern":"lunge","primary":["glutes","quadriceps"],"secondary":["adductors"],"joints":["knee","hip"],"flags":["deep_knee_flexion","spinal_rotation_loaded"],"unilateral":true,"skill":2},
+    {"id":"smith-split-squat","name":"Smith Machine Split Squat","aliases":[],"equipment":"smith","pattern":"lunge","primary":["quadriceps","glutes"],"secondary":[],"joints":["knee","hip"],"flags":["deep_knee_flexion","spinal_load_axial"],"unilateral":true,"skill":1},
+
+    {"id":"bench-press","name":"Barbell Bench Press","aliases":["flat bench"],"equipment":"barbell","pattern":"horizontal_push","primary":["pectorals"],"secondary":["triceps","anterior_deltoid"],"joints":["shoulder","elbow","wrist"],"flags":["shoulder_er_end_range","requires_spotter","supine","valsalva_heavy","wrist_extension_loaded"],"unilateral":false,"skill":2},
+    {"id":"incline-bench-press","name":"Incline Barbell Bench Press","aliases":[],"equipment":"barbell","pattern":"horizontal_push","primary":["upper_pectorals","anterior_deltoid"],"secondary":["triceps"],"joints":["shoulder","elbow","wrist"],"flags":["shoulder_er_end_range","requires_spotter","supine"],"unilateral":false,"skill":2},
+    {"id":"decline-bench-press","name":"Decline Barbell Bench Press","aliases":[],"equipment":"barbell","pattern":"horizontal_push","primary":["lower_pectorals"],"secondary":["triceps"],"joints":["shoulder","elbow"],"flags":["shoulder_er_end_range","requires_spotter","supine","inverted"],"unilateral":false,"skill":2},
+    {"id":"close-grip-bench","name":"Close-Grip Bench Press","aliases":[],"equipment":"barbell","pattern":"horizontal_push","primary":["triceps"],"secondary":["pectorals"],"joints":["elbow","shoulder","wrist"],"flags":["requires_spotter","supine","wrist_extension_loaded"],"unilateral":false,"skill":2},
+    {"id":"floor-press","name":"Floor Press","aliases":[],"equipment":"barbell","pattern":"horizontal_push","primary":["pectorals","triceps"],"secondary":[],"joints":["shoulder","elbow"],"flags":["supine","requires_spotter"],"unilateral":false,"skill":2},
+    {"id":"db-bench-press","name":"Dumbbell Bench Press","aliases":[],"equipment":"dumbbell","pattern":"horizontal_push","primary":["pectorals"],"secondary":["triceps","anterior_deltoid"],"joints":["shoulder","elbow"],"flags":["shoulder_er_end_range","supine","unstable_load"],"unilateral":false,"skill":1},
+    {"id":"db-incline-press","name":"Incline Dumbbell Press","aliases":[],"equipment":"dumbbell","pattern":"horizontal_push","primary":["upper_pectorals"],"secondary":["anterior_deltoid","triceps"],"joints":["shoulder","elbow"],"flags":["shoulder_er_end_range","supine","unstable_load"],"unilateral":false,"skill":1},
+    {"id":"machine-chest-press","name":"Chest Press Machine","aliases":[],"equipment":"machine_selectorised","pattern":"horizontal_push","primary":["pectorals"],"secondary":["triceps"],"joints":["shoulder","elbow"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"smith-bench-press","name":"Smith Machine Bench Press","aliases":[],"equipment":"smith","pattern":"horizontal_push","primary":["pectorals"],"secondary":["triceps"],"joints":["shoulder","elbow"],"flags":["supine"],"unilateral":false,"skill":1},
+    {"id":"push-up","name":"Push-Up","aliases":[],"equipment":"bodyweight","pattern":"horizontal_push","primary":["pectorals"],"secondary":["triceps","core"],"joints":["shoulder","elbow","wrist"],"flags":["wrist_extension_loaded","prone"],"unilateral":false,"skill":1},
+    {"id":"incline-push-up","name":"Incline Push-Up","aliases":[],"equipment":"bodyweight","pattern":"horizontal_push","primary":["pectorals"],"secondary":["triceps"],"joints":["shoulder","elbow","wrist"],"flags":["wrist_extension_loaded"],"unilateral":false,"skill":1},
+    {"id":"deficit-push-up","name":"Deficit Push-Up","aliases":[],"equipment":"bodyweight","pattern":"horizontal_push","primary":["pectorals"],"secondary":["triceps"],"joints":["shoulder","elbow"],"flags":["shoulder_er_end_range","prone"],"unilateral":false,"skill":2},
+    {"id":"dip","name":"Chest Dip","aliases":[],"equipment":"bodyweight","pattern":"horizontal_push","primary":["lower_pectorals","triceps"],"secondary":["anterior_deltoid"],"joints":["shoulder","elbow","wrist"],"flags":["shoulder_er_end_range","wrist_extension_loaded","grip_intensive"],"unilateral":false,"skill":2},
+    {"id":"assisted-dip","name":"Assisted Dip Machine","aliases":[],"equipment":"machine_selectorised","pattern":"horizontal_push","primary":["triceps","pectorals"],"secondary":[],"joints":["shoulder","elbow"],"flags":["shoulder_er_end_range"],"unilateral":false,"skill":1},
+    {"id":"cable-fly","name":"Cable Chest Fly","aliases":["cable crossover"],"equipment":"cable","pattern":"isolation_upper","primary":["pectorals"],"secondary":[],"joints":["shoulder"],"flags":["shoulder_er_end_range"],"unilateral":false,"skill":1},
+    {"id":"pec-deck","name":"Pec Deck / Machine Fly","aliases":[],"equipment":"machine_selectorised","pattern":"isolation_upper","primary":["pectorals"],"secondary":[],"joints":["shoulder"],"flags":["shoulder_er_end_range"],"unilateral":false,"skill":1},
+    {"id":"db-fly","name":"Dumbbell Chest Fly","aliases":[],"equipment":"dumbbell","pattern":"isolation_upper","primary":["pectorals"],"secondary":[],"joints":["shoulder"],"flags":["shoulder_er_end_range","supine"],"unilateral":false,"skill":2},
+
+    {"id":"overhead-press","name":"Barbell Overhead Press","aliases":["strict press","military press"],"equipment":"barbell","pattern":"vertical_push","primary":["deltoids"],"secondary":["triceps","upper_chest","core"],"joints":["shoulder","elbow","spine_lumbar","wrist"],"flags":["overhead","spinal_load_axial","spinal_extension_end_range","wrist_extension_loaded","valsalva_heavy"],"unilateral":false,"skill":2},
+    {"id":"push-press","name":"Push Press","aliases":[],"equipment":"barbell","pattern":"vertical_push","primary":["deltoids"],"secondary":["triceps","quadriceps","glutes"],"joints":["shoulder","knee","spine_lumbar"],"flags":["overhead","spinal_load_axial","ballistic","valsalva_heavy"],"unilateral":false,"skill":3},
+    {"id":"db-shoulder-press","name":"Dumbbell Shoulder Press","aliases":[],"equipment":"dumbbell","pattern":"vertical_push","primary":["deltoids"],"secondary":["triceps"],"joints":["shoulder","elbow"],"flags":["overhead","unstable_load"],"unilateral":false,"skill":1},
+    {"id":"seated-db-press","name":"Seated Dumbbell Press","aliases":[],"equipment":"dumbbell","pattern":"vertical_push","primary":["deltoids"],"secondary":["triceps"],"joints":["shoulder","elbow"],"flags":["overhead"],"unilateral":false,"skill":1},
+    {"id":"arnold-press","name":"Arnold Press","aliases":[],"equipment":"dumbbell","pattern":"vertical_push","primary":["deltoids"],"secondary":["triceps"],"joints":["shoulder","elbow"],"flags":["overhead","shoulder_impingement_risk"],"unilateral":false,"skill":2},
+    {"id":"machine-shoulder-press","name":"Shoulder Press Machine","aliases":[],"equipment":"machine_selectorised","pattern":"vertical_push","primary":["deltoids"],"secondary":["triceps"],"joints":["shoulder","elbow"],"flags":["overhead"],"unilateral":false,"skill":1},
+    {"id":"landmine-press","name":"Landmine Press","aliases":[],"equipment":"specialty_bar","pattern":"vertical_push","primary":["anterior_deltoid"],"secondary":["upper_chest","core"],"joints":["shoulder","elbow"],"flags":[],"unilateral":true,"skill":1},
+    {"id":"z-press","name":"Seated Z-Press","aliases":[],"equipment":"barbell","pattern":"vertical_push","primary":["deltoids"],"secondary":["core","triceps"],"joints":["shoulder","spine_lumbar"],"flags":["overhead","hip_deep_flexion"],"unilateral":true,"skill":3},
+    {"id":"pike-push-up","name":"Pike Push-Up","aliases":[],"equipment":"bodyweight","pattern":"vertical_push","primary":["deltoids"],"secondary":["triceps"],"joints":["shoulder","elbow","wrist"],"flags":["overhead","wrist_extension_loaded","inverted"],"unilateral":false,"skill":2},
+    {"id":"handstand-push-up","name":"Handstand Push-Up","aliases":["HSPU"],"equipment":"bodyweight","pattern":"vertical_push","primary":["deltoids","triceps"],"secondary":["core"],"joints":["shoulder","elbow","wrist"],"flags":["overhead","inverted","wrist_extension_loaded","high_skill"],"unilateral":false,"skill":3},
+
+    {"id":"pull-up","name":"Pull-Up","aliases":[],"equipment":"bodyweight","pattern":"vertical_pull","primary":["lats"],"secondary":["biceps","rhomboids","core"],"joints":["shoulder","elbow"],"flags":["overhead","grip_intensive"],"unilateral":false,"skill":2},
+    {"id":"chin-up","name":"Chin-Up","aliases":[],"equipment":"bodyweight","pattern":"vertical_pull","primary":["lats","biceps"],"secondary":["rhomboids"],"joints":["shoulder","elbow"],"flags":["overhead","grip_intensive","elbow_valgus"],"unilateral":false,"skill":2},
+    {"id":"neutral-grip-pull-up","name":"Neutral-Grip Pull-Up","aliases":[],"equipment":"bodyweight","pattern":"vertical_pull","primary":["lats"],"secondary":["biceps","brachialis"],"joints":["shoulder","elbow"],"flags":["overhead","grip_intensive"],"unilateral":false,"skill":2},
+    {"id":"assisted-pull-up","name":"Assisted Pull-Up Machine","aliases":[],"equipment":"machine_selectorised","pattern":"vertical_pull","primary":["lats"],"secondary":["biceps"],"joints":["shoulder","elbow"],"flags":["overhead"],"unilateral":false,"skill":1},
+    {"id":"lat-pulldown","name":"Lat Pulldown","aliases":[],"equipment":"machine_selectorised","pattern":"vertical_pull","primary":["lats"],"secondary":["biceps","rhomboids"],"joints":["shoulder","elbow"],"flags":["overhead"],"unilateral":false,"skill":1},
+    {"id":"close-grip-pulldown","name":"Close-Grip Lat Pulldown","aliases":[],"equipment":"machine_selectorised","pattern":"vertical_pull","primary":["lats"],"secondary":["biceps"],"joints":["shoulder","elbow"],"flags":["overhead"],"unilateral":false,"skill":1},
+    {"id":"single-arm-pulldown","name":"Single-Arm Lat Pulldown","aliases":[],"equipment":"cable","pattern":"vertical_pull","primary":["lats"],"secondary":["biceps"],"joints":["shoulder","elbow"],"flags":["overhead"],"unilateral":true,"skill":1},
+    {"id":"straight-arm-pulldown","name":"Straight-Arm Pulldown","aliases":[],"equipment":"cable","pattern":"isolation_upper","primary":["lats"],"secondary":["triceps_long_head"],"joints":["shoulder"],"flags":["overhead"],"unilateral":false,"skill":1},
+
+    {"id":"barbell-row","name":"Barbell Bent-Over Row","aliases":["pendlay row"],"equipment":"barbell","pattern":"horizontal_pull","primary":["lats","rhomboids"],"secondary":["biceps","spinal_erectors"],"joints":["shoulder","elbow","spine_lumbar"],"flags":["spinal_flexion_loaded","grip_intensive"],"unilateral":false,"skill":2},
+    {"id":"chest-supported-row","name":"Chest-Supported Row","aliases":[],"equipment":"machine_plate_loaded","pattern":"horizontal_pull","primary":["rhomboids","lats"],"secondary":["biceps","rear_deltoid"],"joints":["shoulder","elbow"],"flags":["prone"],"unilateral":false,"skill":1},
+    {"id":"t-bar-row","name":"T-Bar Row","aliases":[],"equipment":"machine_plate_loaded","pattern":"horizontal_pull","primary":["lats","rhomboids"],"secondary":["biceps"],"joints":["shoulder","elbow","spine_lumbar"],"flags":["spinal_flexion_loaded","grip_intensive"],"unilateral":false,"skill":2},
+    {"id":"seated-cable-row","name":"Seated Cable Row","aliases":[],"equipment":"cable","pattern":"horizontal_pull","primary":["rhomboids","lats"],"secondary":["biceps","rear_deltoid"],"joints":["shoulder","elbow"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"db-row","name":"Single-Arm Dumbbell Row","aliases":["one arm row"],"equipment":"dumbbell","pattern":"horizontal_pull","primary":["lats"],"secondary":["biceps","rhomboids"],"joints":["shoulder","elbow"],"flags":["grip_intensive"],"unilateral":true,"skill":1},
+    {"id":"machine-row","name":"Seated Row Machine","aliases":[],"equipment":"machine_selectorised","pattern":"horizontal_pull","primary":["rhomboids","lats"],"secondary":["biceps"],"joints":["shoulder","elbow"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"inverted-row","name":"Inverted Row","aliases":["australian pull-up"],"equipment":"bodyweight","pattern":"horizontal_pull","primary":["rhomboids","lats"],"secondary":["biceps","core"],"joints":["shoulder","elbow"],"flags":["grip_intensive"],"unilateral":false,"skill":1},
+    {"id":"trx-row","name":"Suspension Trainer Row","aliases":["TRX row"],"equipment":"suspension","pattern":"horizontal_pull","primary":["rhomboids","lats"],"secondary":["biceps","core"],"joints":["shoulder","elbow"],"flags":["grip_intensive"],"unilateral":false,"skill":1},
+    {"id":"meadows-row","name":"Meadows Row","aliases":[],"equipment":"specialty_bar","pattern":"horizontal_pull","primary":["lats"],"secondary":["rhomboids","biceps"],"joints":["shoulder","elbow","spine_lumbar"],"flags":["spinal_rotation_loaded","grip_intensive"],"unilateral":true,"skill":2},
+    {"id":"seal-row","name":"Seal Row","aliases":[],"equipment":"barbell","pattern":"horizontal_pull","primary":["rhomboids","lats"],"secondary":["biceps"],"joints":["shoulder","elbow"],"flags":["prone"],"unilateral":false,"skill":1},
+    {"id":"face-pull","name":"Face Pull","aliases":[],"equipment":"cable","pattern":"horizontal_pull","primary":["rear_deltoid","rhomboids"],"secondary":["rotator_cuff"],"joints":["shoulder"],"flags":[],"unilateral":false,"skill":1},
+
+    {"id":"lateral-raise","name":"Dumbbell Lateral Raise","aliases":["side raise"],"equipment":"dumbbell","pattern":"isolation_upper","primary":["lateral_deltoid"],"secondary":[],"joints":["shoulder"],"flags":["shoulder_impingement_risk"],"unilateral":false,"skill":1},
+    {"id":"cable-lateral-raise","name":"Cable Lateral Raise","aliases":[],"equipment":"cable","pattern":"isolation_upper","primary":["lateral_deltoid"],"secondary":[],"joints":["shoulder"],"flags":["shoulder_impingement_risk"],"unilateral":true,"skill":1},
+    {"id":"machine-lateral-raise","name":"Lateral Raise Machine","aliases":[],"equipment":"machine_selectorised","pattern":"isolation_upper","primary":["lateral_deltoid"],"secondary":[],"joints":["shoulder"],"flags":["shoulder_impingement_risk"],"unilateral":false,"skill":1},
+    {"id":"front-raise","name":"Dumbbell Front Raise","aliases":[],"equipment":"dumbbell","pattern":"isolation_upper","primary":["anterior_deltoid"],"secondary":[],"joints":["shoulder"],"flags":["shoulder_impingement_risk","overhead"],"unilateral":false,"skill":1},
+    {"id":"rear-delt-fly","name":"Rear Delt Fly","aliases":["reverse fly"],"equipment":"dumbbell","pattern":"isolation_upper","primary":["rear_deltoid"],"secondary":["rhomboids"],"joints":["shoulder"],"flags":["spinal_flexion_loaded"],"unilateral":false,"skill":1},
+    {"id":"machine-rear-delt","name":"Rear Delt Fly Machine","aliases":["reverse pec deck"],"equipment":"machine_selectorised","pattern":"isolation_upper","primary":["rear_deltoid"],"secondary":["rhomboids"],"joints":["shoulder"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"upright-row","name":"Upright Row","aliases":[],"equipment":"barbell","pattern":"isolation_upper","primary":["lateral_deltoid","traps"],"secondary":[],"joints":["shoulder","elbow","wrist"],"flags":["shoulder_impingement_risk"],"unilateral":false,"skill":2},
+    {"id":"barbell-shrug","name":"Barbell Shrug","aliases":[],"equipment":"barbell","pattern":"isolation_upper","primary":["traps"],"secondary":[],"joints":["shoulder"],"flags":["grip_intensive","spinal_load_axial"],"unilateral":false,"skill":1},
+    {"id":"db-shrug","name":"Dumbbell Shrug","aliases":[],"equipment":"dumbbell","pattern":"isolation_upper","primary":["traps"],"secondary":[],"joints":["shoulder"],"flags":["grip_intensive"],"unilateral":false,"skill":1},
+    {"id":"cable-external-rotation","name":"Cable External Rotation","aliases":[],"equipment":"cable","pattern":"isolation_upper","primary":["rotator_cuff"],"secondary":[],"joints":["shoulder"],"flags":[],"unilateral":true,"skill":1},
+    {"id":"band-pull-apart","name":"Band Pull-Apart","aliases":[],"equipment":"band","pattern":"isolation_upper","primary":["rear_deltoid","rhomboids"],"secondary":[],"joints":["shoulder"],"flags":[],"unilateral":false,"skill":1},
+
+    {"id":"barbell-curl","name":"Barbell Biceps Curl","aliases":[],"equipment":"barbell","pattern":"isolation_upper","primary":["biceps"],"secondary":["brachialis"],"joints":["elbow","wrist"],"flags":["elbow_valgus","wrist_extension_loaded"],"unilateral":false,"skill":1},
+    {"id":"ez-bar-curl","name":"EZ-Bar Curl","aliases":[],"equipment":"specialty_bar","pattern":"isolation_upper","primary":["biceps"],"secondary":["brachialis"],"joints":["elbow"],"flags":["elbow_valgus"],"unilateral":false,"skill":1},
+    {"id":"db-curl","name":"Dumbbell Biceps Curl","aliases":[],"equipment":"dumbbell","pattern":"isolation_upper","primary":["biceps"],"secondary":[],"joints":["elbow"],"flags":["elbow_valgus"],"unilateral":false,"skill":1},
+    {"id":"hammer-curl","name":"Hammer Curl","aliases":[],"equipment":"dumbbell","pattern":"isolation_upper","primary":["brachialis","brachioradialis"],"secondary":["biceps"],"joints":["elbow"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"incline-db-curl","name":"Incline Dumbbell Curl","aliases":[],"equipment":"dumbbell","pattern":"isolation_upper","primary":["biceps"],"secondary":[],"joints":["elbow","shoulder"],"flags":["elbow_valgus"],"unilateral":false,"skill":1},
+    {"id":"preacher-curl","name":"Preacher Curl","aliases":[],"equipment":"specialty_bar","pattern":"isolation_upper","primary":["biceps"],"secondary":[],"joints":["elbow"],"flags":["elbow_valgus"],"unilateral":false,"skill":1},
+    {"id":"cable-curl","name":"Cable Biceps Curl","aliases":[],"equipment":"cable","pattern":"isolation_upper","primary":["biceps"],"secondary":[],"joints":["elbow"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"concentration-curl","name":"Concentration Curl","aliases":[],"equipment":"dumbbell","pattern":"isolation_upper","primary":["biceps"],"secondary":[],"joints":["elbow"],"flags":[],"unilateral":true,"skill":1},
+    {"id":"machine-curl","name":"Biceps Curl Machine","aliases":[],"equipment":"machine_selectorised","pattern":"isolation_upper","primary":["biceps"],"secondary":[],"joints":["elbow"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"reverse-curl","name":"Reverse Curl","aliases":[],"equipment":"barbell","pattern":"isolation_upper","primary":["brachioradialis"],"secondary":["biceps"],"joints":["elbow","wrist"],"flags":["wrist_extension_loaded"],"unilateral":false,"skill":1},
+
+    {"id":"triceps-pushdown","name":"Triceps Pushdown","aliases":["cable pushdown"],"equipment":"cable","pattern":"isolation_upper","primary":["triceps"],"secondary":[],"joints":["elbow"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"rope-pushdown","name":"Rope Triceps Pushdown","aliases":[],"equipment":"cable","pattern":"isolation_upper","primary":["triceps"],"secondary":[],"joints":["elbow"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"overhead-triceps-extension","name":"Overhead Triceps Extension","aliases":[],"equipment":"dumbbell","pattern":"isolation_upper","primary":["triceps"],"secondary":[],"joints":["elbow","shoulder"],"flags":["overhead"],"unilateral":false,"skill":1},
+    {"id":"skullcrusher","name":"Skullcrusher","aliases":["lying triceps extension"],"equipment":"specialty_bar","pattern":"isolation_upper","primary":["triceps"],"secondary":[],"joints":["elbow"],"flags":["supine","elbow_valgus"],"unilateral":false,"skill":2},
+    {"id":"triceps-dip-bench","name":"Bench Dip","aliases":[],"equipment":"bodyweight","pattern":"isolation_upper","primary":["triceps"],"secondary":["anterior_deltoid"],"joints":["shoulder","elbow","wrist"],"flags":["shoulder_er_end_range","wrist_extension_loaded"],"unilateral":false,"skill":1},
+    {"id":"machine-triceps-extension","name":"Triceps Extension Machine","aliases":[],"equipment":"machine_selectorised","pattern":"isolation_upper","primary":["triceps"],"secondary":[],"joints":["elbow"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"kickback","name":"Triceps Kickback","aliases":[],"equipment":"dumbbell","pattern":"isolation_upper","primary":["triceps"],"secondary":[],"joints":["elbow"],"flags":["spinal_flexion_loaded"],"unilateral":true,"skill":1},
+
+    {"id":"leg-extension","name":"Leg Extension","aliases":[],"equipment":"machine_selectorised","pattern":"isolation_lower","primary":["quadriceps"],"secondary":[],"joints":["knee"],"flags":["knee_shear_anterior"],"unilateral":false,"skill":1},
+    {"id":"lying-leg-curl","name":"Lying Leg Curl","aliases":[],"equipment":"machine_selectorised","pattern":"isolation_lower","primary":["hamstrings"],"secondary":["calves"],"joints":["knee"],"flags":["prone"],"unilateral":false,"skill":1},
+    {"id":"seated-leg-curl","name":"Seated Leg Curl","aliases":[],"equipment":"machine_selectorised","pattern":"isolation_lower","primary":["hamstrings"],"secondary":[],"joints":["knee"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"standing-calf-raise","name":"Standing Calf Raise","aliases":[],"equipment":"machine_selectorised","pattern":"isolation_lower","primary":["gastrocnemius"],"secondary":["soleus"],"joints":["ankle"],"flags":["spinal_load_axial"],"unilateral":false,"skill":1},
+    {"id":"seated-calf-raise","name":"Seated Calf Raise","aliases":[],"equipment":"machine_selectorised","pattern":"isolation_lower","primary":["soleus"],"secondary":["gastrocnemius"],"joints":["ankle"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"leg-press-calf-raise","name":"Leg Press Calf Raise","aliases":[],"equipment":"machine_plate_loaded","pattern":"isolation_lower","primary":["gastrocnemius"],"secondary":[],"joints":["ankle"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"hip-abduction","name":"Hip Abduction Machine","aliases":[],"equipment":"machine_selectorised","pattern":"isolation_lower","primary":["gluteus_medius"],"secondary":[],"joints":["hip"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"hip-adduction","name":"Hip Adduction Machine","aliases":[],"equipment":"machine_selectorised","pattern":"isolation_lower","primary":["adductors"],"secondary":[],"joints":["hip"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"cable-kickback","name":"Cable Glute Kickback","aliases":[],"equipment":"cable","pattern":"isolation_lower","primary":["glutes"],"secondary":["hamstrings"],"joints":["hip"],"flags":[],"unilateral":true,"skill":1},
+    {"id":"tibialis-raise","name":"Tibialis Raise","aliases":[],"equipment":"bodyweight","pattern":"isolation_lower","primary":["tibialis_anterior"],"secondary":[],"joints":["ankle"],"flags":[],"unilateral":false,"skill":1},
+
+    {"id":"plank","name":"Plank","aliases":[],"equipment":"bodyweight","pattern":"anti_extension","primary":["core"],"secondary":["shoulders"],"joints":["spine_lumbar","shoulder"],"flags":["prone"],"unilateral":false,"skill":1},
+    {"id":"side-plank","name":"Side Plank","aliases":[],"equipment":"bodyweight","pattern":"anti_lateral_flexion","primary":["obliques"],"secondary":["gluteus_medius"],"joints":["spine_lumbar","shoulder"],"flags":[],"unilateral":true,"skill":1},
+    {"id":"ab-wheel","name":"Ab Wheel Rollout","aliases":[],"equipment":"accessory","pattern":"anti_extension","primary":["core"],"secondary":["lats"],"joints":["spine_lumbar","shoulder"],"flags":["spinal_extension_end_range","prone","high_skill"],"unilateral":false,"skill":2},
+    {"id":"dead-bug","name":"Dead Bug","aliases":[],"equipment":"bodyweight","pattern":"anti_extension","primary":["core"],"secondary":[],"joints":["spine_lumbar"],"flags":["supine"],"unilateral":false,"skill":1},
+    {"id":"pallof-press","name":"Pallof Press","aliases":[],"equipment":"cable","pattern":"anti_rotation","primary":["obliques","core"],"secondary":[],"joints":["spine_lumbar"],"flags":[],"unilateral":true,"skill":1},
+    {"id":"hanging-leg-raise","name":"Hanging Leg Raise","aliases":[],"equipment":"bodyweight","pattern":"anti_extension","primary":["core","hip_flexors"],"secondary":[],"joints":["spine_lumbar","shoulder","hip"],"flags":["grip_intensive","overhead","spinal_flexion_loaded"],"unilateral":false,"skill":2},
+    {"id":"captains-chair-raise","name":"Captain's Chair Knee Raise","aliases":[],"equipment":"machine_selectorised","pattern":"anti_extension","primary":["core","hip_flexors"],"secondary":[],"joints":["spine_lumbar","hip"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"cable-crunch","name":"Cable Crunch","aliases":[],"equipment":"cable","pattern":"isolation_upper","primary":["core"],"secondary":[],"joints":["spine_lumbar"],"flags":["spinal_flexion_loaded"],"unilateral":false,"skill":1},
+    {"id":"crunch","name":"Crunch","aliases":[],"equipment":"bodyweight","pattern":"isolation_upper","primary":["core"],"secondary":[],"joints":["spine_lumbar"],"flags":["spinal_flexion_loaded","supine"],"unilateral":false,"skill":1},
+    {"id":"sit-up","name":"Sit-Up","aliases":[],"equipment":"bodyweight","pattern":"isolation_upper","primary":["core","hip_flexors"],"secondary":[],"joints":["spine_lumbar","hip"],"flags":["spinal_flexion_loaded","supine"],"unilateral":false,"skill":1},
+    {"id":"russian-twist","name":"Russian Twist","aliases":[],"equipment":"bodyweight","pattern":"rotation","primary":["obliques"],"secondary":[],"joints":["spine_lumbar"],"flags":["spinal_rotation_loaded","spinal_flexion_loaded","supine"],"unilateral":false,"skill":1},
+    {"id":"cable-woodchop","name":"Cable Woodchop","aliases":[],"equipment":"cable","pattern":"rotation","primary":["obliques"],"secondary":["core"],"joints":["spine_lumbar"],"flags":["spinal_rotation_loaded"],"unilateral":true,"skill":2},
+    {"id":"bird-dog","name":"Bird Dog","aliases":[],"equipment":"bodyweight","pattern":"anti_rotation","primary":["core","spinal_erectors"],"secondary":["glutes"],"joints":["spine_lumbar"],"flags":[],"unilateral":true,"skill":1},
+    {"id":"copenhagen-plank","name":"Copenhagen Plank","aliases":[],"equipment":"bodyweight","pattern":"anti_lateral_flexion","primary":["adductors"],"secondary":["obliques"],"joints":["hip"],"flags":["high_skill"],"unilateral":true,"skill":3},
+
+    {"id":"farmers-carry","name":"Farmer's Carry","aliases":[],"equipment":"dumbbell","pattern":"carry","primary":["traps","core","forearms"],"secondary":["glutes"],"joints":["shoulder","spine_lumbar"],"flags":["grip_intensive","spinal_load_axial"],"unilateral":false,"skill":1},
+    {"id":"suitcase-carry","name":"Suitcase Carry","aliases":[],"equipment":"dumbbell","pattern":"carry","primary":["obliques","forearms"],"secondary":["traps"],"joints":["spine_lumbar","shoulder"],"flags":["grip_intensive"],"unilateral":true,"skill":1},
+    {"id":"front-rack-carry","name":"Front Rack Carry","aliases":[],"equipment":"kettlebell","pattern":"carry","primary":["core","upper_back"],"secondary":[],"joints":["shoulder","spine_lumbar"],"flags":["spinal_load_axial","wrist_extension_loaded"],"unilateral":false,"skill":2},
+    {"id":"overhead-carry","name":"Overhead Carry","aliases":["waiter walk"],"equipment":"kettlebell","pattern":"carry","primary":["deltoids","core"],"secondary":[],"joints":["shoulder","spine_lumbar"],"flags":["overhead","spinal_load_axial"],"unilateral":true,"skill":2},
+    {"id":"sled-push","name":"Sled Push","aliases":["prowler push"],"equipment":"cardio_machine","pattern":"conditioning","primary":["quadriceps","glutes"],"secondary":["calves","core"],"joints":["knee","hip","ankle"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"sled-drag","name":"Sled Drag","aliases":[],"equipment":"cardio_machine","pattern":"conditioning","primary":["quadriceps","glutes"],"secondary":["hamstrings"],"joints":["knee","hip"],"flags":[],"unilateral":false,"skill":1},
+
+    {"id":"clean","name":"Power Clean","aliases":[],"equipment":"barbell","pattern":"olympic","primary":["glutes","hamstrings","traps"],"secondary":["quadriceps","deltoids"],"joints":["hip","knee","shoulder","wrist","spine_lumbar"],"flags":["ballistic","high_skill","spinal_load_axial","wrist_extension_loaded","impact"],"unilateral":false,"skill":3},
+    {"id":"hang-clean","name":"Hang Clean","aliases":[],"equipment":"barbell","pattern":"olympic","primary":["traps","glutes"],"secondary":["hamstrings","deltoids"],"joints":["hip","knee","shoulder","wrist"],"flags":["ballistic","high_skill","wrist_extension_loaded"],"unilateral":false,"skill":3},
+    {"id":"snatch","name":"Power Snatch","aliases":[],"equipment":"barbell","pattern":"olympic","primary":["glutes","hamstrings","deltoids"],"secondary":["traps","quadriceps"],"joints":["hip","knee","shoulder","spine_lumbar"],"flags":["overhead","ballistic","high_skill","shoulder_er_end_range","impact"],"unilateral":false,"skill":3},
+    {"id":"clean-and-jerk","name":"Clean and Jerk","aliases":[],"equipment":"barbell","pattern":"olympic","primary":["full_body"],"secondary":[],"joints":["hip","knee","shoulder","spine_lumbar","wrist"],"flags":["overhead","ballistic","high_skill","spinal_load_axial","impact"],"unilateral":false,"skill":3},
+    {"id":"high-pull","name":"Barbell High Pull","aliases":[],"equipment":"barbell","pattern":"olympic","primary":["traps","deltoids"],"secondary":["glutes"],"joints":["shoulder","hip","spine_lumbar"],"flags":["ballistic","shoulder_impingement_risk"],"unilateral":false,"skill":3},
+    {"id":"kb-clean","name":"Kettlebell Clean","aliases":[],"equipment":"kettlebell","pattern":"olympic","primary":["glutes","traps"],"secondary":["forearms"],"joints":["hip","shoulder","wrist"],"flags":["ballistic","grip_intensive","wrist_extension_loaded"],"unilateral":true,"skill":3},
+    {"id":"kb-snatch","name":"Kettlebell Snatch","aliases":[],"equipment":"kettlebell","pattern":"olympic","primary":["glutes","deltoids"],"secondary":["core"],"joints":["hip","shoulder"],"flags":["overhead","ballistic","high_skill","grip_intensive"],"unilateral":true,"skill":3},
+    {"id":"turkish-get-up","name":"Turkish Get-Up","aliases":[],"equipment":"kettlebell","pattern":"carry","primary":["core","deltoids"],"secondary":["glutes","quadriceps"],"joints":["shoulder","hip","knee","wrist"],"flags":["overhead","high_skill","supine"],"unilateral":true,"skill":3},
+    {"id":"kb-goblet-clean","name":"Kettlebell Thruster","aliases":[],"equipment":"kettlebell","pattern":"olympic","primary":["quadriceps","deltoids"],"secondary":["glutes"],"joints":["knee","hip","shoulder"],"flags":["overhead","ballistic","deep_knee_flexion"],"unilateral":false,"skill":2},
+
+    {"id":"box-jump","name":"Box Jump","aliases":[],"equipment":"bodyweight","pattern":"conditioning","primary":["quadriceps","glutes"],"secondary":["calves"],"joints":["knee","hip","ankle"],"flags":["impact","ballistic"],"unilateral":false,"skill":2},
+    {"id":"broad-jump","name":"Broad Jump","aliases":[],"equipment":"bodyweight","pattern":"conditioning","primary":["glutes","quadriceps"],"secondary":["hamstrings"],"joints":["knee","hip","ankle"],"flags":["impact","ballistic"],"unilateral":false,"skill":2},
+    {"id":"burpee","name":"Burpee","aliases":[],"equipment":"bodyweight","pattern":"conditioning","primary":["full_body"],"secondary":[],"joints":["knee","hip","shoulder","wrist"],"flags":["impact","wrist_extension_loaded","prone"],"unilateral":false,"skill":1},
+    {"id":"jump-rope","name":"Jump Rope","aliases":[],"equipment":"accessory","pattern":"conditioning","primary":["calves"],"secondary":["shoulders"],"joints":["ankle","knee"],"flags":["impact"],"unilateral":false,"skill":1},
+    {"id":"mountain-climber","name":"Mountain Climber","aliases":[],"equipment":"bodyweight","pattern":"conditioning","primary":["core","hip_flexors"],"secondary":["shoulders"],"joints":["shoulder","hip","wrist"],"flags":["wrist_extension_loaded","prone"],"unilateral":false,"skill":1},
+    {"id":"battle-ropes","name":"Battle Ropes","aliases":[],"equipment":"accessory","pattern":"conditioning","primary":["deltoids","core"],"secondary":["forearms"],"joints":["shoulder"],"flags":["grip_intensive"],"unilateral":false,"skill":1},
+    {"id":"treadmill-run","name":"Treadmill Run","aliases":[],"equipment":"cardio_machine","pattern":"conditioning","primary":["full_body"],"secondary":[],"joints":["knee","hip","ankle"],"flags":["impact"],"unilateral":false,"skill":1},
+    {"id":"treadmill-incline-walk","name":"Incline Treadmill Walk","aliases":[],"equipment":"cardio_machine","pattern":"conditioning","primary":["glutes","calves"],"secondary":[],"joints":["hip","ankle"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"rowing-erg","name":"Rowing Machine","aliases":["erg"],"equipment":"cardio_machine","pattern":"conditioning","primary":["full_body"],"secondary":[],"joints":["knee","hip","shoulder","spine_lumbar"],"flags":["spinal_flexion_loaded"],"unilateral":false,"skill":2},
+    {"id":"assault-bike","name":"Air Bike","aliases":["assault bike"],"equipment":"cardio_machine","pattern":"conditioning","primary":["full_body"],"secondary":[],"joints":["knee","hip","shoulder"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"stationary-bike","name":"Stationary Bike","aliases":[],"equipment":"cardio_machine","pattern":"conditioning","primary":["quadriceps"],"secondary":["glutes"],"joints":["knee","hip"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"ski-erg","name":"Ski Erg","aliases":[],"equipment":"cardio_machine","pattern":"conditioning","primary":["lats","core","triceps"],"secondary":[],"joints":["shoulder","spine_lumbar"],"flags":["overhead","spinal_flexion_loaded"],"unilateral":false,"skill":1},
+    {"id":"stair-climber","name":"Stair Climber","aliases":[],"equipment":"cardio_machine","pattern":"conditioning","primary":["glutes","quadriceps"],"secondary":["calves"],"joints":["knee","hip"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"elliptical","name":"Elliptical","aliases":[],"equipment":"cardio_machine","pattern":"conditioning","primary":["quadriceps","glutes"],"secondary":[],"joints":["knee","hip"],"flags":[],"unilateral":false,"skill":1},
+    {"id":"rope-climb","name":"Rope Climb","aliases":[],"equipment":"accessory","pattern":"vertical_pull","primary":["lats","biceps","forearms"],"secondary":["core"],"joints":["shoulder","elbow"],"flags":["grip_intensive","overhead","high_skill"],"unilateral":false,"skill":3},
+    {"id":"wall-ball","name":"Wall Ball","aliases":[],"equipment":"accessory","pattern":"conditioning","primary":["quadriceps","deltoids"],"secondary":["glutes"],"joints":["knee","hip","shoulder"],"flags":["overhead","deep_knee_flexion","ballistic"],"unilateral":false,"skill":2},
+    {"id":"med-ball-slam","name":"Medicine Ball Slam","aliases":[],"equipment":"accessory","pattern":"conditioning","primary":["core","lats"],"secondary":["shoulders"],"joints":["shoulder","spine_lumbar"],"flags":["overhead","ballistic","spinal_flexion_loaded"],"unilateral":false,"skill":1},
+    {"id":"med-ball-rotational-throw","name":"Rotational Med Ball Throw","aliases":[],"equipment":"accessory","pattern":"rotation","primary":["obliques"],"secondary":["core"],"joints":["spine_lumbar"],"flags":["spinal_rotation_loaded","ballistic"],"unilateral":true,"skill":2},
+
+    {"id":"wrist-curl","name":"Wrist Curl","aliases":[],"equipment":"dumbbell","pattern":"isolation_upper","primary":["forearm_flexors"],"secondary":[],"joints":["wrist"],"flags":["wrist_extension_loaded"],"unilateral":false,"skill":1},
+    {"id":"reverse-wrist-curl","name":"Reverse Wrist Curl","aliases":[],"equipment":"dumbbell","pattern":"isolation_upper","primary":["forearm_extensors"],"secondary":[],"joints":["wrist"],"flags":["wrist_extension_loaded"],"unilateral":false,"skill":1},
+    {"id":"dead-hang","name":"Dead Hang","aliases":[],"equipment":"bodyweight","pattern":"isolation_upper","primary":["forearms"],"secondary":["lats"],"joints":["shoulder"],"flags":["grip_intensive","overhead"],"unilateral":false,"skill":1},
+    {"id":"neck-extension","name":"Neck Extension","aliases":[],"equipment":"accessory","pattern":"isolation_upper","primary":["neck_extensors"],"secondary":[],"joints":["spine_cervical"],"flags":["prone"],"unilateral":false,"skill":2},
+    {"id":"neck-flexion","name":"Neck Flexion","aliases":[],"equipment":"accessory","pattern":"isolation_upper","primary":["neck_flexors"],"secondary":[],"joints":["spine_cervical"],"flags":["supine"],"unilateral":false,"skill":2}
+  ]
+}
