@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v195';
+  const APP_VERSION = 'v196';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -64,7 +64,13 @@
   const fmtW = kg => fmtWn(kg) + ' ' + wUnit();
   const wStep = () => (wUnit() === 'lb' ? 1 : 0.5);
   const wPlates = () => (wUnit() === 'lb' ? [5, 10, 25] : [2.5, 5, 10]);
-  const wBump = () => (wUnit() === 'lb' ? 5 / LB_PER_KG : 2.5);      // one small jump, in kg
+  const wBump = () => (wUnit() === 'lb' ? 5 / LB_PER_KG : 2.5);
+  /* nearest weight you could actually load, in the increment this user works
+     in — a deload of 61.4kg helps nobody */
+  const wRound = kg => {
+    const step = wBump();
+    return kg > 0 ? Math.max(step, Math.round(kg / step) * step) : 0;
+  };      // one small jump, in kg
   const hUnit = () => (getProfile().hUnits === 'ft' ? 'ft' : 'cm');
   const fmtH = cm => {
     if (!(cm > 0)) return '—';
@@ -121,6 +127,12 @@
   }
   /* the week you're allowed to train: can't run ahead of the calendar, and
      can't skip into the next week until every day of this one is banked */
+  /* The last week of a block can be a deload: same movements, two thirds of
+     the sets, and the bar loaded back to about 60% of what you last hit. The
+     point is to keep the pattern and drop the fatigue. */
+  const isDeloadWeek = (plan, wk) => !!(plan && plan.deload) && wk >= (plan.weeks || 4);
+  const DELOAD_LOAD = 0.6, DELOAD_SETS = 2 / 3;
+
   function weekOf(plan) {
     if (!plan.startDate) return null;
     return Math.min(planWeek(plan) || 1, progressWeek(plan), plan.weeks || 4);
@@ -347,7 +359,11 @@
     bc.appendChild(bh);
     const seg = el('div', 'week-seg');
     for (let i = 1; i <= weeks; i++) {
-      const b = el('button', i < curWeek ? 'past' : (i === curWeek ? 'current' : ''), 'W' + i);
+      const dl = isDeloadWeek(plan, i);
+      const b = el('button',
+        (i < curWeek ? 'past' : (i === curWeek ? 'current' : '')) + (dl ? ' deload' : ''),
+        dl ? 'DL' : 'W' + i);
+      if (dl) b.title = 'Deload week — lighter, fewer sets';
       b.type = 'button';
       b.onclick = async () => {
         const d = new Date(Date.now() - (i - 1) * 7 * 86400000);
@@ -672,6 +688,7 @@
     if (!plan.startDate) { plan.startDate = todayStr(); await DB.put('plans', plan); }
     const sessions = await DB.all('sessions');
     const exList = [];
+    const deload = isDeloadWeek(plan, wk);
     for (const item of day.items) {
       const ex = exercises.find(e => e.id === item.exerciseId);
       if (!ex) continue;
@@ -686,12 +703,15 @@
         exerciseId: ex.id, name: ex.name,
         timed: /second/i.test(ex.notes || ''),   // hold/interval exercises log seconds
         perSide: /side/i.test(ex.notes || ''),   // run the hold once per side
-        repLo: lo, repHi: hi, rest: ex.rest || 120,
-        sets: Array.from({ length: item.sets || 3 }, (_, si) => {
+        repLo: lo, repHi: hi, rest: ex.rest || 120, deload,
+        sets: Array.from({ length: deload
+          ? Math.max(1, Math.round((item.sets || 3) * DELOAD_SETS))
+          : (item.sets || 3) }, (_, si) => {
           const prev = lastSets ? lastSets[si] : null;
           // start every set at the heaviest weight you reached last time —
           // weight you earned mid-session carries into the whole next session
-          const kg = lastMax || item.kg || 0;
+          const base = lastMax || item.kg || 0;
+          const kg = deload ? wRound(base * DELOAD_LOAD) : base;
           const reps = (prev && prev.reps) || lo;
           return { kg, reps, targetLo: lo, targetHi: hi, done: false };
         })
@@ -3090,6 +3110,9 @@
   ];
   let pmDays = null, pmDay = 0, pmSets = 2, pmEx = 0, pmReps = 2, pmName = '';
   let pmInj = 0, pmGroup = 'All', pmQuery = '', pmKitOpen = false;
+  /* a fifth, lighter week on the end of the block — on by default, because a
+     four-week block run flat out is where people stall */
+  let pmDeload = true;
 
   /* Injury log — each area rules out the movements that load it, never a list
      of exercise names. Anything tagged in js/library.js is covered the moment
@@ -3239,6 +3262,7 @@
     const g = goalOf();
     if (g) pmReps = g.repIx;              // your goal picks the starting rep range
     pmName = 'Block ' + (plans.length + 1);
+    pmDeload = true;
     show('planmaker');
     renderPlanMaker();
   }
@@ -3400,6 +3424,21 @@
     else root.appendChild(el('div', 'inj-note', noKitN
       ? `${noKitN} exercises need kit you have switched off`
       : 'Every exercise available'));
+    /* deload — the block runs four hard weeks, then optionally a fifth at
+       reduced sets and load so the next block starts fresh */
+    const dlHead = el('div', 'inj-head');
+    dlHead.appendChild(el('div', 'micro', 'Deload week'));
+    root.appendChild(dlHead);
+    root.appendChild(segToggle(
+      [['on', 'Yes'], ['off', 'No']],
+      pmDeload ? 'on' : 'off',
+      k => { pmDeload = k === 'on'; renderPlanMaker(); },
+      'defer'
+    ));
+    root.appendChild(el('div', 'inj-note', pmDeload
+      ? 'Five weeks — the last one at two thirds of the sets and lighter, to let the work land'
+      : 'Four weeks, all at full effort'));
+
     if (swaps.length) root.appendChild(el('div', 'inj-swap', 'Swapped: ' + swaps.join(' · ')));
     if (stuck.length) root.appendChild(el('div', 'inj-swap warn',
       'No safe stand-in for ' + stuck.join(', ') + ' — remove it or drop that injury.'));
@@ -3569,7 +3608,8 @@
     const plan = {
       id: DB.uid(), createdAt: Date.now(),
       name: (pmName || '').trim() || 'Block ' + (plans.length + 1),
-      weeks: 4, days, prefDays: (current && current.prefDays) || [0, 2, 4],
+      weeks: pmDeload ? 5 : 4, deload: pmDeload,
+      days, prefDays: (current && current.prefDays) || [0, 2, 4],
       startDate: null, completed: [], finishedAt: null,
       queued: mode === 'queue'
     };
@@ -4158,7 +4198,8 @@
       const nm = el('div', 'exi-name', p.name);
       const total = (p.days || []).reduce((n, d) => n + (d.items || []).length, 0);
       nm.appendChild(el('span', 'exi-sub',
-        `${p.days.length} day${p.days.length === 1 ? '' : 's'} · ${total} exercise${total === 1 ? '' : 's'} · ${state}`));
+        `${p.days.length} day${p.days.length === 1 ? '' : 's'} · ${total} exercise${total === 1 ? '' : 's'}`
+        + ` · ${p.weeks || 4}w${p.deload ? ' +deload' : ''} · ${state}`));
       r.appendChild(nm);
       r.appendChild(el('div', 'exi-go', '▾'));
       list.appendChild(r);
