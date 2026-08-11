@@ -1462,3 +1462,21 @@ body { font-size: 14px; }
 .an-chips span.pri {
   background: rgba(206,107,61,.14); border-color: var(--lime-border); color: var(--lime);
 }
+
+/* a block's contents, revealed under its row in Block Master */
+.exi-go { margin-left: auto; color: var(--t6); font-size: 12px; transition: transform .18s ease; }
+.exi-row.open .exi-go { transform: rotate(180deg); color: var(--lime); }
+.blk-preview {
+  background: var(--sunken); border: 1px solid var(--hair);
+  border-radius: 14px; padding: 4px 10px; margin: 2px 0 10px;
+}
+.blk-day {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 2px 5px; border-bottom: 1px solid var(--hair-8);
+}
+.blk-day-name {
+  flex: 1; font-size: 10px; font-weight: 800; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--t5);
+}
+.blk-day-meta { font-size: 11px; color: var(--t6); }
+.blk-preview .pv-row:last-child { border-bottom: none; }

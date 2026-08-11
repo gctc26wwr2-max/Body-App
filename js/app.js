@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v194';
+  const APP_VERSION = 'v195';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1940,25 +1940,7 @@
         pv.hidden = true;
         r.onclick = () => {
           if (pv.hidden && !pv.dataset.built) {
-            day.items.forEach(it => {
-              const ex2 = exercises.find(x => x.id === it.exerciseId);
-              const row = el('div', 'pv-row');
-              const th = el('div', 'pv-thumb');
-              th.appendChild(thumbFor(ex2));
-              row.appendChild(th);
-              const cc = el('div');
-              cc.appendChild(el('div', 'pv-name', ex2 ? ex2.name : '(deleted)'));
-              const timed = /second/i.test((ex2 && ex2.notes) || '');
-              cc.appendChild(el('div', 'pv-meta num',
-                `${it.sets} × ${it.repLo}-${it.repHi}${timed ? ' s' : ' reps'}`
-                + (it.kg ? ` · ${fmtW(it.kg)}` : '')));
-              row.appendChild(cc);
-              if (ex2) {
-                row.appendChild(el('div', 'pv-go', '›'));
-                row.onclick = () => openDetail(ex2.id, 'plan');
-              }
-              pv.appendChild(row);
-            });
+            day.items.forEach(it => pv.appendChild(planItemRow(it, 'plan')));
             pv.dataset.built = '1';
           }
           pv.hidden = !pv.hidden;
@@ -4131,6 +4113,29 @@
     fill();
   }
 
+  /* One line of a block's day: the movement, its sets and reps, and a way
+     through to the exercise. Shared by the plan's day previews and the block
+     previews in Block Master so the two always read the same. */
+  function planItemRow(it, from) {
+    const ex = exercises.find(x => x.id === it.exerciseId);
+    const row = el('div', 'pv-row');
+    const th = el('div', 'pv-thumb');
+    th.appendChild(thumbFor(ex));
+    row.appendChild(th);
+    const c = el('div');
+    c.appendChild(el('div', 'pv-name', ex ? ex.name : '(deleted)'));
+    const timed = /second/i.test((ex && ex.notes) || '');
+    c.appendChild(el('div', 'pv-meta num',
+      `${it.sets} × ${it.repLo}-${it.repHi}${timed ? ' s' : ' reps'}`
+      + (it.kg ? ` · ${fmtW(it.kg)}` : '')));
+    row.appendChild(c);
+    if (ex) {
+      row.appendChild(el('div', 'pv-go', '›'));
+      row.onclick = e => { e.stopPropagation(); openDetail(ex.id, from); };
+    }
+    return row;
+  }
+
   function renderMasterNew(root) {
     const start = el('button', 'btn-cta big');
     start.style.width = '100%';
@@ -4151,9 +4156,33 @@
       const state = p === live ? 'Running' : (p.queued ? 'Queued' : (planFinished(p) ? 'Done' : 'Idle'));
       r.appendChild(el('div', 'exi-num', state === 'Running' ? '▶' : (state === 'Queued' ? '⋯' : '·')));
       const nm = el('div', 'exi-name', p.name);
-      nm.appendChild(el('span', 'exi-sub', `${p.days.length} day${p.days.length === 1 ? '' : 's'} · ${state}`));
+      const total = (p.days || []).reduce((n, d) => n + (d.items || []).length, 0);
+      nm.appendChild(el('span', 'exi-sub',
+        `${p.days.length} day${p.days.length === 1 ? '' : 's'} · ${total} exercise${total === 1 ? '' : 's'} · ${state}`));
       r.appendChild(nm);
+      r.appendChild(el('div', 'exi-go', '▾'));
       list.appendChild(r);
+
+      /* tap a block to see what is actually in it — otherwise the only way to
+         find out is to install it and look at the Plan tab */
+      const pv = el('div', 'blk-preview');
+      pv.hidden = true;
+      r.onclick = () => {
+        if (pv.hidden && !pv.dataset.built) {
+          (p.days || []).forEach(day => {
+            const head = el('div', 'blk-day');
+            head.appendChild(el('div', 'blk-day-name', day.name));
+            head.appendChild(el('div', 'blk-day-meta num', (day.items || []).length + ''));
+            pv.appendChild(head);
+            (day.items || []).forEach(it => pv.appendChild(planItemRow(it, 'library')));
+          });
+          if (!(p.days || []).length) pv.appendChild(el('div', 'pv-meta', 'This block has no days yet.'));
+          pv.dataset.built = '1';
+        }
+        pv.hidden = !pv.hidden;
+        r.classList.toggle('open', !pv.hidden);
+      };
+      list.appendChild(pv);
     });
     root.appendChild(list);
   }
