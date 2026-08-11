@@ -1445,10 +1445,11 @@ body { font-size: 14px; }
    outlined — the shadow showing through between shapes is what separates one
    muscle from the next. */
 .an-fig .an-base path {
-  fill: #241C19; stroke: #241C19; stroke-width: 2.2; stroke-linejoin: round;
+  fill: #262220; stroke: #262220; stroke-width: 2.2; stroke-linejoin: round;
 }
+/* a neutral warm grey, not a flesh tone — brown on brown read as raw meat */
 .an-fig .an-mus path {
-  fill: #46372F; stroke: none; transition: fill .25s ease;
+  fill: #524A45; stroke: none; transition: fill .25s ease;
 }
 .an-fig .an-mus [data-m].sec { fill: url(#anSec); }
 .an-fig .an-mus [data-m].pri { fill: url(#anPri); }
