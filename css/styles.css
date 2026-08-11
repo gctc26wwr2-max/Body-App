@@ -1440,13 +1440,16 @@ body { font-size: 14px; }
 /* the body itself, then the two levels of involvement over it */
 /* the model has no separate silhouette — the unworked muscles are the body,
    so they carry the flesh tone and the worked ones light up over it */
+/* An outline on every muscle turned the figure into a web of lines. Unworked
+   muscles are drawn flat and unstroked, so they fuse into one clean body; only
+   the worked ones are given an edge, which is the whole point of the panel. */
 .an-fig [data-m] {
-  fill: #43352E; stroke: #1B1412; stroke-width: .35;
-  stroke-linejoin: round; transition: fill .25s ease;
+  fill: #3E322C; stroke: #3E322C; stroke-width: .9; stroke-linejoin: round;
+  transition: fill .25s ease, stroke .25s ease;
 }
-.an-fig [data-m="head"], .an-fig [data-m="knees"] { fill: #3A2E28; stroke-width: .3; }
-.an-fig [data-m].sec { fill: url(#anSec); }
-.an-fig [data-m].pri { fill: url(#anPri); }
+.an-fig [data-m="head"], .an-fig [data-m="knees"] { fill: #3E322C; }
+.an-fig [data-m].sec { fill: url(#anSec); stroke: #6B3E28; }
+.an-fig [data-m].pri { fill: url(#anPri); stroke: #D2764A; }
 
 
 .an-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
