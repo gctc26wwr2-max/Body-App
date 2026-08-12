@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v216';
+  const APP_VERSION = 'v217';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -969,8 +969,17 @@
     rail.appendChild(el('div', 'end-label', 'End of session'));
     root.appendChild(rail);
 
-    // docked rest bar — only while resting
-    if (lw.restEndsAt) root.appendChild(dockedRestBar(lw));
+    /* The rest timer is pinned to the bottom of the screen, not buried in
+       whichever exercise happens to be open. The rail scrolls under it and
+       dissolves into the floor rather than sliding behind a hard edge.
+       This also ends the two-rest-timers problem: there used to be a docked
+       strip as well as the card inside the exercise, both counting. */
+    const restOn = lw.exercises[lw.exIndex] || lw.exercises[0];
+    if (restOn) {                    // a session with nothing in it has nothing to rest from
+      const foot = el('div', 'rest-dock' + (paused ? ' held' : ''));
+      foot.appendChild(inlineRest(lw, restOn));
+      root.appendChild(foot);
+    }
 
     if (scrollToEx) {
       // only on a deliberate tap (progress bar or exercise header) —
@@ -1301,8 +1310,6 @@
       card.appendChild(fw);
     }
 
-    // inline rest timer — lives at the bottom of the active exercise
-    card.appendChild(inlineRest(lw, cur));
 
     // last time line
     const hist = sessions.filter(s => s.exerciseId === cur.exerciseId && s.date !== todayStr()).sort((a, b) => b.ts - a.ts);
@@ -1662,8 +1669,6 @@
     // update in-place
     const t = $('#rest-time-live');
     if (t) t.textContent = fmtClock(left);
-    const dt = $('#dock-time');
-    if (dt) dt.textContent = fmtClock(left);
     const bar = $('#rest-bar-fill');
     if (bar) bar.style.width = Math.max(0, Math.min(100, (left / lw.restLen) * 100)) + '%';
     updatePill();
@@ -2332,33 +2337,6 @@
       openExerciseForm(null);
     };
     root.appendChild(own);
-  }
-
-  /* Docked rest bar — a slim glass strip over the page while resting */
-  function dockedRestBar(lw) {
-    const outer = el('div', 'dock-rest');
-    const bar = el('div', 'dock-inner');
-    bar.appendChild(el('i', 'live-dot'));
-    const t = el('span', 'dock-time num', fmtClock(Math.max(0, Math.ceil((lw.restEndsAt - Date.now()) / 1000))));
-    t.id = 'dock-time';
-    bar.appendChild(t);
-    const nextEx = lw.advanceAfterRest
-      && lw.exercises.find((e2, i) => i > lw.exIndex && !e2.passed);
-    bar.appendChild(el('span', 'dock-next', nextEx ? 'Next · ' + nextEx.name : lw.exercises[lw.exIndex].name));
-    // both ways, like the card on the workout screen — this bar only ever
-    // let you add time
-    const m15 = el('button', 'dock-btn num', '−15');
-    m15.onclick = () => {
-      lw.restEndsAt = Math.max(Date.now(), lw.restEndsAt - 15000);
-      live.set(lw); restTick(); haptic();
-    };
-    const p15 = el('button', 'dock-btn num', '+15');
-    p15.onclick = () => { lw.restEndsAt += 15000; live.set(lw); restTick(); haptic(); };
-    const skip = el('button', 'dock-skip', 'Skip');
-    skip.onclick = () => { stopRest(); renderWorkout(); };
-    bar.append(m15, p15, skip);
-    outer.appendChild(bar);
-    return outer;
   }
 
   /* ---------------- finish workout ---------------- */
