@@ -1645,3 +1645,23 @@ body { font-size: 14px; }
 .micro.on { color: var(--lime); }
 .feel-row button { display: flex; align-items: center; justify-content: center; }
 .feel-row button.sel svg, .feel-btn.sel svg { transform: scale(1.06); }
+
+/* ============ PAUSED SESSION ============
+   Paused means paused: the clock stops and the rail is out of reach until
+   you start again. */
+.w-head.paused .w-clock { color: var(--t4); }
+/* "Paused · Day A" is two characters longer than "Live · Day A" and was
+   clipping the day name */
+.w-head.paused .w-live { letter-spacing: .1em; }
+.w-head.paused .live-dot.idle { animation: none; background: var(--t6); }
+.w-paused {
+  border-radius: 20px; padding: 18px; margin-top: 4px;
+  background: var(--grad-amber); border: 1px solid var(--amber-border);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.wp-title { font-size: 19px; font-weight: 800; letter-spacing: -.025em; color: var(--t1); }
+.wp-body { font-size: 12.5px; font-weight: 600; line-height: 1.45; color: var(--t4); }
+.wp-acts { display: flex; align-items: center; gap: 10px; }
+.wp-acts .btn-cta { flex: 1; white-space: nowrap; }
+.wp-acts .btn-ghost { flex: 0 0 auto; white-space: nowrap; }
+.rail.held { opacity: .38; pointer-events: none; filter: saturate(.5); }

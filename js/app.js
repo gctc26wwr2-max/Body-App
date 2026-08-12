@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v205';
+  const APP_VERSION = 'v206';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -458,7 +458,8 @@
         const due = prefD.length && doneThisWk < prefD.filter(x => x <= todayIdx).length;
         meta = `${day.items.length} exercises · ~${lastDoneC ? lastDoneC.duration : Math.round(totalSets * 2.5)} min${due ? ' · due today' : ''}`;
       } else if (mode === 'live') {
-        meta = `In progress · ${fmtClock(Math.floor((Date.now() - lwNow.startedAt) / 1000))} elapsed`;
+        meta = (lwNow.pausedAt ? 'Paused · ' : 'In progress · ')
+          + `${fmtClock(wElapsed(lwNow))} elapsed`;
       } else if (mode === 'banked') {
         sess = `Session ${doneSess} of ${totalSess} · done`;
         title = 'Banked.';
@@ -557,8 +558,12 @@
       } else if (mode === 'live') {
         const cta = el('button', 'btn-cta big');
         cta.appendChild(svgIcon(PLAY, 13));
-        cta.appendChild(document.createTextNode(' Resume ' + day.name));
-        cta.onclick = () => { show('workout'); renderWorkout(); };
+        cta.appendChild(document.createTextNode(
+          (lwNow.pausedAt ? ' Start ' : ' Resume ') + day.name + (lwNow.pausedAt ? ' again' : '')));
+        cta.onclick = () => {
+          if (lwNow.pausedAt) { resumeWorkout(); return; }
+          show('workout'); renderWorkout();
+        };
         root.appendChild(cta);
       } else if (mode === 'complete') {
         const cta = el('button', 'btn-cta big', 'Build Block ' + (blockNumber(plan) + 1));
@@ -692,6 +697,48 @@
     return v >= 15 && v <= 900 ? v : 120;
   };
 
+  /* ---------------- pausing a session ----------------
+     Pause used to mean "put the screen away and keep counting", which is not
+     what the word means. It stops the clock: the session timer freezes, the
+     rest countdown holds where it is, and nothing can be logged until you
+     start again. Time spent paused is taken off the duration that gets saved. */
+  const wElapsed = lw => Math.max(0,
+    Math.floor((((lw.pausedAt || Date.now()) - lw.startedAt) - (lw.pausedMs || 0)) / 1000));
+
+  function pauseWorkout() {
+    const lw = live.get();
+    if (!lw || lw.pausedAt) return;
+    lw.pausedAt = Date.now();
+    // hold the rest countdown where it stands rather than letting it run out
+    if (lw.restEndsAt) {
+      lw.restLeft = Math.max(1, Math.ceil((lw.restEndsAt - Date.now()) / 1000));
+      lw.restEndsAt = null;
+    }
+    cancelHold();          // a hold cannot be paused halfway — it starts again
+    clearInterval(restInt); restInt = null;
+    clearInterval(elapsedInt); elapsedInt = null;
+    live.set(lw);
+    haptic();
+    updatePill();
+    renderWorkout();
+  }
+
+  function resumeWorkout() {
+    const lw = live.get();
+    if (!lw || !lw.pausedAt) return;
+    lw.pausedMs = (lw.pausedMs || 0) + (Date.now() - lw.pausedAt);
+    lw.pausedAt = null;
+    if (lw.restLeft) {
+      lw.restEndsAt = Date.now() + lw.restLeft * 1000;
+      delete lw.restLeft;
+    }
+    live.set(lw);
+    haptic();
+    if (lw.restEndsAt) armRestTick();
+    show('workout');
+    renderWorkout();
+  }
+
   async function startWorkout(plan, dayIndex) {
     if (plan.pausedAt) await resumePlan(plan);   // training again ends the break
     const day = plan.days[dayIndex];
@@ -751,11 +798,13 @@
     const sessions = await DB.all('sessions');
 
     // ---- fixed glass header: live dot + clock · sets banked · actions · track ----
-    const head = el('div', 'w-head');
+    const paused = !!lw.pausedAt;
+    const head = el('div', 'w-head' + (paused ? ' paused' : ''));
     const hl = el('div', 'w-left');
     const liveRow = el('div', 'w-live');
-    liveRow.appendChild(el('i', 'live-dot'));
-    liveRow.appendChild(document.createTextNode(` Live · ${lw.dayName}`));
+    liveRow.appendChild(el('i', 'live-dot' + (paused ? ' idle' : '')));
+    liveRow.appendChild(document.createTextNode(
+      (paused ? ' Paused · ' : ' Live · ') + lw.dayName));
     hl.appendChild(liveRow);
     const clock = el('div', 'w-clock num', '0:00');
     hl.appendChild(clock);
@@ -779,10 +828,16 @@
     fin.innerHTML = '<svg viewBox="0 0 14 14" width="15" height="15"><path d="M2 7.5 L5.5 11 L12 3.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     fin.title = 'Finish workout';
     fin.onclick = () => finishWorkout();
-    const pause = el('button', 'w-chip');
-    pause.appendChild(svgIcon(PAUSE, 11));
-    pause.title = 'Pause — resume from Today';
-    pause.onclick = () => { show('today'); renderTab(); };
+    const pause = el('button', 'w-chip' + (paused ? ' fin' : ''));
+    if (paused) {
+      pause.appendChild(svgIcon(PLAY, 12));
+      pause.title = 'Start the clock again';
+      pause.onclick = () => resumeWorkout();
+    } else {
+      pause.appendChild(svgIcon(PAUSE, 11));
+      pause.title = 'Pause the session';
+      pause.onclick = () => pauseWorkout();
+    }
     const quit = el('button', 'w-chip', '✕');
     quit.onclick = async () => {
       if (!await appConfirm({
@@ -809,12 +864,35 @@
     head.appendChild(prog);
     root.appendChild(head);
     clearInterval(elapsedInt);
-    const tickClock = () => clock.textContent = fmtClock(Math.floor((Date.now() - lw.startedAt) / 1000));
+    elapsedInt = null;
+    const tickClock = () => clock.textContent = fmtClock(wElapsed(lw));
     tickClock();
-    elapsedInt = setInterval(tickClock, 1000);
+    // a paused clock does not tick — that is the whole point of the button
+    if (!paused) elapsedInt = setInterval(tickClock, 1000);
+
+    /* paused: the session is held where it is, and nothing can be logged
+       until it starts again. Two ways on from here — carry on, or put the
+       phone away and pick it up later from Today. */
+    if (paused) {
+      const hold = el('div', 'w-paused');
+      hold.appendChild(el('div', 'wp-title', 'Session paused'));
+      hold.appendChild(el('div', 'wp-body', lw.restLeft
+        ? `The clock is stopped at ${fmtClock(wElapsed(lw))} and your rest is holding at ${fmtClock(lw.restLeft)}. Nothing logs until you start again.`
+        : `The clock is stopped at ${fmtClock(wElapsed(lw))}. Nothing logs until you start again.`));
+      const acts = el('div', 'wp-acts');
+      const go = el('button', 'btn-cta big');
+      go.appendChild(svgIcon(PLAY, 13));
+      go.appendChild(document.createTextNode(' Start again'));
+      go.onclick = () => resumeWorkout();
+      const away = el('button', 'btn-ghost', 'Leave it paused');
+      away.onclick = () => { show('today'); renderTab(); };
+      acts.append(go, away);
+      hold.appendChild(acts);
+      root.appendChild(hold);
+    }
 
     // ---- the rail: every exercise threaded on one line ----
-    const rail = el('div', 'rail');
+    const rail = el('div', 'rail' + (paused ? ' held' : ''));
     lw.exercises.forEach((cur2, ei) => {
       rail.appendChild(exerciseCard(lw, cur2, ei, sessions));
     });
@@ -1981,20 +2059,23 @@
   /* Inline rest timer at the bottom of the active exercise — presets always visible */
   function inlineRest(lw, cur) {
     const resting = !!lw.restEndsAt;
-    const c = el('div', 'rest-inline' + (resting ? ' on' : ''));
+    // a paused session holds its rest rather than dropping it — say so, and
+    // show the number it is holding, not the length it would start at
+    const held = !resting && lw.pausedAt && lw.restLeft;
+    const c = el('div', 'rest-inline' + (resting || held ? ' on' : ''));
     const top = el('div', 'ri-state' + (resting ? ' on' : ''));
     top.appendChild(el('i', 'live-dot' + (resting ? '' : ' idle')));
     const nextEx = lw.advanceAfterRest
       && lw.exercises.find((e2, i) => i > lw.exIndex && !e2.passed);
     top.appendChild(document.createTextNode(resting
       ? (nextEx ? ' Resting · next: ' + nextEx.name : ' Resting')
-      : ' Rest timer · ready'));
+      : (held ? ' Rest held' : ' Rest timer · ready')));
     c.appendChild(top);
 
     const mid = el('div', 'rest-mid');
     const t = el('div', 'rest-time num', resting
       ? fmtClock(Math.max(0, Math.ceil((lw.restEndsAt - Date.now()) / 1000)))
-      : fmtClock(cur.rest));
+      : fmtClock(held ? lw.restLeft : cur.rest));
     t.id = 'rest-time-live';
     mid.appendChild(t);
     /* the only rest control in a session: nudge the running clock, or nudge
@@ -2037,6 +2118,7 @@
     const note = el('div', 'rest-note');
     note.textContent = resting
       ? `Started at ${fmtClock(lw.restLen)}`
+      : held ? 'Holding until you start the session again'
       : (cur.rest === restDefault()
         ? `Default ${fmtClock(restDefault())} — change it in Settings`
         : `Default is ${fmtClock(restDefault())} · nudged for this exercise`);
@@ -2233,7 +2315,7 @@
     }
 
     const sessionsAll = await DB.all('sessions');
-    const mins = Math.max(1, Math.round((Date.now() - lw.startedAt) / 60000));
+    const mins = Math.max(1, Math.round(wElapsed(lw) / 60));
     let volume = 0, setCount = 0;
     const prs = [];
 
