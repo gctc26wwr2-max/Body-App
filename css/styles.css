@@ -1612,3 +1612,30 @@ body { font-size: 14px; }
 .rail.reordering .exx-body { display: none; }
 .rail.reordering .exx-name { font-size: 16px; }
 .rail.reordering .drag-grip { color: var(--lime); }
+
+/* ============ PASSING AND REMOVING, TODAY ONLY ============ */
+.exx-outs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.exx-out {
+  height: 32px; padding: 0 13px; border-radius: 11px;
+  background: none; border: 1px solid var(--hair-strong); color: var(--t4);
+  font-size: 11.5px; font-weight: 700;
+}
+.exx-out:active { border-color: var(--amber-border); color: var(--amber); }
+.exx-out-note {
+  font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--t7);
+}
+/* a passed exercise stays on the rail, dimmed, saying so */
+.exx.passed .exx-thumb, .exx.passed .exx-name, .exx.passed .exx-meta { opacity: .45; }
+.exx.passed .exx-count { display: none; }
+.exx.passed .ex-node { border-style: dashed; border-color: var(--amber-border); }
+.exx-passed { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.pass-tag {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--amber); border: 1px solid var(--amber-border); border-radius: 8px; padding: 3px 8px;
+}
+.pass-why { font-size: 11px; font-weight: 600; color: var(--t6); flex: 1; min-width: 0; }
+.pass-undo {
+  height: 30px; padding: 0 12px; border-radius: 10px; flex: 0 0 auto;
+  background: var(--ctrl); border: none; color: #E4DBD2; font-size: 11.5px; font-weight: 700;
+}
+.ex-progress span.passed { background: rgba(203,190,171,.30); }
