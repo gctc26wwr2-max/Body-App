@@ -69,6 +69,7 @@
 <!-- Add an exercise to the session you are in -->
 <div id="sheet-addex" class="sheet" hidden>
   <div class="sheet-handle"></div>
+  <button type="button" class="sheet-x" data-close aria-label="Close">✕</button>
   <h2>Add to this session</h2>
   <div id="addex-body"></div>
 </div>
@@ -76,6 +77,7 @@
 <!-- Add / edit custom exercise -->
 <div id="sheet-exercise" class="sheet" hidden>
   <div class="sheet-handle"></div>
+  <button type="button" class="sheet-x" data-close aria-label="Close">✕</button>
   <h2 id="sheet-exercise-title">New exercise</h2>
   <form id="form-exercise">
     <label>Name
@@ -114,6 +116,7 @@
 <!-- Plan (block) builder -->
 <div id="sheet-plan" class="sheet tall" hidden>
   <div class="sheet-handle"></div>
+  <button type="button" class="sheet-x" data-close aria-label="Close">✕</button>
   <h2 id="sheet-plan-title">New block</h2>
   <form id="form-plan">
     <label>Block name
@@ -141,10 +144,22 @@
 <!-- Exercise picker -->
 <div id="sheet-pick" class="sheet" hidden>
   <div class="sheet-handle"></div>
+  <button type="button" class="sheet-x" data-close aria-label="Close">✕</button>
   <h2>Choose exercise</h2>
   <input id="pick-search" type="search" placeholder="Search…" autocomplete="off">
   <div id="pick-chips" class="chip-row" style="margin: 10px 0"></div>
   <div id="pick-list" class="pick-list lib-list"></div>
+</div>
+
+<!-- Paused session — nothing runs behind this -->
+<div id="pause-pop" hidden>
+  <div id="pause-pop-card">
+    <div id="pause-pop-tag">Session paused</div>
+    <div id="pause-pop-time" class="num">0:00</div>
+    <div id="pause-pop-body"></div>
+    <button id="pause-pop-go" class="btn-cta big">Start again</button>
+    <button id="pause-pop-away">Leave it paused</button>
+  </div>
 </div>
 
 <!-- Hold timer — a countdown you can read from the floor -->
