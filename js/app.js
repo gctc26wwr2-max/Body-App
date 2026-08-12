@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v207';
+  const APP_VERSION = 'v208';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5250,9 +5250,6 @@
       c.appendChild(el('div', 'bm-day', `${plan.name} · ${day.name}`));
       c.appendChild(el('div', 'bm-scheme num', `${item.sets} × ${item.repLo}–${item.repHi}`));
       r.appendChild(c);
-      const edit = el('button', 'bm-btn', 'Edit');
-      edit.title = 'Change its sets and reps';
-      edit.onclick = () => openPlanForm(plan);
       const drop = el('button', 'bm-btn warn', 'Remove');
       drop.title = 'Take it out of the block for good';
       drop.onclick = async () => {
@@ -5265,7 +5262,7 @@
         day.items = day.items.filter(it => it.exerciseId !== ex.id);
         await save();
       };
-      r.append(edit, drop);
+      r.appendChild(drop);
       list.appendChild(r);
     });
     if (inAny) wrap.appendChild(list);
@@ -5851,7 +5848,11 @@
      mid-workout. */
   async function checkUpdate() {
     try {
-      if (live.get()) return;
+      /* never reload mid-set, but a paused session is not mid-set — and it
+         survives a reload intact, so holding back only strands you on an old
+         build for as long as the pause lasts */
+      const lwU = live.get();
+      if (lwU && !lwU.pausedAt) return;
       const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
       const j = await r.json();
       if (j.v && j.v !== APP_VERSION && sessionStorage.getItem('reloadedFor') !== j.v) {
