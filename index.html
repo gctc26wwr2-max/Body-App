@@ -66,6 +66,13 @@
 <!-- ============ SHEETS ============ -->
 <div id="sheet-backdrop" hidden></div>
 
+<!-- Add an exercise to the session you are in -->
+<div id="sheet-addex" class="sheet" hidden>
+  <div class="sheet-handle"></div>
+  <h2>Add to this session</h2>
+  <div id="addex-body"></div>
+</div>
+
 <!-- Add / edit custom exercise -->
 <div id="sheet-exercise" class="sheet" hidden>
   <div class="sheet-handle"></div>
@@ -138,6 +145,17 @@
   <input id="pick-search" type="search" placeholder="Search…" autocomplete="off">
   <div id="pick-chips" class="chip-row" style="margin: 10px 0"></div>
   <div id="pick-list" class="pick-list lib-list"></div>
+</div>
+
+<!-- Hold timer — a countdown you can read from the floor -->
+<div id="hold-pop" hidden>
+  <div id="hold-pop-card">
+    <div id="hold-pop-name"></div>
+    <div id="hold-pop-phase"></div>
+    <div id="hold-pop-time" class="num">0:00</div>
+    <div id="hold-pop-bar"><i></i></div>
+    <button id="hold-pop-stop">Stop</button>
+  </div>
 </div>
 
 <!-- Media viewer -->
