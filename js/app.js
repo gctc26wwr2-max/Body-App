@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v211';
+  const APP_VERSION = 'v212';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -241,11 +241,23 @@
     });
   }
 
-  /* ---------------- sheets ---------------- */
+  /* ---------------- sheets ----------------
+     One sheet can open another — the block editor opens the exercise picker,
+     the picker opens the write-your-own form. Closing the inner one has to
+     put you back in the outer one, not tip you out of both. */
   function openSheet(id) { closeSheets(); $('#sheet-backdrop').hidden = false; $(id).hidden = false; }
   function closeSheets() { $('#sheet-backdrop').hidden = true; $$('.sheet').forEach(s => s.hidden = true); }
-  $('#sheet-backdrop').onclick = () => { closeSheets(); renderTab(); };
-  $$('[data-close]').forEach(b => b.onclick = closeSheets);
+  let sheetBack = null;
+  function dismissSheet() {
+    const back = sheetBack;
+    sheetBack = null;
+    addTarget = null;
+    pickerAfterSave = null;
+    closeSheets();
+    if (back) back(); else renderTab();
+  }
+  $('#sheet-backdrop').onclick = dismissSheet;
+  $$('[data-close]').forEach(b => b.onclick = dismissSheet);
   $('#media-viewer-close').onclick = () => { $('#media-viewer-body').innerHTML = ''; $('#media-viewer').hidden = true; };
 
   /* ---------------- navigation ---------------- */
@@ -1028,11 +1040,10 @@
     watch.onclick = () => { if (ex) openDetail(ex.id, 'workout'); };
     card.appendChild(watch);
 
-    /* Two ways out of an exercise you cannot do today, both of them about
-       today only. The block itself is changed in Plan → Edit, and that one
-       does carry into next week. */
+    /* One way out of an exercise you cannot do today. Taking it out for good
+       is a different decision and lives on the exercise's own page. */
     const outs = el('div', 'exx-outs');
-    const passB = el('button', 'exx-out', 'Can’t do it');
+    const passB = el('button', 'exx-out', 'Pass');
     passB.title = 'Skip it for today';
     passB.onclick = async () => {
       const banked2 = cur.sets.filter(s => s.done).length;
@@ -1051,25 +1062,8 @@
       scrollToEx = true;
       renderWorkout();
     };
-    const dropB = el('button', 'exx-out', 'Remove');
-    dropB.title = 'Take it off this session';
-    dropB.onclick = async () => {
-      if (!await appConfirm({
-        title: `Remove ${cur.name}?`,
-        body: 'It comes off this session only — next week it is back. '
-          + 'To drop it for good, edit the block in Plan.',
-        ok: 'Remove', cancel: 'Keep it', warn: true
-      })) return;
-      lw.exercises.splice(ei, 1);
-      if (!lw.exercises.length) { live.set(lw); finishWorkout(); return; }
-      lw.exIndex = Math.min(lw.exIndex > ei ? lw.exIndex - 1 : lw.exIndex, lw.exercises.length - 1);
-      lw.advanceAfterRest = false;
-      live.set(lw);
-      haptic();
-      renderWorkout();
-    };
-    outs.append(passB, dropB);
-    outs.appendChild(el('span', 'exx-out-note', 'this session only'));
+    outs.appendChild(passB);
+    outs.appendChild(el('span', 'exx-out-note', 'today only'));
     card.appendChild(outs);
 
     // plate math
@@ -2167,6 +2161,7 @@
 
   function openDialPicker(opts) {
     addTarget = opts;
+    sheetBack = opts.back || null;
     addSets = opts.sets || 3;
     addReps = opts.repIx != null ? opts.repIx : 3;
     addExIx = 0; addQuery = ''; addGroup = 'All';
@@ -2262,6 +2257,9 @@
       go.onclick = async () => {
         const item = shown[addExIx];
         if (!item) return;
+        // the pick lands where it belongs, so there is nothing to go back to
+        sheetBack = null;
+        addTarget = null;
         await opts.onPick(item, addSets, PM_REPS[addReps]);
       };
       root.appendChild(go);
@@ -2271,7 +2269,10 @@
     own.style.width = '100%';
     own.textContent = '＋ Write your own';
     own.onclick = () => {
-      pickerAfterSave = { sets: addSets, reps: PM_REPS[addReps], onPick: opts.onPick };
+      const spec = { sets: addSets, reps: PM_REPS[addReps], onPick: opts.onPick };
+      pickerAfterSave = spec;
+      // cancelling the form drops you back on the dials, not out of everything
+      sheetBack = () => { openDialPicker(opts); };
       openExerciseForm(null);
     };
     root.appendChild(own);
@@ -5329,7 +5330,7 @@
       wrap.appendChild(add);
     }
     wrap.appendChild(el('div', 'det-hard-note',
-      'Changes here are permanent. To drop it for today only, use the buttons on its card during a session.'));
+      'Changes here are permanent. To skip it just for today, use Pass on its card during a session.'));
     return wrap;
   }
 
@@ -5620,6 +5621,8 @@
     if (pickerAfterSave) {
       const spec = pickerAfterSave;
       pickerAfterSave = null;
+      sheetBack = null;
+      addTarget = null;
       await spec.onPick(ex, spec.sets, spec.reps);
       return;
     }
@@ -5725,6 +5728,7 @@
       add.onclick = () => openDialPicker({
         title: 'Add to ' + (day.name || 'this day'),
         cta: 'Add to ' + (day.name || 'this day'),
+        back: () => openSheet('#sheet-plan'),
         onPick: async (item, sets, reps) => {
           const rec = await ensureExercise(item);
           day.items.push({ exerciseId: rec.id, sets, repLo: reps.lo, repHi: reps.hi, kg: 0 });
