@@ -276,15 +276,20 @@ body { font-size: 14px; }
   background: rgba(11,9,8,.94); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--hair-7);
 }
-.w-left { flex: 1; }
-.w-live { display: flex; align-items: center; gap: 6px; font-size: 9.5px; font-weight: 800; letter-spacing: .2em; color: var(--lime); text-transform: uppercase; }
+.w-left { flex: 1; min-width: 0; }
+.w-live {
+  display: flex; align-items: center; gap: 6px; font-size: 9.5px; font-weight: 800;
+  letter-spacing: .2em; color: var(--lime); text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .w-clock { font-size: 32px; font-weight: 800; letter-spacing: -.04em; line-height: 1; margin-top: 3px; }
-.w-banked { text-align: right; }
+.w-banked { text-align: right; flex: 0 0 auto; }
 .w-banked .v { font-size: 17px; font-weight: 800; }
 .w-banked .l { font-size: 8.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--t6); }
-.w-btns { display: flex; gap: 7px; }
+/* four controls now — tighter, so the clock keeps its own line */
+.w-btns { display: flex; gap: 5px; }
 .w-chip {
-  height: 38px; min-width: 38px; padding: 0 12px; border-radius: 13px;
+  height: 38px; min-width: 34px; padding: 0 8px; border-radius: 12px;
   background: rgba(255,255,255,.07); border: none; color: var(--t2);
   font-size: 11.5px; font-weight: 800;
   display: inline-flex; align-items: center; justify-content: center;
@@ -461,9 +466,17 @@ body { font-size: 14px; }
   white-space: nowrap;
 }
 .hold-btn.on { background: var(--lime); border-color: transparent; color: var(--canvas); }
-/* timed rows: kg column narrower, seconds column wider */
-.w-set.timed, .set-grid-head.timed { grid-template-columns: 16px minmax(0,0.7fr) minmax(0,1.3fr) 42px; }
-.w-set.timed .stepper .val { min-width: 24px; }
+/* A held set has no weight worth a column: the seconds take the weight's
+   place and its scale, and the hold gets a button you cannot miss. */
+.hold-cell {
+  height: 42px; border-radius: 12px; padding: 0 10px;
+  background: var(--lime-bg); border: 1px solid var(--lime-border); color: var(--lime);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 12.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+}
+.hold-cell .hold-lbl { font-variant-numeric: tabular-nums; }
+.hold-cell.on { background: var(--lime); border-color: transparent; color: var(--on-accent); }
+.hold-cell:disabled { opacity: .45; }
 .w-set .reps-val.below { color: #D9825F; }
 .w-set .reps-val.inrange { color: var(--lime); }
 .w-set .reps-val.above { color: var(--amber); }
@@ -509,12 +522,8 @@ body { font-size: 14px; }
 .rest-inline.on .rest-mid .skip { background: var(--lime); color: var(--on-accent); }
 .rest-bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,.10); overflow: hidden; }
 .rest-bar div { height: 100%; background: var(--lime); }
-.rest-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
-.rest-picker button {
-  height: 34px; border-radius: 11px; font-size: 10.5px; font-weight: 800;
-  font-variant-numeric: tabular-nums; background: none; border: 1px solid rgba(255,255,255,.10); color: var(--t5);
-}
-.rest-picker button.sel { background: var(--lime); border-color: transparent; color: var(--on-accent); }
+/* the length itself is a setting now — this only says where it came from */
+.rest-note { font-size: 10.5px; font-weight: 600; color: var(--t6); }
 
 /* docked rest bar — glass strip over the page while resting */
 .dock-rest {
@@ -1527,3 +1536,46 @@ body { font-size: 14px; }
   margin: -4px 0 2px; min-height: 15px;
 }
 .pm-hard-note { font-size: 11px; font-weight: 600; color: var(--t5); }
+
+/* ============ HOLD TIMER POPUP ============
+   A held set is done on the floor with the phone out of reach, so the count
+   goes full-screen: three to get set, then the hold, in numbers you can read
+   from arm's length. */
+#hold-pop {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(11,9,8,.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+#hold-pop[hidden] { display: none; }
+#hold-pop-card {
+  width: 100%; max-width: 340px; display: flex; flex-direction: column;
+  align-items: center; gap: 14px; text-align: center;
+}
+#hold-pop-name {
+  font-size: 12px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--t5);
+}
+#hold-pop-phase {
+  font-size: 15px; font-weight: 800; letter-spacing: -.01em; color: var(--lime);
+}
+#hold-pop-time {
+  font-family: var(--cond); font-size: 108px; line-height: .92; font-weight: 800;
+  letter-spacing: -.05em; color: var(--t1); font-variant-numeric: tabular-nums;
+}
+/* the lead-in is a single digit, so it gets the whole screen */
+#hold-pop.lead #hold-pop-time { font-size: 156px; color: var(--lime); }
+#hold-pop.lead #hold-pop-bar i { background: var(--amber); }
+#hold-pop-bar {
+  width: 100%; height: 4px; border-radius: 3px; background: rgba(255,255,255,.10); overflow: hidden;
+}
+#hold-pop-bar i { display: block; height: 100%; background: var(--lime); transition: width .2s linear; }
+#hold-pop-stop {
+  margin-top: 6px; height: 46px; padding: 0 30px; border-radius: 15px;
+  background: var(--ctrl); border: none; color: #E4DBD2;
+  font-size: 13px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+}
+
+/* ============ ADD TO THIS SESSION ============ */
+#addex-body { display: flex; flex-direction: column; gap: 10px; }
+#addex-body .pm-wheels { margin-top: 2px; }
+#addex-body .cd-col .pw { height: 150px; }
+#addex-body .search-input { width: 100%; }

@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v199';
+  const APP_VERSION = 'v200';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -682,6 +682,16 @@
      ============================================================ */
   let elapsedInt = null;
 
+  /* How long you rest between sets is a decision you make once, in Settings —
+     not something to re-pick six times a session. Mid-workout you can only
+     nudge it up or down, which is all anyone actually wants to do with a
+     running clock. */
+  const REST_LENS = [45, 60, 75, 90, 120, 150, 180, 240, 300];
+  const restDefault = () => {
+    const v = +getProfile().restSec;
+    return v >= 15 && v <= 900 ? v : 120;
+  };
+
   async function startWorkout(plan, dayIndex) {
     if (plan.pausedAt) await resumePlan(plan);   // training again ends the break
     const day = plan.days[dayIndex];
@@ -708,7 +718,7 @@
         exerciseId: ex.id, name: ex.name,
         timed: /second/i.test(ex.notes || ''),   // hold/interval exercises log seconds
         perSide: /side/i.test(ex.notes || ''),   // run the hold once per side
-        repLo: lo, repHi: hi, rest: ex.rest || 120, deload,
+        repLo: lo, repHi: hi, rest: restDefault(), deload,
         sets: Array.from({ length: deload
           ? Math.max(1, Math.round((item.sets || 3) * DELOAD_SETS))
           : (item.sets || 3) }, (_, si) => {
@@ -725,7 +735,7 @@
     live.set({
       planId: plan.id, dayIndex, dayName: day.name,
       startedAt: Date.now(), exIndex: 0,
-      restEndsAt: null, restLen: exList[0] ? exList[0].rest : 120, pickerOpen: false,
+      restEndsAt: null, restLen: restDefault(), pickerOpen: false,
       exercises: exList
     });
     show('workout');
@@ -759,6 +769,10 @@
     head.appendChild(bank);
 
     const btns = el('div', 'w-btns');
+    const addEx = el('button', 'w-chip', '＋');
+    addEx.title = 'Add an exercise to this session';
+    addEx.onclick = () => openAddToSession();
+    btns.appendChild(addEx);
     const fin = el('button', 'w-chip fin');
     fin.innerHTML = '<svg viewBox="0 0 14 14" width="15" height="15"><path d="M2 7.5 L5.5 11 L12 3.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     fin.title = 'Finish workout';
@@ -894,17 +908,13 @@
       cur.sets.forEach((s, i) => {
         const kv = $('#val-kg-' + ei + '-' + i);
         if (kv) kv.textContent = String(s.kg);
+        const sv = $('#val-sec-' + ei + '-' + i);
+        if (sv) sv.textContent = fmtClock(s.reps);
         const rv = $('#val-reps-' + ei + '-' + i);
         if (rv) {
           rv.textContent = String(s.reps);
           rv.classList.remove('pending', 'inrange', 'below', 'above');
           rv.classList.add(repTone(s));
-        }
-        const hb = $('#hold-' + ei + '-' + i);
-        if (hb && !(holdInt && holdExIdx === ei && holdIdx === i)) {
-          hb.textContent = '';
-          hb.appendChild(svgIcon(PLAY, 9));
-          hb.appendChild(document.createTextNode(' ' + fmtClock(s.reps)));
         }
       });
       const ps = $('#plate-live-' + ei);
@@ -915,27 +925,34 @@
       }
     };
 
-    // column headers — the rep range lives here, never inline in a row
-    const gh = el('div', 'set-grid-head');
-    ['#', 'Kg', `${cur.timed ? 'Sec' : 'Reps'} · ${cur.repLo}–${cur.repHi}`, 'Log'].forEach(t => gh.appendChild(el('span', null, t)));
+    /* column headers — the rep range lives here, never inline in a row.
+       A held exercise has no weight worth a column, so the seconds take the
+       weight's place and its own scale, and the play button gets room. */
+    const gh = el('div', 'set-grid-head' + (cur.timed ? ' timed' : ''));
+    (cur.timed
+      ? ['#', `Sec · ${cur.repLo}–${cur.repHi}`, 'Hold', 'Log']
+      : ['#', 'Kg', `Reps · ${cur.repLo}–${cur.repHi}`, 'Log'])
+      .forEach(t => gh.appendChild(el('span', null, t)));
     card.appendChild(gh);
 
     // set rows — weight is a tap target that opens the scale inside the row
     cur.sets.forEach((set, si) => {
       const r = el('div', 'w-set' + (set.done ? ' logged' : ''));
-      const inner = el('div', 'w-set-row');
+      const inner = el('div', 'w-set-row' + (cur.timed ? ' timed' : ''));
       inner.appendChild(el('div', 'sn num', String(si + 1)));
 
-      const kgCell = el('button', 'kg-cell');
+      /* the first value cell: seconds on a held exercise, weight on every
+         other — same tap target, same scale sliding open underneath */
+      const valCell = el('button', 'kg-cell');
       const kvWrap = el('span', 'kv-wrap');
-      const kv = el('span', 'kv num', String(set.kg));
-      kv.id = 'val-kg-' + ei + '-' + si;
+      const kv = el('span', 'kv num', cur.timed ? fmtClock(set.reps) : String(set.kg));
+      kv.id = (cur.timed ? 'val-sec-' : 'val-kg-') + ei + '-' + si;
       kvWrap.appendChild(kv);
-      kvWrap.appendChild(el('small', null, wUnit()));
-      kgCell.appendChild(kvWrap);
+      kvWrap.appendChild(el('small', null, cur.timed ? 's' : wUnit()));
+      valCell.appendChild(kvWrap);
       // a logged set is locked — untick it first to change anything
-      kgCell.disabled = set.done;
-      kgCell.onclick = () => {
+      valCell.disabled = set.done;
+      valCell.onclick = () => {
         if (set.done) return;
         const key = ei + ':' + si;
         lw.scaleOpenAt = lw.scaleOpenAt === key ? null : key;
@@ -943,24 +960,18 @@
         live.set(lw);
         renderWorkout();
       };
-      inner.appendChild(kgCell);
+      inner.appendChild(valCell);
 
       if (cur.timed) {
-        const wrap = el('div', 'stepper');
-        const minus = el('button', null, '−');
-        minus.disabled = set.done;
-        minus.onclick = () => { if (set.done) return; set.reps = Math.max(5, set.reps - 5); live.set(lw); updateVals(); };
-        const mid = el('button', 'hold-btn num' + (holdInt && holdExIdx === ei && holdIdx === si ? ' on' : ''));
-        mid.id = 'hold-' + ei + '-' + si;
-        mid.appendChild(svgIcon(PLAY, 9));
-        mid.appendChild(document.createTextNode(' ' + fmtClock(set.reps)));
-        mid.disabled = set.done;
-        mid.onclick = () => { if (!set.done) toggleHold(ei, si); };
-        const plus = el('button', null, '+');
-        plus.disabled = set.done;
-        plus.onclick = () => { if (set.done) return; set.reps += 5; live.set(lw); updateVals(); };
-        wrap.append(minus, mid, plus);
-        inner.appendChild(wrap);
+        // the hold gets a column of its own instead of being wedged between
+        // two steppers it kept getting confused with
+        const play = el('button', 'hold-cell' + (holdInt && holdExIdx === ei && holdIdx === si ? ' on' : ''));
+        play.id = 'hold-' + ei + '-' + si;
+        play.appendChild(svgIcon(PLAY, 13));
+        play.appendChild(el('span', 'hold-lbl', set.done ? 'Done' : 'Start'));
+        play.disabled = set.done;
+        play.onclick = () => { if (!set.done) toggleHold(ei, si); };
+        inner.appendChild(play);
       } else {
         // the rep number is a tap target — it opens the vertical wheel
         const repBtn = el('button', 'rep-cell');
@@ -998,9 +1009,11 @@
       inner.appendChild(log);
       r.appendChild(inner);
 
-      // the weight / rep scale expands inside this row
+      // the weight / seconds / rep scale expands inside this row
       if (lw.scaleOpenAt === ei + ':' + si) {
-        r.appendChild(weightScale(lw, cur, ei, si, updateVals));
+        r.appendChild(cur.timed
+          ? timeScale(lw, cur, ei, si, updateVals)
+          : weightScale(lw, cur, ei, si, updateVals));
       } else if (lw.repScaleAt === ei + ':' + si && !cur.timed) {
         r.appendChild(repScale(lw, cur, ei, si, updateVals));
       }
@@ -1048,10 +1061,13 @@
       card.appendChild(s);
     }
 
-    // difficulty feedback once every set is banked — stored for the next program
-    if (cur.sets.length && cur.sets.every(s => s.done)) {
+    /* difficulty feedback, on the card the whole time the exercise is open —
+       it used to appear only once every set was banked, by which point you
+       are already resting and looking at the next thing */
+    if (cur.sets.length) {
+      const allDone2 = cur.sets.every(s => s.done);
       const fw = el('div', 'feel-wrap');
-      fw.appendChild(el('div', 'micro', 'How was it?'));
+      fw.appendChild(el('div', 'micro', allDone2 ? 'How was it?' : 'How is it going?'));
       const strip = el('div', 'feel-strip');
       [['easy', 'Easy'], ['moderate', 'Moderate'], ['hard', 'Hard']].forEach(([k, label]) => {
         const b = el('button', 'feel-btn ' + k + (cur.feel === k ? ' sel' : ''), label);
@@ -1109,7 +1125,15 @@
     holdInt = null;
     holdIdx = -1;
     holdExIdx = -1;
+    closeHoldPop();
   }
+  function closeHoldPop() {
+    const pop = $('#hold-pop');
+    if (pop) pop.hidden = true;
+  }
+  /* The hold runs in a popup, big enough to read from the floor, and it opens
+     on a three-second lead-in — nobody is in position the instant they take
+     their thumb off the screen. */
   function toggleHold(exIdx, si) {
     if (holdInt && holdExIdx === exIdx && holdIdx === si) { cancelHold(); renderWorkout(); return; }
     cancelHold();
@@ -1117,28 +1141,50 @@
     if (!lw0) return;
     const exRef = lw0.exercises[exIdx];
     const secs = exRef.sets[si].reps;
-    // two-sided holds run the timer once per side with a short switch break
-    const phases = exRef.perSide
-      ? [{ label: 'L', dur: secs }, { label: '⇆', dur: 10 }, { label: 'R', dur: secs }]
-      : [{ label: '', dur: secs }];
+    /* three to get set, then the hold — two-sided holds run it once per side
+       with a short switch break between */
+    const phases = [{ label: 'Get set', dur: 3, lead: true }].concat(exRef.perSide
+      ? [{ label: 'Left side', dur: secs }, { label: 'Switch', dur: 10, lead: true }, { label: 'Right side', dur: secs }]
+      : [{ label: 'Hold', dur: secs }]);
     let phase = 0;
     holdIdx = si;
     holdExIdx = exIdx;
     holdEndTs = Date.now() + phases[0].dur * 1000;
     ensureAudio();
+
+    const pop = $('#hold-pop');
+    const timeEl = $('#hold-pop-time');
+    const phaseEl = $('#hold-pop-phase');
+    const barEl = $('#hold-pop-bar').firstElementChild;
+    $('#hold-pop-name').textContent = exRef.name;
+    pop.hidden = false;
+    $('#hold-pop-stop').onclick = () => { cancelHold(); renderWorkout(); };
+    pop.onclick = e => { if (e.target === pop) { cancelHold(); renderWorkout(); } };
+
+    const paint = (left, ph) => {
+      pop.classList.toggle('lead', !!ph.lead);
+      phaseEl.textContent = ph.lead ? ph.label : (exRef.perSide ? ph.label : 'Hold');
+      timeEl.textContent = ph.lead ? String(left) : fmtClock(left);
+      barEl.style.width = Math.max(0, Math.min(100, (left / ph.dur) * 100)) + '%';
+      const btn = $('#hold-' + exIdx + '-' + si);
+      if (btn) {
+        btn.classList.add('on');
+        const lbl = btn.querySelector('.hold-lbl');
+        if (lbl) lbl.textContent = ph.lead ? ph.label : fmtClock(left);
+      }
+    };
+    paint(phases[0].dur, phases[0]);
+
     let lastHoldTick = 0;
     holdInt = setInterval(() => {
+      const ph = phases[phase];
       const left = Math.ceil((holdEndTs - Date.now()) / 1000);
-      const btn = $('#hold-' + exIdx + '-' + si);
       if (left > 0) {
-        if (left <= 5 && lastHoldTick !== phase * 1000 + left) {
+        if (left <= (ph.lead ? 3 : 5) && lastHoldTick !== phase * 1000 + left) {
           lastHoldTick = phase * 1000 + left;
           tickBeep();
         }
-        if (btn) {
-          btn.classList.add('on');
-          btn.textContent = (phases[phase].label ? phases[phase].label + ' ' : '') + fmtClock(left);
-        }
+        paint(left, ph);
         return;
       }
       beep();
@@ -1146,6 +1192,7 @@
       if (phase < phases.length - 1) {
         phase++;
         holdEndTs = Date.now() + phases[phase].dur * 1000;
+        paint(phases[phase].dur, phases[phase]);
         return;
       }
       cancelHold();
@@ -1551,6 +1598,53 @@
     return box;
   }
 
+  /* The hold length, on the same sliding scale the weight uses — a held set
+     has no weight to set, so the seconds inherit its whole treatment rather
+     than being squeezed between two tiny steppers. */
+  function timeScale(lw, cur, ei, si, updateVals) {
+    const set = cur.sets[si];
+    const box = el('div', 'kg-scale');
+
+    const top = el('div', 'ks-top');
+    const big = el('div', 'ks-val num', fmtClock(set.reps));
+    top.appendChild(big);
+    top.appendChild(el('div', 'ks-delta', `target ${cur.repLo}–${cur.repHi} s`
+      + (cur.perSide ? ' / side' : '')));
+    box.appendChild(top);
+
+    const commit = v => {
+      set.reps = Math.max(5, Math.round(v));
+      // the new length carries forward to the sets you have not held yet
+      for (let j = si + 1; j < cur.sets.length; j++) {
+        if (!cur.sets[j].done) cur.sets[j].reps = set.reps;
+      }
+      live.set(lw);
+      updateVals();
+      big.textContent = fmtClock(set.reps);
+    };
+    const ruler = rulerScale({
+      value: set.reps, step: 5, tickW: 30, span: 14, min: 5,
+      labelEvery: 2, majorEvery: 2, fmt: v => fmtClock(v), onChange: commit
+    });
+    box.appendChild(ruler.el);
+
+    const ctr = el('div', 'ks-controls');
+    const openedWith = set.reps;
+    const undo = el('button', 'ks-adj ks-reset num', '↺ ' + fmtClock(openedWith));
+    undo.title = 'Back to ' + fmtClock(openedWith);
+    undo.onclick = () => ruler.setVal(openedWith);
+    ctr.appendChild(undo);
+    const quick = el('div', 'ks-plates');
+    [15, 20, 30, 45, 60].forEach(s => {
+      const b = el('button', 'num', fmtClock(s));
+      b.onclick = () => ruler.setVal(s);
+      quick.appendChild(b);
+    });
+    ctr.appendChild(quick);
+    box.appendChild(ctr);
+    return box;
+  }
+
   /* The rep scale — a vertical wheel that expands inside the set row.
      Drag up/down like a dial, or tap a number. */
   function repScale(lw, cur, ei, si, updateVals) {
@@ -1670,18 +1764,26 @@
       : fmtClock(cur.rest));
     t.id = 'rest-time-live';
     mid.appendChild(t);
+    /* the only rest control in a session: nudge the running clock, or nudge
+       the length the next rest will start at */
+    const bump = d => {
+      if (lw.restEndsAt) {
+        lw.restEndsAt = Math.max(Date.now(), lw.restEndsAt + d * 1000);
+        live.set(lw); restTick();
+      } else {
+        cur.rest = Math.max(15, Math.min(900, cur.rest + d));
+        live.set(lw);
+        t.textContent = fmtClock(cur.rest);
+        note.textContent = cur.rest === restDefault()
+          ? `Default ${fmtClock(restDefault())} — change it in Settings`
+          : `Default is ${fmtClock(restDefault())} · nudged for this exercise`;
+      }
+      haptic();
+    };
     const m15 = el('button', 'adj num', '−15');
-    m15.onclick = () => {
-      if (!lw.restEndsAt) return;
-      lw.restEndsAt = Math.max(Date.now(), lw.restEndsAt - 15000);
-      live.set(lw); restTick();
-    };
+    m15.onclick = () => bump(-15);
     const p15 = el('button', 'adj num', '+15');
-    p15.onclick = () => {
-      if (!lw.restEndsAt) return;
-      lw.restEndsAt += 15000;
-      live.set(lw); restTick();
-    };
+    p15.onclick = () => bump(15);
     const act = el('button', 'skip', resting ? 'Skip' : 'Start');
     act.onclick = () => {
       if (resting) { stopRest(); renderWorkout(); }
@@ -1697,24 +1799,150 @@
     bar.appendChild(fill);
     c.appendChild(bar);
 
-    // six length presets, always visible; rest length is per exercise
-    const pick = el('div', 'rest-picker');
-    [60, 90, 120, 150, 180, 240].forEach(sec => {
-      const b = el('button', 'num' + (cur.rest === sec ? ' sel' : ''), fmtClock(sec));
-      b.onclick = async () => {
-        cur.rest = sec;
-        const exRec = await DB.get('exercises', cur.exerciseId);
-        if (exRec) { exRec.rest = sec; await DB.put('exercises', exRec); }
-        if (lw.restEndsAt) { lw.restLen = sec; lw.restEndsAt = Date.now() + sec * 1000; }
-        live.set(lw);
-        renderWorkout();
-      };
-      pick.appendChild(b);
-    });
-    c.appendChild(pick);
+    /* where the number came from, and what changing it here costs you —
+       the presets used to live on this card and got picked by accident */
+    const note = el('div', 'rest-note');
+    note.textContent = resting
+      ? `Started at ${fmtClock(lw.restLen)}`
+      : (cur.rest === restDefault()
+        ? `Default ${fmtClock(restDefault())} — change it in Settings`
+        : `Default is ${fmtClock(restDefault())} · nudged for this exercise`);
+    c.appendChild(note);
 
     if (resting) armRestTick();
     return c;
+  }
+
+  /* ---------------- adding an exercise mid-session ----------------
+     Same three dials as the block builder, because a session you are already
+     inside is no place to learn a second way of picking something. What you
+     add lands at the end of the rail and is logged like everything else — it
+     does not touch the block you are running. */
+  let addSets = 3, addExIx = 0, addReps = 3, addQuery = '', addGroup = 'All';
+  /* set when the exercise form was opened from inside a session, so what you
+     write goes straight onto the rail instead of only into the library */
+  let liveAddAfterSave = null;
+
+  function openAddToSession() {
+    addSets = 3; addExIx = 0; addReps = 3; addQuery = ''; addGroup = 'All';
+    renderAddToSession();
+    openSheet('#sheet-addex');
+  }
+
+  function renderAddToSession() {
+    const root = $('#addex-body');
+    if (!root) return;
+    root.innerHTML = '';
+    const lw = live.get();
+    if (!lw) { closeSheets(); return; }
+
+    /* your own list first — anything you have ever added or written — then
+       the rest of the catalog */
+    const seen = new Set(exercises.map(e => e.name.toLowerCase()));
+    const pool = [
+      ...exercises.map(e => ({ name: e.name, group: e.group || 'Other', notes: e.notes, demo: e.demo, mine: true })),
+      ...(window.EXERCISE_LIBRARY || []).filter(i => equipOK(i) && !seen.has(i.name.toLowerCase()))
+    ];
+
+    const groups = ['All', ...[...new Set(pool.map(x => x.group))].sort()];
+    if (!groups.includes(addGroup)) addGroup = 'All';
+    const chips = el('div', 'gchip-row');
+    groups.forEach(g => {
+      const b = el('button', 'gchip' + (g === addGroup ? ' on' : ''), g);
+      b.onclick = () => { addGroup = g; addExIx = 0; renderAddToSession(); };
+      chips.appendChild(b);
+    });
+    root.appendChild(chips);
+
+    const find = el('input', 'search-input');
+    find.placeholder = 'Search exercises';
+    find.value = addQuery;
+    find.oninput = () => { addQuery = find.value; addExIx = 0; renderAddToSession(); };
+    root.appendChild(find);
+
+    const q = addQuery.trim().toLowerCase();
+    const shown = pool.filter(x =>
+      (addGroup === 'All' || x.group === addGroup) &&
+      (!q || x.name.toLowerCase().includes(q)));
+    addExIx = Math.max(0, Math.min(shown.length - 1, addExIx));
+
+    if (!shown.length) {
+      root.appendChild(el('div', 'coach-note', 'Nothing matches — clear the search, or write your own below.'));
+    } else {
+      const wheels = el('div', 'cd-wheels pm-wheels');
+      const c1 = el('div', 'cd-col pm-sets');
+      c1.appendChild(el('div', 'micro', 'Sets'));
+      c1.appendChild(pickerWheel(PM_SETS.map(String), PM_SETS.indexOf(addSets),
+        i => { addSets = PM_SETS[i]; }, null,
+        i => (PM_SETS[i] % 5 === 0 ? 'w20' : (PM_SETS[i] % 2 ? 'w11' : 'w15'))));
+      wheels.appendChild(c1);
+      const c2 = el('div', 'cd-col pm-exx');
+      c2.appendChild(el('div', 'micro', shown.length === pool.length ? 'Exercise' : `Exercise · ${shown.length}`));
+      c2.appendChild(pickerWheel(shown.map(x => x.name), addExIx, i => { addExIx = i; paintPick(); }, 'wide',
+        i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15'))));
+      wheels.appendChild(c2);
+      const c3 = el('div', 'cd-col pm-reps');
+      c3.appendChild(el('div', 'micro', 'Reps'));
+      c3.appendChild(pickerWheel(PM_REPS.map(r => r.label), addReps, i => { addReps = i; }, null,
+        i => (i % 2 ? 'w11' : 'w15')));
+      wheels.appendChild(c3);
+      root.appendChild(wheels);
+
+      const hardLine = el('div', 'pm-hard');
+      const paintPick = () => {
+        hardLine.innerHTML = '';
+        const item = shown[addExIx];
+        const h = item && hardshipOf(item);
+        if (!h) return;
+        hardLine.appendChild(hardChip(item));
+        hardLine.appendChild(el('span', 'pm-hard-note', h.note));
+      };
+      paintPick();
+      root.appendChild(hardLine);
+
+      const go = el('button', 'btn-cta big');
+      go.style.width = '100%';
+      go.textContent = 'Add to this session';
+      go.onclick = async () => {
+        const item = shown[addExIx];
+        if (!item) return;
+        await addExerciseToLive(item, addSets, PM_REPS[addReps]);
+      };
+      root.appendChild(go);
+    }
+
+    const own = el('button', 'btn-ghost');
+    own.style.width = '100%';
+    own.textContent = '＋ Write your own';
+    own.onclick = () => { liveAddAfterSave = { sets: addSets, reps: PM_REPS[addReps] }; openExerciseForm(null); };
+    root.appendChild(own);
+  }
+
+  /* one exercise, appended to the session you are standing in */
+  async function addExerciseToLive(item, sets, reps) {
+    const lw = live.get();
+    if (!lw) return;
+    const ex = await ensureExercise(item);
+    const sessions = await DB.all('sessions');
+    const hist = sessions.filter(s => s.exerciseId === ex.id).sort((a, b) => b.ts - a.ts);
+    const lastMax = hist.length ? Math.max(...hist[0].sets.map(s => s.weight || 0)) : 0;
+    const timed = /second/i.test(ex.notes || '');
+    lw.exercises.push({
+      exerciseId: ex.id, name: ex.name,
+      timed, perSide: /side/i.test(ex.notes || ''),
+      repLo: reps.lo, repHi: reps.hi, rest: restDefault(), added: true,
+      sets: Array.from({ length: sets }, () => ({
+        kg: timed ? 0 : lastMax, reps: reps.lo,
+        targetLo: reps.lo, targetHi: reps.hi, done: false
+      }))
+    });
+    lw.exIndex = lw.exercises.length - 1;
+    live.set(lw);
+    haptic();
+    closeSheets();
+    scrollToEx = true;
+    show('workout');
+    renderWorkout();
   }
 
   /* Docked rest bar — a slim glass strip over the page while resting */
@@ -2417,11 +2645,13 @@
     faq: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 17.2h.01"/>',
     mail: '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3.5 7.5 12 13l8.5-5.5"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8h.01"/>',
-    star: '<path d="M12 3.6l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.8l5.9-.9z"/>'
+    star: '<path d="M12 3.6l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.8l5.9-.9z"/>',
+    timer: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.8v3.7l2.4 1.6M9.4 2.8h5.2"/>'
   };
 
   const PREF_GROUPS = [
     { title: 'Preferences', rows: [
+      ['timer', 'Rest between sets', 'rest'],
       ['theme', 'Theme'], ['units', 'Units', 'units'], ['bell', 'Notifications']
     ] },
     { title: 'Apple', rows: [
@@ -2472,6 +2702,10 @@
           r.appendChild(el('span', 'pref-val', wUnit() === 'lb' ? 'lb · ft' : 'kg · cm'));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'units' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'units' ? null : 'units'; renderPrefs(); };
+        } else if (live === 'rest') {
+          r.appendChild(el('span', 'pref-val num', fmtClock(restDefault())));
+          r.appendChild(el('span', 'pref-go' + (prefOpen === 'rest' ? ' open' : ''), '›'));
+          r.onclick = () => { prefOpen = prefOpen === 'rest' ? null : 'rest'; renderPrefs(); };
         } else {
           r.appendChild(el('span', 'pref-go', '›'));
         }
@@ -2489,6 +2723,23 @@
             }, 'you-seg'));
           panel.appendChild(el('div', 'ab-hint',
             'Weights, heights and the tape all follow this — nothing stored is rewritten.'));
+          list.appendChild(panel);
+        }
+        if (live === 'rest' && prefOpen === 'rest') {
+          const panel = el('div', 'pref-panel');
+          const out = el('div', 'ab-val num', fmtClock(restDefault()));
+          panel.appendChild(out);
+          panel.appendChild(optionRail(REST_LENS.map(fmtClock),
+            Math.max(0, REST_LENS.indexOf(restDefault())),
+            i => {
+              setProfile({ restSec: REST_LENS[i] });
+              out.textContent = fmtClock(REST_LENS[i]);
+              const val = r.querySelector('.pref-val');
+              if (val) val.textContent = fmtClock(REST_LENS[i]);
+            }, 74));
+          panel.appendChild(el('div', 'ab-hint',
+            'Every set in a new session starts its rest here. During training you '
+            + 'can only nudge it by 15 seconds, so the clock cannot be reset by accident.'));
           list.appendChild(panel);
         }
       });
@@ -4748,30 +4999,24 @@
     backBtn.title = detailReturn === 'workout' ? 'Back to workout' : 'Back';
     backBtn.onclick = goBackFromDetail;
     acts.appendChild(backBtn);
-    if (!isCustomEx(ex)) {
-      /* a premade exercise: not the user's to change or remove. Renaming one
-         would also strip its injury and equipment tags, which are keyed by
-         name. Say so rather than leaving controls that refuse. */
-      acts.classList.add('solo');
-      body.appendChild(acts);
-      body.appendChild(el('div', 'det-locked',
-        'Part of the exercise library, so it cannot be edited or deleted. '
-        + 'Add your own exercise if you want one you can change.'));
-      root.appendChild(body);
-      show('detail');
-      return;
-    }
-    const editBtn = el('button', 'btn-ghost', 'Edit');
-    editBtn.onclick = () => openExerciseForm(ex);
-    acts.appendChild(editBtn);
-    const delBtn = el('button', 'btn-ghost', 'Delete');
-    delBtn.onclick = async () => {
+    const mine = isCustomEx(ex);
+    /* Taking it off your list is yours to do either way. Rewriting a premade
+       one is not: its name is the key its injury and equipment tags hang off,
+       so renaming it would quietly strip them. */
+    const removeBtn = el('button', 'btn-ghost', mine ? 'Delete' : 'Remove');
+    removeBtn.onclick = async () => {
       const plansAll = await DB.all('plans');
       const usedIn = plansAll.filter(p => (p.days || []).some(d => d.items.some(it => it.exerciseId === ex.id)));
-      const warn = usedIn.length
-        ? `\n\n⚠️ It is part of ${usedIn.map(p => `"${p.name}"`).join(', ')} — it will be removed from that plan too.`
-        : '';
-      if (!confirm(`Delete "${ex.name}" and its history?${warn}`)) return;
+      const bits = [];
+      if (sessions.length) bits.push(`${sessions.length} logged session${sessions.length > 1 ? 's' : ''}`);
+      if (usedIn.length) bits.push(`its place in ${usedIn.map(p => `"${p.name}"`).join(', ')}`);
+      if (!await appConfirm({
+        title: mine ? `Delete ${ex.name}?` : `Remove ${ex.name}?`,
+        body: (bits.length ? `This also drops ${bits.join(' and ')}. ` : '')
+          + (mine ? 'It is yours, so it goes for good.'
+                  : 'It stays in the library — add it again any time.'),
+        ok: mine ? 'Delete' : 'Remove', cancel: 'Keep it', warn: true
+      })) return;
       for (const mid of (ex.mediaIds || [])) await DB.del('media', mid);
       for (const s of sessions) await DB.del('sessions', s.id);
       for (const p of usedIn) {
@@ -4781,8 +5026,18 @@
       await DB.del('exercises', ex.id);
       goBackFromDetail();
     };
-    acts.appendChild(delBtn);
+    if (mine) {
+      const editBtn = el('button', 'btn-ghost', 'Edit');
+      editBtn.onclick = () => openExerciseForm(ex);
+      acts.appendChild(editBtn);
+    }
+    acts.appendChild(removeBtn);
     body.appendChild(acts);
+    if (!mine) {
+      body.appendChild(el('div', 'det-locked',
+        'The name, cues and photos come from the library and stay as they are. '
+        + 'Remove takes it off your list; add your own exercise if you want one you can rewrite.'));
+    }
     root.appendChild(body);
     show('detail');
   }
@@ -4895,6 +5150,19 @@
     }
     ex.mediaIds = ids;
     await DB.put('exercises', ex);
+    if (!exercises.some(e => e.id === ex.id)) {
+      exercises.push(ex);
+      exercises.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    /* written mid-session: put it on the rail rather than making them go
+       find it again */
+    if (liveAddAfterSave && live.get()) {
+      const spec = liveAddAfterSave;
+      liveAddAfterSave = null;
+      await addExerciseToLive(ex, spec.sets, spec.reps);
+      return;
+    }
+    liveAddAfterSave = null;
     closeSheets();
     renderTab();
   };
