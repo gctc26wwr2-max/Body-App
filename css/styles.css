@@ -1630,10 +1630,13 @@ body { font-size: 14px; }
 .exx-out-note {
   font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--t7);
 }
-/* a passed exercise stays on the rail, dimmed, saying so */
-.exx.passed .exx-thumb, .exx.passed .exx-name, .exx.passed .exx-meta { opacity: .45; }
-.exx.passed .exx-count { display: none; }
-.exx.passed .ex-node { border-style: dashed; border-color: var(--amber-border); }
+/* a passed exercise is switched off: struck through, drained of colour, and
+   nothing on it responds except the one button that puts it back */
+.exx.passed .exx-head { opacity: .34; filter: grayscale(1); pointer-events: none; }
+.exx.passed .exx-name { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.exx.passed .exx-count, .exx.passed .drag-grip { display: none; }
+.exx.passed .ex-node { border-style: dashed; border-color: var(--amber-border); background: transparent; }
+.exx.passed .ex-node i { background: transparent; }
 .exx-passed { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .pass-tag {
   font-size: 9.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
@@ -1723,3 +1726,15 @@ body { font-size: 14px; }
 /* the block editor's length rail */
 #plan-weeks { margin-top: 8px; }
 #plan-weeks-note { margin: -6px 0 14px; }
+
+/* ============ ALERT SOUNDS ============ */
+.snd-list { display: flex; flex-direction: column; gap: 7px; }
+.snd-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  height: 44px; padding: 0 14px; border-radius: 13px;
+  background: var(--sunken); border: 1px solid var(--hair-8); color: var(--t2);
+  font-size: 13px; font-weight: 600;
+}
+.snd-btn svg { color: var(--t6); }
+.snd-btn.on { background: var(--lime-bg); border-color: var(--lime-border); color: var(--lime); font-weight: 800; }
+.snd-btn.on svg { color: var(--lime); }
