@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v208';
+  const APP_VERSION = 'v209';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -725,20 +725,35 @@
 
   /* The paused screen is a popup, not a panel on the page — a session that
      is not running should not look like one you can carry on tapping. */
+  let pauseInt = null;
   function paintPausePop() {
     const pop = $('#pause-pop');
     if (!pop) return;
     const lw = live.get();
-    if (!lw || !lw.pausedAt || $('#view-workout').hidden) { pop.hidden = true; return; }
-    $('#pause-pop-time').textContent = fmtClock(wElapsed(lw));
+    if (!lw || !lw.pausedAt || $('#view-workout').hidden) { closePausePop(); return; }
+    /* the number on this screen is the one that is actually moving: how long
+       the break has been. The session clock is the one that has stopped, so
+       it is stated once and left alone. */
+    const tick = () => {
+      const now = live.get();
+      if (!now || !now.pausedAt) { closePausePop(); return; }
+      $('#pause-pop-time').textContent = fmtClock(Math.floor((Date.now() - now.pausedAt) / 1000));
+    };
+    $('#pause-pop-held').textContent = `Session held at ${fmtClock(wElapsed(lw))}`;
     $('#pause-pop-body').textContent = lw.restLeft
       ? `Your rest is holding at ${fmtClock(lw.restLeft)}. Nothing logs until you start again.`
       : 'Nothing logs until you start again.';
     $('#pause-pop-go').onclick = () => resumeWorkout();
-    $('#pause-pop-away').onclick = () => { pop.hidden = true; show('today'); renderTab(); };
+    $('#pause-pop-away').onclick = () => { closePausePop(); show('today'); renderTab(); };
     pop.hidden = false;
+    tick();
+    clearInterval(pauseInt);
+    pauseInt = setInterval(tick, 1000);
   }
-  function closePausePop() { const p2 = $('#pause-pop'); if (p2) p2.hidden = true; }
+  function closePausePop() {
+    clearInterval(pauseInt); pauseInt = null;
+    const p2 = $('#pause-pop'); if (p2) p2.hidden = true;
+  }
 
   function resumeWorkout() {
     const lw = live.get();
