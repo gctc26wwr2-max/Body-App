@@ -1720,3 +1720,6 @@ body { font-size: 14px; }
 }
 /* the "this is permanent" line needs room off the row above it */
 .det-sec > .det-hard-note { margin-top: 9px; line-height: 1.45; }
+/* the block editor's length rail */
+#plan-weeks { margin-top: 8px; }
+#plan-weeks-note { margin: -6px 0 14px; }

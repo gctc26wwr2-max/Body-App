@@ -123,14 +123,9 @@
       <input name="name" type="text" required placeholder="e.g. Block 1 — Strength" autocomplete="off">
     </label>
     <label>Length
-      <select name="weeks">
-        <option value="2">2 weeks</option>
-        <option value="3">3 weeks</option>
-        <option value="4" selected>4 weeks</option>
-        <option value="5">5 weeks</option>
-        <option value="6">6 weeks</option>
-      </select>
+      <div id="plan-weeks"></div>
     </label>
+    <div id="plan-weeks-note" class="ab-hint"></div>
     <div class="micro" style="margin: 4px 0 10px">Training days · rep targets are ranges (e.g. 8–12)</div>
     <div id="plan-days"></div>
     <button type="button" id="plan-add-day" class="pf-add">＋ Add training day</button>

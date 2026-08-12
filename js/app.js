@@ -1,12 +1,16 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v210';
+  const APP_VERSION = 'v211';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
   const el = (tag, cls, txt) => {
     const e = document.createElement(tag);
+    /* a bare <button> inside a <form> defaults to type=submit, so any control
+       we build and drop into one would save and close it on the first tap.
+       The two real submit buttons are declared in the markup. */
+    if (tag === 'button') e.type = 'button';
     if (cls) e.className = cls;
     if (txt !== undefined) e.textContent = txt;
     return e;
@@ -5626,6 +5630,10 @@
   /* ============================================================
      PLAN FORM
      ============================================================ */
+  /* every length a block can be, including the odd numbers a deload week
+     produces — the dropdown only offered 2 to 6 */
+  const EDIT_WEEKS = Array.from({ length: 15 }, (_, i) => i + 2);
+
   function openPlanForm(plan, template) {
     editingPlanId = plan ? plan.id : null;
     const src = plan || template;
@@ -5643,9 +5651,24 @@
       : { weeks: 4, days: [{ name: 'Day 1', items: [] }] };
     const form = $('#form-plan');
     form.reset();
-    form.weeks.value = String(planDraft.weeks);
     form.name.value = plan ? plan.name : (template ? `Block ${blockNumber(template) + 1}` : '');
     $('#sheet-plan-title').textContent = plan ? 'Edit block' : 'New block';
+    /* length on the same rail the builder uses, rather than a dropdown —
+       and it runs the full range, because a block built with a deload week
+       is an odd number of weeks that the old five options could not hold */
+    planDraft.deload = plan ? !!plan.deload : false;
+    const wRoot = $('#plan-weeks');
+    wRoot.innerHTML = '';
+    const note = $('#plan-weeks-note');
+    const sayLen = () => {
+      note.textContent = `${planDraft.weeks} week${planDraft.weeks === 1 ? '' : 's'}`
+        + (planDraft.deload ? ' — the last one is a deload' : '');
+    };
+    const ix = EDIT_WEEKS.indexOf(planDraft.weeks);
+    wRoot.appendChild(optionRail(EDIT_WEEKS.map(String), ix < 0 ? EDIT_WEEKS.indexOf(4) : ix,
+      i => { planDraft.weeks = EDIT_WEEKS[i]; sayLen(); }, 62));
+    if (ix < 0) planDraft.weeks = 4;
+    sayLen();
     renderPlanDays();
     openSheet('#sheet-plan');
   }
@@ -5733,7 +5756,7 @@
       ? await DB.get('plans', editingPlanId)
       : { id: DB.uid(), createdAt: Date.now(), startDate: null, completed: [], finishedAt: null };
     plan.name = e.target.name.value.trim();
-    plan.weeks = Number(e.target.weeks.value) || 4;
+    plan.weeks = planDraft.weeks || 4;
     plan.days = days.map(d => ({ name: d.name.trim() || 'Day', items: d.items }));
     delete plan.items;
     await DB.put('plans', plan);
