@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v212';
+  const APP_VERSION = 'v213';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1475,15 +1475,49 @@
     ensureAudio();
     try { tone(660, 0, 0.13, 0.5); } catch { /* best-effort */ }
   }
+
+  /* Five alerts, built out of oscillators rather than downloaded. Nothing to
+     licence, nothing to ship, nothing to fetch — and each one is a handful of
+     notes: [frequency, start, length, loudness]. */
+  const ALERTS = [
+    { key: 'chime', label: 'Chime',
+      notes: [[880, 0, .26], [1175, .3, .26], [880, .6, .26], [1175, .9, .26]] },
+    { key: 'bell', label: 'Bell',
+      notes: [[1046, 0, 1.1, .55], [1568, .01, .85, .3], [2093, .02, .5, .12]] },
+    { key: 'marimba', label: 'Marimba',
+      notes: [[784, 0, .17, .8], [988, .15, .17, .8], [1319, .3, .4, .85]] },
+    { key: 'ping', label: 'Ping',
+      notes: [[1760, 0, .12, .7], [1760, .22, .12, .7]] },
+    { key: 'knock', label: 'Knock',
+      notes: [[196, 0, .2, .95], [147, .26, .3, .95]] }
+  ];
+  const alertOf = k => ALERTS.find(a => a.key === k) || ALERTS[0];
+  const alertKey = () => alertOf(getProfile().alertSound).key;
+
+  /* play one now — used by the settings list so you hear what you are picking */
+  function playAlert(key) {
+    ensureAudio();
+    try {
+      if (audioCtx && audioCtx.state === 'running') {
+        alertOf(key).notes.forEach(([f, t0, d, g]) => tone(f, t0, d, g == null ? .85 : g));
+        return;
+      }
+    } catch { /* best-effort */ }
+    buildBeepAudio(key);
+    if (beepAudio) { try { beepAudio.currentTime = 0; beepAudio.play().catch(() => {}); } catch { /* blocked */ } }
+  }
   /* pre-rendered beep clip — second audio path for when WebAudio is blocked.
      Built LAZILY on first use: creating a media element at boot grabs the
      audio session on iOS and stops the Music app. */
-  let beepAudio = null, beepBuilt = false;
-  function buildBeepAudio() {
-    if (beepBuilt) return;
-    beepBuilt = true;
+  let beepAudio = null, beepBuiltFor = null;
+  function buildBeepAudio(key) {
+    const k = key || alertKey();
+    if (beepBuiltFor === k) return;
+    beepBuiltFor = k;
     try {
-      const sr = 22050, n = Math.floor(sr * 1.2);
+      const notes = alertOf(k).notes;
+      const sr = 22050;
+      const n = Math.floor(sr * (Math.max(...notes.map(([, t0, d]) => t0 + d)) + 0.1));
       const bytes = new Uint8Array(44 + n * 2);
       const dv = new DataView(bytes.buffer);
       const ws = (o, s) => { for (let i = 0; i < s.length; i++) bytes[o + i] = s.charCodeAt(i); };
@@ -1493,11 +1527,13 @@
       dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
       ws(36, 'data'); dv.setUint32(40, n * 2, true);
       const pcm = new Int16Array(bytes.buffer, 44);
-      [[880, 0, .26], [1175, .3, .26], [880, .6, .26], [1175, .9, .26]].forEach(([f, t0, d]) => {
+      notes.forEach(([f, t0, d, g]) => {
+        const amp = (g == null ? 0.85 : g) / Math.max(1, notes.length > 2 ? 1.4 : 1);
         const s0 = Math.floor(t0 * sr), s1 = Math.min(n, Math.floor((t0 + d) * sr));
         for (let i = s0; i < s1; i++) {
           const env = Math.max(0, Math.min(1, (i - s0) / 200, (s1 - i) / 400));
-          pcm[i] = Math.round(Math.sin(2 * Math.PI * f * (i / sr)) * 32767 * 0.85 * env);
+          const v = pcm[i] + Math.sin(2 * Math.PI * f * (i / sr)) * 32767 * amp * env;
+          pcm[i] = Math.max(-32768, Math.min(32767, Math.round(v)));
         }
       });
       let bin = '';
@@ -1512,7 +1548,7 @@
     let ok = false;
     try {
       if (audioCtx && audioCtx.state === 'running') {
-        [880, 1175, 880, 1175].forEach((f, i) => tone(f, i * 0.3, 0.26, 0.85));
+        alertOf(alertKey()).notes.forEach(([f, t0, d, g]) => tone(f, t0, d, g == null ? .85 : g));
         ok = true;
       }
     } catch { /* audio best-effort */ }
@@ -3035,7 +3071,8 @@
   const PREF_GROUPS = [
     { title: 'Preferences', rows: [
       ['timer', 'Rest between sets', 'rest'],
-      ['theme', 'Theme'], ['units', 'Units', 'units'], ['bell', 'Notifications']
+      ['bell', 'Alert sound', 'sound'],
+      ['theme', 'Theme'], ['units', 'Units', 'units']
     ] },
     { title: 'Apple', rows: [
       ['health', 'Apple Health'], ['watch', 'Apple Watch'], ['link', 'Integrations']
@@ -3069,7 +3106,8 @@
     root.appendChild(head);
 
     root.appendChild(el('div', 'coach-note',
-      'Units works. The rest are placeholders for now — your other controls are the heart on Profile for About you, and the buttons under Body weight for backup.'));
+      'Rest, alert sound and units work. The rest are placeholders for now — your other '
+      + 'controls are the heart on Profile for About you, and the buttons under Body weight for backup.'));
 
     PREF_GROUPS.forEach(g => {
       root.appendChild(el('div', 'month-label', g.title));
@@ -3089,6 +3127,10 @@
           r.appendChild(el('span', 'pref-val num', fmtClock(restDefault())));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'rest' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'rest' ? null : 'rest'; renderPrefs(); };
+        } else if (live === 'sound') {
+          r.appendChild(el('span', 'pref-val', alertOf(alertKey()).label));
+          r.appendChild(el('span', 'pref-go' + (prefOpen === 'sound' ? ' open' : ''), '›'));
+          r.onclick = () => { prefOpen = prefOpen === 'sound' ? null : 'sound'; renderPrefs(); };
         } else {
           r.appendChild(el('span', 'pref-go', '›'));
         }
@@ -3106,6 +3148,31 @@
             }, 'you-seg'));
           panel.appendChild(el('div', 'ab-hint',
             'Weights, heights and the tape all follow this — nothing stored is rewritten.'));
+          list.appendChild(panel);
+        }
+        if (live === 'sound' && prefOpen === 'sound') {
+          const panel = el('div', 'pref-panel');
+          const snd = el('div', 'snd-list');
+          ALERTS.forEach(a => {
+            const btn = el('button', 'snd-btn' + (a.key === alertKey() ? ' on' : ''));
+            btn.appendChild(el('span', 'snd-name', a.label));
+            btn.appendChild(svgIcon(PLAY, 10));
+            /* tapping picks it and plays it — you cannot choose a sound you
+               have not heard */
+            btn.onclick = () => {
+              setProfile({ alertSound: a.key });
+              playAlert(a.key);
+              haptic();
+              snd.querySelectorAll('.snd-btn').forEach(x => x.classList.remove('on'));
+              btn.classList.add('on');
+              const val = r.querySelector('.pref-val');
+              if (val) val.textContent = a.label;
+            };
+            snd.appendChild(btn);
+          });
+          panel.appendChild(snd);
+          panel.appendChild(el('div', 'ab-hint',
+            'Plays when a rest finishes and when a hold is done. Tap one to hear it.'));
           list.appendChild(panel);
         }
         if (live === 'rest' && prefOpen === 'rest') {
