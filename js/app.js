@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v209';
+  const APP_VERSION = 'v210';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -35,8 +35,6 @@
   let editingExerciseId = null;
   let editingPlanId = null;
   let planDraft = null;
-  let pickCallback = null;
-  let pickFilter = 'All';
   let statsLift = null;
   let planHistOpen = false;   // Plan tab shows the last few sessions until asked
   let cardioHistOpen = false;
@@ -744,7 +742,10 @@
       ? `Your rest is holding at ${fmtClock(lw.restLeft)}. Nothing logs until you start again.`
       : 'Nothing logs until you start again.';
     $('#pause-pop-go').onclick = () => resumeWorkout();
-    $('#pause-pop-away').onclick = () => { closePausePop(); show('today'); renderTab(); };
+    /* one button, like the hold timer. Tapping off the card puts the popup
+       away without starting anything — the session stays paused and the
+       header is right there if you want to leave or finish. */
+    pop.onclick = e => { if (e.target === pop) closePausePop(); };
     pop.hidden = false;
     tick();
     clearInterval(pauseInt);
@@ -2150,22 +2151,42 @@
      add lands at the end of the rail and is logged like everything else — it
      does not touch the block you are running. */
   let addSets = 3, addExIx = 0, addReps = 3, addQuery = '', addGroup = 'All';
-  /* set when the exercise form was opened from inside a session, so what you
-     write goes straight onto the rail instead of only into the library */
-  let liveAddAfterSave = null;
+  /* set when the exercise form was opened from the dial sheet, so what you
+     write goes straight where you were adding it instead of only into the
+     library */
+  let pickerAfterSave = null;
 
-  function openAddToSession() {
-    addSets = 3; addExIx = 0; addReps = 3; addQuery = ''; addGroup = 'All';
-    renderAddToSession();
+  /* The dial sheet is used from two places now — a live session and the
+     block editor — so it takes what to call itself and what to do with the
+     pick, and knows nothing else about either. */
+  let addTarget = null;
+
+  function openDialPicker(opts) {
+    addTarget = opts;
+    addSets = opts.sets || 3;
+    addReps = opts.repIx != null ? opts.repIx : 3;
+    addExIx = 0; addQuery = ''; addGroup = 'All';
+    const h2 = $('#sheet-addex h2');
+    if (h2) h2.textContent = opts.title;
+    renderDialPicker();
     openSheet('#sheet-addex');
   }
 
-  function renderAddToSession() {
+  function openAddToSession() {
+    openDialPicker({
+      title: 'Add to this session',
+      cta: 'Add to this session',
+      live: true,
+      onPick: (item, sets, reps) => addExerciseToLive(item, sets, reps)
+    });
+  }
+
+  function renderDialPicker() {
     const root = $('#addex-body');
-    if (!root) return;
+    const opts = addTarget;
+    if (!root || !opts) return;
     root.innerHTML = '';
-    const lw = live.get();
-    if (!lw) { closeSheets(); return; }
+    if (opts.live && !live.get()) { closeSheets(); return; }
 
     /* your own list first — anything you have ever added or written — then
        the rest of the catalog */
@@ -2180,7 +2201,7 @@
     const chips = el('div', 'gchip-row');
     groups.forEach(g => {
       const b = el('button', 'gchip' + (g === addGroup ? ' on' : ''), g);
-      b.onclick = () => { addGroup = g; addExIx = 0; renderAddToSession(); };
+      b.onclick = () => { addGroup = g; addExIx = 0; renderDialPicker(); };
       chips.appendChild(b);
     });
     root.appendChild(chips);
@@ -2188,7 +2209,7 @@
     const find = el('input', 'search-input');
     find.placeholder = 'Search exercises';
     find.value = addQuery;
-    find.oninput = () => { addQuery = find.value; addExIx = 0; renderAddToSession(); };
+    find.oninput = () => { addQuery = find.value; addExIx = 0; renderDialPicker(); };
     root.appendChild(find);
 
     const q = addQuery.trim().toLowerCase();
@@ -2233,11 +2254,11 @@
 
       const go = el('button', 'btn-cta big');
       go.style.width = '100%';
-      go.textContent = 'Add to this session';
+      go.textContent = opts.cta;
       go.onclick = async () => {
         const item = shown[addExIx];
         if (!item) return;
-        await addExerciseToLive(item, addSets, PM_REPS[addReps]);
+        await opts.onPick(item, addSets, PM_REPS[addReps]);
       };
       root.appendChild(go);
     }
@@ -2245,7 +2266,10 @@
     const own = el('button', 'btn-ghost');
     own.style.width = '100%';
     own.textContent = '＋ Write your own';
-    own.onclick = () => { liveAddAfterSave = { sets: addSets, reps: PM_REPS[addReps] }; openExerciseForm(null); };
+    own.onclick = () => {
+      pickerAfterSave = { sets: addSets, reps: PM_REPS[addReps], onPick: opts.onPick };
+      openExerciseForm(null);
+    };
     root.appendChild(own);
   }
 
@@ -5587,15 +5611,14 @@
       exercises.push(ex);
       exercises.sort((a, b) => a.name.localeCompare(b.name));
     }
-    /* written mid-session: put it on the rail rather than making them go
-       find it again */
-    if (liveAddAfterSave && live.get()) {
-      const spec = liveAddAfterSave;
-      liveAddAfterSave = null;
-      await addExerciseToLive(ex, spec.sets, spec.reps);
+    /* written from the dial sheet: put it where they were adding it rather
+       than making them go find it again */
+    if (pickerAfterSave) {
+      const spec = pickerAfterSave;
+      pickerAfterSave = null;
+      await spec.onPick(ex, spec.sets, spec.reps);
       return;
     }
-    liveAddAfterSave = null;
     closeSheets();
     renderTab();
   };
@@ -5649,26 +5672,43 @@
 
       day.items.forEach((item, ii) => {
         const ex = exercises.find(e => e.id === item.exerciseId);
+        /* the name gets the whole width — squeezing it beside four number
+           boxes turned "Machine Chest Press" into "Machine Chest …" */
         const r = el('div', 'pf-item');
-        r.appendChild(el('span', 'n', ex ? ex.name : '(deleted)'));
-        const sets = numIn(item.sets, v => item.sets = v);
-        const x1 = el('span', 'x', '×');
-        const lo = numIn(item.repLo, v => item.repLo = v);
-        const x2 = el('span', 'x', '–');
-        const hi = numIn(item.repHi, v => item.repHi = v);
+        const top = el('div', 'pf-item-top');
+        top.appendChild(el('span', 'n', ex ? ex.name : '(deleted)'));
         const del = el('button', 'del', '✕');
         del.type = 'button';
+        del.title = 'Take it out of this day';
         del.onclick = () => { day.items.splice(ii, 1); renderPlanDays(); };
-        r.append(sets, x1, lo, x2, hi, del);
+        top.appendChild(del);
+        r.appendChild(top);
+        const nums = el('div', 'pf-item-nums');
+        nums.appendChild(el('span', 'lbl', 'sets'));
+        nums.appendChild(numIn(item.sets, v => item.sets = v));
+        nums.appendChild(el('span', 'x', '×'));
+        nums.appendChild(el('span', 'lbl', 'reps'));
+        nums.appendChild(numIn(item.repLo, v => item.repLo = v));
+        nums.appendChild(el('span', 'x', '–'));
+        nums.appendChild(numIn(item.repHi, v => item.repHi = v));
+        r.appendChild(nums);
         card.appendChild(r);
       });
 
       const add = el('button', 'pf-add', '＋ Add exercise');
       add.type = 'button';
-      add.onclick = () => openPicker(ex => {
-        day.items.push({ exerciseId: ex.id, sets: 3, repLo: 8, repHi: 12, kg: 0 });
-        renderPlanDays();
-        openSheet('#sheet-plan');
+      /* the same three dials the live session uses — one way of picking an
+         exercise, wherever you are picking one */
+      add.onclick = () => openDialPicker({
+        title: 'Add to ' + (day.name || 'this day'),
+        cta: 'Add to ' + (day.name || 'this day'),
+        onPick: async (item, sets, reps) => {
+          const rec = await ensureExercise(item);
+          day.items.push({ exerciseId: rec.id, sets, repLo: reps.lo, repHi: reps.hi, kg: 0 });
+          haptic();
+          renderPlanDays();
+          openSheet('#sheet-plan');
+        }
       });
       card.appendChild(add);
       wrap.appendChild(card);
@@ -5701,59 +5741,6 @@
     show('today');
     renderTab();
   };
-
-  /* ============================================================
-     PICKER (my exercises + catalog, auto-add)
-     ============================================================ */
-  function openPicker(cb) {
-    pickCallback = cb;
-    pickFilter = 'All';
-    $('#pick-search').value = '';
-    renderPickChips();
-    renderPickList();
-    openSheet('#sheet-pick');
-  }
-  function renderPickChips() {
-    const row = $('#pick-chips');
-    row.innerHTML = '';
-    for (const g of LIB_GROUPS) {
-      const b = el('button', g === pickFilter ? 'sel' : '', g);
-      b.onclick = () => { pickFilter = g; renderPickChips(); renderPickList(); };
-      row.appendChild(b);
-    }
-  }
-  function renderPickList() {
-    const list = $('#pick-list');
-    list.innerHTML = '';
-    const q = $('#pick-search').value.trim().toLowerCase();
-    const mineNames = new Set(exercises.map(e => e.name.toLowerCase()));
-    const rows = [];
-    for (const ex of exercises) rows.push({ mine: true, ex, name: ex.name, group: ex.group || '' });
-    for (const item of (window.EXERCISE_LIBRARY || [])) {
-      if (!mineNames.has(item.name.toLowerCase())) rows.push({ mine: false, item, name: item.name, group: item.group });
-    }
-    for (const r of rows) {
-      if (pickFilter !== 'All' && r.group !== pickFilter) continue;
-      if (q && !r.name.toLowerCase().includes(q) && !r.group.toLowerCase().includes(q)) continue;
-      const row = el('div', 'lib-row');
-      const th = el('div', 'lr-thumb');
-      th.appendChild(thumbFor(r.mine ? r.ex : r.item));
-      row.appendChild(th);
-      const c = el('div');
-      c.appendChild(el('div', 'lr-name', r.name));
-      c.appendChild(el('div', 'lr-meta', r.group));
-      row.appendChild(c);
-      row.onclick = async () => {
-        const ex = r.mine ? r.ex : await ensureExercise(r.item);
-        closeSheets();
-        const cb = pickCallback;
-        pickCallback = null;
-        cb(ex);
-      };
-      list.appendChild(row);
-    }
-  }
-  $('#pick-search').oninput = renderPickList;
 
   /* ============================================================
      BOOT
