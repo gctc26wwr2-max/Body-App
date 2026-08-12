@@ -1579,3 +1579,36 @@ body { font-size: 14px; }
 #addex-body .pm-wheels { margin-top: 2px; }
 #addex-body .cd-col .pw { height: 150px; }
 #addex-body .search-input { width: 100%; }
+
+/* ============ DRAG TO REORDER ============
+   A grip you can find with a thumb, on rows that lift when you hold them.
+   Nothing commits until you let go. */
+.drag-grip {
+  flex: 0 0 auto; width: 34px; height: 38px; border-radius: 11px; padding: 0;
+  background: none; border: none; color: var(--t7);
+  display: flex; align-items: center; justify-content: center;
+  touch-action: none; cursor: grab;
+}
+.drag-grip:active { cursor: grabbing; color: var(--lime); }
+.drag-grip svg { display: block; pointer-events: none; }
+.ex-index .exi-row, .exx { transition: transform .16s ease-out; }
+/* the row in your hand: lifted off the page, and nothing under it animates */
+.drag-lift {
+  transition: none !important; position: relative; z-index: 40;
+  opacity: .96; filter: drop-shadow(0 12px 22px rgba(0,0,0,.55));
+}
+.ex-index .exi-row.drag-lift { background: var(--surface); border-radius: 12px; }
+/* a picked-up exercise gets a body, so it reads as lifted off the rail
+   rather than printed through the card beneath it */
+.exx.drag-lift {
+  background: var(--surface); border-radius: 18px;
+  padding: 8px 10px 8px 32px; margin: -8px -10px;
+}
+.exx.drag-lift .ex-node { left: 10px; top: 23px; }
+/* the wrapper inherits the spacing the card used to give these directly */
+.exx-body { display: flex; flex-direction: column; gap: 12px; }
+/* while a drag is running the open exercise folds shut, so every drop target
+   fits on one screen */
+.rail.reordering .exx-body { display: none; }
+.rail.reordering .exx-name { font-size: 16px; }
+.rail.reordering .drag-grip { color: var(--lime); }
