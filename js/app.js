@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v202';
+  const APP_VERSION = 'v203';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -4649,7 +4649,7 @@
   function hardChip(item, extra) {
     const h = hardshipOf(item);
     if (!h) return null;
-    const chip = el('span', 'hard h' + h.n + (extra ? ' ' + extra : ''));
+    const chip = el('span', 'hardness h' + h.n + (extra ? ' ' + extra : ''));
     chip.title = h.note;
     const bars = el('i', 'hard-bars');
     for (let i = 1; i <= 3; i++) bars.appendChild(el('i', i <= h.n ? 'on' : ''));
