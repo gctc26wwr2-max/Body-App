@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v203';
+  const APP_VERSION = 'v204';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -911,7 +911,12 @@
       } else if (allDone) {
         const sum = el('div', 'exx-sum num',
           cur.sets.map(s => cur.timed ? `${s.reps}s` : `${fmtWn(s.kg)} × ${s.reps}`).join('  ·  '));
-        if (cur.feel) sum.appendChild(el('span', 'hd-feel ' + cur.feel, cur.feel));
+        if (cur.feel) {
+          const tag = el('span', 'hd-feel ' + cur.feel);
+          tag.title = cur.feel;
+          tag.appendChild(feelFace(cur.feel, 15));
+          sum.appendChild(tag);
+        }
         card.appendChild(sum);
       }
       return card;
@@ -1148,15 +1153,31 @@
     if (cur.sets.length) {
       const allDone2 = cur.sets.every(s => s.done);
       const fw = el('div', 'feel-wrap');
-      fw.appendChild(el('div', 'micro', allDone2 ? 'How was it?' : 'How is it going?'));
+      /* the heading carries the word, so the buttons do not have to — and it
+         answers back the moment you tap one */
+      const ask = allDone2 ? 'How was it?' : 'How is it going?';
+      const head2 = el('div', 'micro');
+      const sayFeel = () => {
+        head2.textContent = cur.feel
+          ? (allDone2 ? 'Felt ' : 'Feeling ') + cur.feel
+          : ask;
+        head2.classList.toggle('on', !!cur.feel);
+      };
+      sayFeel();
+      fw.appendChild(head2);
       const strip = el('div', 'feel-strip');
       [['easy', 'Easy'], ['moderate', 'Moderate'], ['hard', 'Hard']].forEach(([k, label]) => {
-        const b = el('button', 'feel-btn ' + k + (cur.feel === k ? ' sel' : ''), label);
+        const b = el('button', 'feel-btn ' + k + (cur.feel === k ? ' sel' : ''));
+        b.appendChild(feelFace(k));
+        b.title = label;
+        b.setAttribute('aria-label', label);
         b.onclick = () => {
           cur.feel = cur.feel === k ? null : k;
           live.set(lw);
           strip.querySelectorAll('.feel-btn').forEach(x => x.classList.remove('sel'));
           if (cur.feel) b.classList.add('sel');
+          sayFeel();
+          haptic();
         };
         strip.appendChild(b);
       });
@@ -1534,6 +1555,38 @@
   function haptic() {
     if (navigator.vibrate) { navigator.vibrate(8); return; }
     try { hapticSwitch.click(); } catch (e) { /* no haptics available */ }
+  }
+
+  /* ---------------- how it felt, as a face ----------------
+     Three words in three pills is a lot of reading for a question you answer
+     between sets with one thumb. The same line-art the rest of the icons use:
+     mouth up, mouth flat, mouth down. The heading above says the word, so
+     nothing has to be guessed. */
+  const FEEL_FACE = {
+    easy: 'M7.6 14.4q4.4 4 8.8 0',
+    moderate: 'M8.2 15h7.6',
+    hard: 'M7.6 16.6q4.4-4 8.8 0'
+  };
+  function feelFace(key, size = 26) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const s = document.createElementNS(NS, 'svg');
+    s.setAttribute('viewBox', '0 0 24 24');
+    s.setAttribute('width', size);
+    s.setAttribute('height', size);
+    s.setAttribute('fill', 'none');
+    s.setAttribute('stroke', 'currentColor');
+    s.setAttribute('stroke-width', '1.7');
+    s.setAttribute('stroke-linecap', 'round');
+    const add = (tag, attrs) => {
+      const n = document.createElementNS(NS, tag);
+      for (const a in attrs) n.setAttribute(a, attrs[a]);
+      s.appendChild(n);
+    };
+    add('circle', { cx: 12, cy: 12, r: 9 });
+    add('path', { d: 'M9.2 9.6h.01M14.8 9.6h.01', 'stroke-width': 2.3 });
+    add('path', { d: FEEL_FACE[key] || FEEL_FACE.moderate });
+    s.style.display = 'block';
+    return s;
   }
 
   /* ---------------- drag to reorder ----------------
@@ -2269,14 +2322,23 @@
       root.appendChild(r);
     }
 
-    root.appendChild(el('div', 'micro', 'How did it feel?'));
+    /* the whole session, on the same three faces as the exercises */
+    const feelAsk = el('div', 'micro', 'How did it feel?');
+    if (w.feel) { feelAsk.textContent = 'Felt ' + w.feel.toLowerCase(); feelAsk.classList.add('on'); }
+    root.appendChild(feelAsk);
     const feel = el('div', 'feel-row');
-    ['Easy', 'Solid', 'Brutal'].forEach(f => {
-      const b = el('button', null, f);
+    [['Easy', 'easy'], ['Solid', 'moderate'], ['Brutal', 'hard']].forEach(([f, face]) => {
+      const b = el('button', w.feel === f ? 'sel' : null);
+      b.appendChild(feelFace(face, 28));
+      b.title = f;
+      b.setAttribute('aria-label', f);
       b.onclick = async () => {
         w.feel = f;
         await DB.put('workouts', w);
+        feelAsk.textContent = 'Felt ' + f.toLowerCase();
+        feelAsk.classList.add('on');
         $$('.feel-row button').forEach(x => x.classList.toggle('sel', x === b));
+        haptic();
       };
       feel.appendChild(b);
     });
@@ -2445,7 +2507,12 @@
               ? `${fmtWn(x.weight)}×${x.reps}`
               : `${x.reps}${s.timed ? 's' : ''}`).join(' · ');
             const hs = el('div', 'hd-sets num', txt);
-            if (s.feel) hs.appendChild(el('span', 'hd-feel ' + s.feel, s.feel));
+            if (s.feel) {
+              const tag = el('span', 'hd-feel ' + s.feel);
+              tag.title = s.feel;
+              tag.appendChild(feelFace(s.feel, 14));
+              hs.appendChild(tag);
+            }
             dr.appendChild(hs);
             det2.appendChild(dr);
           }
