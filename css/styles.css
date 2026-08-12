@@ -1503,7 +1503,7 @@ body { font-size: 14px; }
 /* ============ HOW HARD IT IS ============
    Three bars and a word, riding the meta line under every exercise name.
    One hue, as everywhere else — the harder it is, the brighter it burns. */
-.hard { display: inline-flex; align-items: center; gap: 5px; vertical-align: -1px; }
+.hardness { display: inline-flex; align-items: center; gap: 5px; vertical-align: -1px; }
 .hard-sep { color: var(--t7); margin: 0 5px; }
 .hard-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 9px; }
 .hard-bars i { width: 3px; border-radius: 1.5px; background: var(--hair-strong); display: block; }
@@ -1511,20 +1511,20 @@ body { font-size: 14px; }
 .hard-bars i:nth-child(2) { height: 6.5px; }
 .hard-bars i:nth-child(3) { height: 9px; }
 .hard-lbl { font-size: 10.5px; font-weight: 700; letter-spacing: .02em; }
-.hard.h1 .hard-bars i.on { background: var(--t4); }
-.hard.h1 .hard-lbl { color: var(--t4); }
-.hard.h2 .hard-bars i.on { background: var(--lime-dim); }
-.hard.h2 .hard-lbl { color: var(--lime-dim); }
-.hard.h3 .hard-bars i.on { background: var(--lime-pale); }
-.hard.h3 .hard-lbl { color: var(--lime-pale); }
+.hardness.h1 .hard-bars i.on { background: var(--t4); }
+.hardness.h1 .hard-lbl { color: var(--t4); }
+.hardness.h2 .hard-bars i.on { background: var(--lime-dim); }
+.hardness.h2 .hard-lbl { color: var(--lime-dim); }
+.hardness.h3 .hard-bars i.on { background: var(--lime-pale); }
+.hardness.h3 .hard-lbl { color: var(--lime-pale); }
 /* on the detail page it is a statement, not a footnote */
-.hard.big { gap: 7px; }
-.hard.big .hard-bars { height: 12px; }
-.hard.big .hard-bars i { width: 4px; }
-.hard.big .hard-bars i:nth-child(1) { height: 5px; }
-.hard.big .hard-bars i:nth-child(2) { height: 8.5px; }
-.hard.big .hard-bars i:nth-child(3) { height: 12px; }
-.hard.big .hard-lbl { font-size: 13px; font-weight: 800; letter-spacing: -.01em; }
+.hardness.big { gap: 7px; }
+.hardness.big .hard-bars { height: 12px; }
+.hardness.big .hard-bars i { width: 4px; }
+.hardness.big .hard-bars i:nth-child(1) { height: 5px; }
+.hardness.big .hard-bars i:nth-child(2) { height: 8.5px; }
+.hardness.big .hard-bars i:nth-child(3) { height: 12px; }
+.hardness.big .hard-lbl { font-size: 13px; font-weight: 800; letter-spacing: -.01em; }
 .det-hard { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: -4px 0 2px; }
 .det-hard-note { font-size: 11.5px; font-weight: 600; color: var(--t5); }
 /* the index rows stack it under the name rather than beside it */
