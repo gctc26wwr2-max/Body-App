@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v201';
+  const APP_VERSION = 'v202';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -761,8 +761,10 @@
     hl.appendChild(clock);
     head.appendChild(hl);
 
+    /* a passed exercise is out of the count entirely — leaving its sets in the
+       total makes the session look unfinished when you decided it was done */
     const banked = lw.exercises.reduce((a, e2) => a + e2.sets.filter(x => x.done).length, 0);
-    const totSets = lw.exercises.reduce((a, e2) => a + e2.sets.length, 0);
+    const totSets = lw.exercises.reduce((a, e2) => a + (e2.passed ? 0 : e2.sets.length), 0);
     const bank = el('div', 'w-banked');
     bank.appendChild(el('div', 'v num', `${banked}/${totSets}`));
     bank.appendChild(el('div', 'l', 'Sets banked'));
@@ -799,7 +801,8 @@
     lw.exercises.forEach((e2, i) => {
       const allDone = e2.sets.length > 0 && e2.sets.every(x => x.done);
       const someDone = !allDone && e2.sets.some(x => x.done);
-      const s = el('span', (allDone ? 'done' : (someDone ? 'part' : '')) + (i === lw.exIndex ? ' cur' : ''));
+      const s = el('span', (e2.passed ? 'passed' : (allDone ? 'done' : (someDone ? 'part' : '')))
+        + (i === lw.exIndex ? ' cur' : ''));
       s.onclick = () => { lw.exIndex = i; lw.advanceAfterRest = false; live.set(lw); scrollToEx = true; renderWorkout(); };
       prog.appendChild(s);
     });
@@ -851,8 +854,12 @@
   function exerciseCard(lw, cur, ei, sessions) {
     const ex = exercises.find(e => e.id === cur.exerciseId);
     const allDone = cur.sets.length > 0 && cur.sets.every(s => s.done);
-    const active = ei === lw.exIndex;
-    const card = el('div', 'exx' + (active ? ' active' : '') + (allDone ? ' is-done' : ''));
+    /* passed: you decided you could not do this one today. It stays on the
+       rail, folded and marked, so the session is an honest record of what
+       happened rather than quietly shorter. */
+    const active = ei === lw.exIndex && !cur.passed;
+    const card = el('div', 'exx' + (active ? ' active' : '') + (allDone ? ' is-done' : '')
+      + (cur.passed ? ' passed' : ''));
 
     // node on the rail
     const node = el('i', 'ex-node');
@@ -887,7 +894,21 @@
 
     // collapsed: a finished exercise is one line of numbers; a pending one just its header
     if (!active) {
-      if (allDone) {
+      if (cur.passed) {
+        const row = el('div', 'exx-passed');
+        row.appendChild(el('span', 'pass-tag', 'Passed'));
+        row.appendChild(el('span', 'pass-why', 'Skipped today — the block is unchanged'));
+        const back = el('button', 'pass-undo', 'Put it back');
+        back.onclick = e => {
+          e.stopPropagation();
+          delete cur.passed;
+          lw.exIndex = ei;
+          live.set(lw);
+          renderWorkout();
+        };
+        row.appendChild(back);
+        card.appendChild(row);
+      } else if (allDone) {
         const sum = el('div', 'exx-sum num',
           cur.sets.map(s => cur.timed ? `${s.reps}s` : `${fmtWn(s.kg)} × ${s.reps}`).join('  ·  '));
         if (cur.feel) sum.appendChild(el('span', 'hd-feel ' + cur.feel, cur.feel));
@@ -902,6 +923,50 @@
     watch.appendChild(document.createTextNode(' Watch the movement'));
     watch.onclick = () => { if (ex) openDetail(ex.id, 'workout'); };
     card.appendChild(watch);
+
+    /* Two ways out of an exercise you cannot do today, both of them about
+       today only. The block itself is changed in Plan → Edit, and that one
+       does carry into next week. */
+    const outs = el('div', 'exx-outs');
+    const passB = el('button', 'exx-out', 'Can’t do it');
+    passB.title = 'Skip it for today';
+    passB.onclick = async () => {
+      const banked2 = cur.sets.filter(s => s.done).length;
+      if (banked2 && !await appConfirm({
+        title: `Pass on ${cur.name}?`,
+        body: `${banked2} set${banked2 > 1 ? 's are' : ' is'} already logged and will still be saved. `
+          + 'It is marked passed for today only.',
+        ok: 'Pass', cancel: 'Keep going', warn: true
+      })) return;
+      cur.passed = true;
+      const next = lw.exercises.findIndex((e2, i) => i !== ei && !e2.passed && !e2.sets.every(s => s.done));
+      if (next >= 0) lw.exIndex = next;
+      lw.advanceAfterRest = false;
+      live.set(lw);
+      haptic();
+      scrollToEx = true;
+      renderWorkout();
+    };
+    const dropB = el('button', 'exx-out', 'Remove');
+    dropB.title = 'Take it off this session';
+    dropB.onclick = async () => {
+      if (!await appConfirm({
+        title: `Remove ${cur.name}?`,
+        body: 'It comes off this session only — next week it is back. '
+          + 'To drop it for good, edit the block in Plan.',
+        ok: 'Remove', cancel: 'Keep it', warn: true
+      })) return;
+      lw.exercises.splice(ei, 1);
+      if (!lw.exercises.length) { live.set(lw); finishWorkout(); return; }
+      lw.exIndex = Math.min(lw.exIndex > ei ? lw.exIndex - 1 : lw.exIndex, lw.exercises.length - 1);
+      lw.advanceAfterRest = false;
+      live.set(lw);
+      haptic();
+      renderWorkout();
+    };
+    outs.append(passB, dropB);
+    outs.appendChild(el('span', 'exx-out-note', 'this session only'));
+    card.appendChild(outs);
 
     // plate math
     if (ex && isBarbell(ex)) {
@@ -1016,7 +1081,8 @@
           if (lw.repScaleAt === key) lw.repScaleAt = null;
         }
         // last set banked -> advance AFTER the rest finishes, not abruptly now
-        lw.advanceAfterRest = set.done && cur.sets.every(s => s.done) && ei < lw.exercises.length - 1;
+        lw.advanceAfterRest = set.done && cur.sets.every(s => s.done)
+          && lw.exercises.some((e2, i) => i > ei && !e2.passed);
         live.set(lw);
         if (set.done) startRest(cur.rest);   // after save — startRest re-reads state
         renderWorkout();
@@ -1374,7 +1440,9 @@
     if (lw) {
       if (lw.restEndsAt && lw.advanceAfterRest) {
         lw.advanceAfterRest = false;
-        if (lw.exIndex < lw.exercises.length - 1) lw.exIndex++;
+        // step over anything you passed on the way to the next one
+        const next = lw.exercises.findIndex((e, i) => i > lw.exIndex && !e.passed);
+        if (next >= 0) lw.exIndex = next;
       }
       lw.restEndsAt = null;
       live.set(lw);
@@ -1857,7 +1925,8 @@
     const c = el('div', 'rest-inline' + (resting ? ' on' : ''));
     const top = el('div', 'ri-state' + (resting ? ' on' : ''));
     top.appendChild(el('i', 'live-dot' + (resting ? '' : ' idle')));
-    const nextEx = lw.advanceAfterRest && lw.exercises[lw.exIndex + 1];
+    const nextEx = lw.advanceAfterRest
+      && lw.exercises.find((e2, i) => i > lw.exIndex && !e2.passed);
     top.appendChild(document.createTextNode(resting
       ? (nextEx ? ' Resting · next: ' + nextEx.name : ' Resting')
       : ' Rest timer · ready'));
@@ -2058,7 +2127,8 @@
     const t = el('span', 'dock-time num', fmtClock(Math.max(0, Math.ceil((lw.restEndsAt - Date.now()) / 1000))));
     t.id = 'dock-time';
     bar.appendChild(t);
-    const nextEx = lw.advanceAfterRest && lw.exercises[lw.exIndex + 1];
+    const nextEx = lw.advanceAfterRest
+      && lw.exercises.find((e2, i) => i > lw.exIndex && !e2.passed);
     bar.appendChild(el('span', 'dock-next', nextEx ? 'Next · ' + nextEx.name : lw.exercises[lw.exIndex].name));
     const p15 = el('button', 'dock-btn num', '+15');
     p15.onclick = () => { lw.restEndsAt += 15000; live.set(lw); restTick(); };
@@ -2080,13 +2150,21 @@
         ok: 'Finish anyway', cancel: 'Keep training', warn: true
       })) return;
     } else {
-      const missed = lw.exercises.filter(e => !e.sets.some(s => s.done));
-      const partial = lw.exercises.filter(e => e.sets.some(s => s.done) && !e.sets.every(s => s.done));
+      /* a passed exercise is not an oversight — it gets its own line rather
+         than being listed as something you forgot */
+      const passed = lw.exercises.filter(e => e.passed);
+      const missed = lw.exercises.filter(e => !e.passed && !e.sets.some(s => s.done));
+      const partial = lw.exercises.filter(e => !e.passed && e.sets.some(s => s.done) && !e.sets.every(s => s.done));
       let opts = { title: 'Finished?', body: 'The session will be saved.', ok: 'Save session', cancel: 'Keep training' };
+      if (passed.length && !missed.length && !partial.length) {
+        opts.body = 'Passed: ' + passed.map(e => e.name).join(', ')
+          + '\n\nThe block is unchanged — they are back next week.';
+      }
       if (missed.length || partial.length) {
         const parts = [];
         if (missed.length) parts.push('Not logged: ' + missed.map(e => e.name).join(', '));
         if (partial.length) parts.push('Sets left open: ' + partial.map(e => e.name).join(', '));
+        if (passed.length) parts.push('Passed: ' + passed.map(e => e.name).join(', '));
         opts = {
           title: 'Finish anyway?', body: parts.join('\n') + '\n\nUnlogged sets will not be saved.',
           ok: 'Finish anyway', cancel: 'Keep training', warn: true
