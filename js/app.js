@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v198';
+  const APP_VERSION = 'v199';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -503,7 +503,12 @@
           const ex = exercises.find(e => e.id === it.exerciseId);
           const r = el('div', 'exi-row');
           r.appendChild(el('div', 'exi-num', String(i + 1).padStart(2, '0')));
-          r.appendChild(el('div', 'exi-name', ex ? ex.name : '(deleted)'));
+          const nmc = el('div', 'exi-name', ex ? ex.name : '(deleted)');
+          if (ex) {
+            const hb = el('div', 'exi-hard');
+            if (addHardship(hb, ex)) nmc.appendChild(hb);
+          }
+          r.appendChild(nmc);
           r.appendChild(el('div', 'exi-scheme', `${it.sets || 3} × ${it.repLo || 8}–${it.repHi || 12}${it.kg ? ' · ' + fmtW(it.kg) : ''}`));
           if (ex) r.onclick = () => openDetail(ex.id, 'library');
           idx.appendChild(r);
@@ -834,8 +839,10 @@
     hd.appendChild(th);
     const col = el('div', 'exx-col');
     col.appendChild(el('div', 'exx-name', cur.name));
-    col.appendChild(el('div', 'exx-meta',
-      `${(ex && ex.group) ? ex.group + ' · ' : ''}${cur.sets.length} × ${cur.repLo}–${cur.repHi}${cur.timed ? (cur.perSide ? ' s / side' : ' s') : ''}`));
+    const exMeta = el('div', 'exx-meta',
+      `${(ex && ex.group) ? ex.group + ' · ' : ''}${cur.sets.length} × ${cur.repLo}–${cur.repHi}${cur.timed ? (cur.perSide ? ' s / side' : ' s') : ''}`);
+    addHardship(exMeta, ex || { name: cur.name });
+    col.appendChild(exMeta);
     hd.appendChild(col);
     const doneN = cur.sets.filter(s => s.done).length;
     hd.appendChild(el('div', 'exx-count num', `${doneN}/${cur.sets.length}`));
@@ -3508,7 +3515,7 @@
     play.innerHTML = '<svg viewBox="0 0 20 20" width="16" height="16"><path d="M5 3.4 16 10 5 16.6Z" '
       + 'fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>';
     play.onclick = () => showMove(shown[pmEx]);
-    const exWheel = () => pickerWheel(shown.map(x => x.name), pmEx, i => { pmEx = i; }, 'wide',
+    const exWheel = () => pickerWheel(shown.map(x => x.name), pmEx, i => { pmEx = i; paintHard(); }, 'wide',
       i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15')),
       () => showMove(shown[pmEx]));
     exBox.appendChild(exWheel());
@@ -3525,6 +3532,7 @@
       const again = shown.findIndex(x => x.name === wasName);
       pmEx = again < 0 ? 0 : again;
       exBox.replaceChild(exWheel(), exBox.firstChild);
+      paintHard();
       exLbl.textContent = shown.length === lib.length
         ? 'Exercise' : `Exercise · ${shown.length}`;
       exLbl.classList.toggle('none', !keep.length);
@@ -3539,6 +3547,22 @@
       i => (i % 2 ? 'w11' : 'w15')));
     wheels.appendChild(c3);
     root.appendChild(wheels);
+
+    /* how hard the movement on the dial is. The dial spins without a
+       re-render, so this line repaints on its own — you find out what the
+       exercise asks of you before you add it, not after. */
+    const pickHard = el('div', 'pm-hard');
+    const paintHard = () => {
+      pickHard.innerHTML = '';
+      const item = shown[pmEx];
+      const h = item && hardshipOf(item);
+      if (!h) { pickHard.hidden = true; return; }
+      pickHard.hidden = false;
+      pickHard.appendChild(hardChip(item));
+      pickHard.appendChild(el('span', 'pm-hard-note', h.note));
+    };
+    paintHard();
+    root.appendChild(pickHard);
 
     const addBtn = el('button', 'btn-cta big');
     addBtn.style.width = '100%';
@@ -3572,6 +3596,8 @@
         r.appendChild(el('div', 'exi-num', String(i + 1).padStart(2, '0')));
         const nm = el('div', 'exi-name', it.name);
         if (it.swappedFrom) nm.appendChild(el('span', 'exi-sub', `was ${it.swappedFrom}`));
+        const hb = el('div', 'exi-hard');
+        if (addHardship(hb, it)) nm.appendChild(hb);
         r.appendChild(nm);
         r.appendChild(el('div', 'exi-scheme', `${it.sets} × ${it.repLo}–${it.repHi}`));
         const x = el('button', 'hist-del', '✕');
@@ -4125,13 +4151,79 @@
     const hit = contentIdFor._byKey[key(item.name)];
     if (hit) return hit;
     const alias = window.CONTENT_ALIAS || {}, byName = window.CONTENT_BY_NAME || {};
-    const slug = item.demo || byName[(item.name || '').toLowerCase()];
+    /* a plan item is only a name and a rep scheme — it carries no demo slug
+       of its own, so borrow the catalog's for the same name */
+    if (!contentIdFor._slugByName) {
+      contentIdFor._slugByName = {};
+      (window.EXERCISE_LIBRARY || []).forEach(i => {
+        if (i.demo) contentIdFor._slugByName[key(String(i.name).toLowerCase())] = i.demo;
+      });
+    }
+    const low = key(String(item.name || '').toLowerCase());
+    const slug = item.demo || byName[low] || contentIdFor._slugByName[low];
     return slug ? (alias[slug] || slug) : null;
   }
   function contentFor(item) {
     if (!CONTENT || !item) return null;
     const id = contentIdFor(item);
     return (id && CONTENT.get(id)) || null;
+  }
+
+  /* ---------------- how hard it is ----------------
+     Not how heavy — how much technique the movement asks for before it is
+     safe to load. It rides under the name everywhere an exercise is shown,
+     because that is the thing you want to know before you pick it, not
+     after you have already put the bar on your back.
+     The written entry carries `difficulty`; the library record's `skill`
+     (1–3) is the same three-step scale and covers anything the content
+     layer has not been written for yet. */
+  const HARDSHIP = [
+    null,
+    { n: 1, label: 'Beginner', note: 'easy to do right — learn it under load' },
+    { n: 2, label: 'Intermediate', note: 'needs practice before it gets heavy' },
+    { n: 3, label: 'Advanced', note: 'technique-heavy — earn it before loading' }
+  ];
+  const HARD_BY_WORD = { beginner: 1, intermediate: 2, advanced: 3 };
+
+  /* the handful of catalog movements the written library has not been given
+     an entry for yet — rated here so the line is never blank */
+  const HARD_EXTRA = { 'bicycle crunch': 1, 'swimming': 2 };
+
+  function hardshipOf(item) {
+    if (!item) return null;
+    /* what the user said, if this is their own exercise */
+    if (item.hardship >= 1 && item.hardship <= 3) return HARDSHIP[item.hardship];
+    const con = contentFor(item);
+    const byWord = con && HARD_BY_WORD[String(con.difficulty || '').toLowerCase()];
+    if (byWord) return HARDSHIP[byWord];
+    const lib = LIB_BY_ID[contentIdFor(item)];
+    const n = lib && lib.skill;
+    if (n >= 1 && n <= 3) return HARDSHIP[n];
+    const extra = HARD_EXTRA[String(item.name || '').toLowerCase()];
+    return extra ? HARDSHIP[extra] : null;
+  }
+
+  /* three bars and the word — small enough to sit on a meta line, legible
+     enough to read without tapping through */
+  function hardChip(item, extra) {
+    const h = hardshipOf(item);
+    if (!h) return null;
+    const chip = el('span', 'hard h' + h.n + (extra ? ' ' + extra : ''));
+    chip.title = h.note;
+    const bars = el('i', 'hard-bars');
+    for (let i = 1; i <= 3; i++) bars.appendChild(el('i', i <= h.n ? 'on' : ''));
+    chip.appendChild(bars);
+    chip.appendChild(el('span', 'hard-lbl', h.label));
+    return chip;
+  }
+  /* append to an existing meta line, with a separator if it already says
+     something */
+  function addHardship(node, item, extra) {
+    const chip = hardChip(item, extra);
+    if (!chip) return null;
+    if (node.childNodes.length) node.appendChild(el('span', 'hard-sep', '·'));
+    node.appendChild(chip);
+    return chip;
   }
 
   /* Block Master — building a block, the exercises it can draw on, and the
@@ -4185,9 +4277,11 @@
     const c = el('div');
     c.appendChild(el('div', 'pv-name', ex ? ex.name : '(deleted)'));
     const timed = /second/i.test((ex && ex.notes) || '');
-    c.appendChild(el('div', 'pv-meta num',
+    const pvMeta = el('div', 'pv-meta num',
       `${it.sets} × ${it.repLo}-${it.repHi}${timed ? ' s' : ' reps'}`
-      + (it.kg ? ` · ${fmtW(it.kg)}` : '')));
+      + (it.kg ? ` · ${fmtW(it.kg)}` : ''));
+    if (ex) addHardship(pvMeta, ex);
+    c.appendChild(pvMeta);
     row.appendChild(c);
     if (ex) {
       row.appendChild(el('div', 'pv-go', '›'));
@@ -4382,7 +4476,9 @@
       const nm = el('div', 'lr-name', name);
       if (r.mine) nm.appendChild(el('span', 'mine-tag', 'MINE'));
       c.appendChild(nm);
-      c.appendChild(el('div', 'lr-meta', group));
+      const meta = el('div', 'lr-meta', group);
+      addHardship(meta, r.mine ? r.ex : r.item);
+      c.appendChild(meta);
       /* The written summary if this movement has one, otherwise its own
          coaching note — every row says something either way. */
       const con = contentFor(r.mine ? r.ex : r.item);
@@ -4544,6 +4640,16 @@
 
     const body = el('div', 'det-body');
     body.appendChild(el('div', 'det-title', ex.name));
+    /* how hard it is sits directly under the name, above everything else the
+       page has to say — it decides whether the rest is even relevant to you */
+    await loadContent();
+    const hardLine = el('div', 'det-hard');
+    const hchip = hardChip(ex, 'big');
+    if (hchip) {
+      hardLine.appendChild(hchip);
+      hardLine.appendChild(el('span', 'det-hard-note', hardshipOf(ex).note));
+      body.appendChild(hardLine);
+    }
     const tags = el('div', 'tag-row');
     if (ex.group) tags.appendChild(el('span', 'hl', ex.group));
     if (isBarbell(ex)) tags.appendChild(el('span', null, 'Barbell'));
@@ -4710,6 +4816,7 @@
     if (ex) {
       form.name.value = ex.name;
       form.group.value = ex.group || 'Other';
+      form.hardship.value = String((hardshipOf(ex) || { n: 1 }).n);
       form.notes.value = ex.notes || '';
       (ex.mediaIds || []).forEach(id => pendingMedia.push({ existingId: id }));
     }
@@ -4763,6 +4870,9 @@
     const wasCustom = editingExerciseId ? isCustomEx(ex) : null;
     ex.name = f.name.value.trim();
     ex.group = f.group.value;
+    /* your own rating, so a movement you invented still says how hard it is
+       under its name like every other one */
+    ex.hardship = Math.min(3, Math.max(1, +f.hardship.value || 1));
     ex.notes = f.notes.value.trim();
     /* Anything written here is the user's own and stays deletable — unless
        they have typed the name of something already in the catalog, in which
@@ -5067,6 +5177,13 @@
     const lw = live.get();
     if (lw) { show('workout'); renderTab().then(renderWorkout); }
     else renderTab();
+    /* the written entries carry how hard each movement is, and that now sits
+       under the name on every screen — so fetch them at launch rather than
+       waiting for someone to open the library */
+    loadContent().then(() => {
+      renderTab();
+      if (!$('#view-workout').hidden) renderWorkout();
+    }).catch(() => {});
     if (lw && lw.restEndsAt) armRestTick();
     [100, 600, 1500].forEach(t => setTimeout(setWinH, t));
     checkUpdate();

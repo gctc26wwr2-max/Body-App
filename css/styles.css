@@ -1490,3 +1490,40 @@ body { font-size: 14px; }
 /* the weeks rail carries plain numbers, so the tick spacing is tighter and
    the selected value is given the tabular figures the rest of the app uses */
 .or-rail .or-lbl { font-variant-numeric: tabular-nums; }
+
+/* ============ HOW HARD IT IS ============
+   Three bars and a word, riding the meta line under every exercise name.
+   One hue, as everywhere else — the harder it is, the brighter it burns. */
+.hard { display: inline-flex; align-items: center; gap: 5px; vertical-align: -1px; }
+.hard-sep { color: var(--t7); margin: 0 5px; }
+.hard-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 9px; }
+.hard-bars i { width: 3px; border-radius: 1.5px; background: var(--hair-strong); display: block; }
+.hard-bars i:nth-child(1) { height: 4px; }
+.hard-bars i:nth-child(2) { height: 6.5px; }
+.hard-bars i:nth-child(3) { height: 9px; }
+.hard-lbl { font-size: 10.5px; font-weight: 700; letter-spacing: .02em; }
+.hard.h1 .hard-bars i.on { background: var(--t4); }
+.hard.h1 .hard-lbl { color: var(--t4); }
+.hard.h2 .hard-bars i.on { background: var(--lime-dim); }
+.hard.h2 .hard-lbl { color: var(--lime-dim); }
+.hard.h3 .hard-bars i.on { background: var(--lime-pale); }
+.hard.h3 .hard-lbl { color: var(--lime-pale); }
+/* on the detail page it is a statement, not a footnote */
+.hard.big { gap: 7px; }
+.hard.big .hard-bars { height: 12px; }
+.hard.big .hard-bars i { width: 4px; }
+.hard.big .hard-bars i:nth-child(1) { height: 5px; }
+.hard.big .hard-bars i:nth-child(2) { height: 8.5px; }
+.hard.big .hard-bars i:nth-child(3) { height: 12px; }
+.hard.big .hard-lbl { font-size: 13px; font-weight: 800; letter-spacing: -.01em; }
+.det-hard { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: -4px 0 2px; }
+.det-hard-note { font-size: 11.5px; font-weight: 600; color: var(--t5); }
+/* the index rows stack it under the name rather than beside it */
+.exi-hard { margin-top: 3px; }
+.exi-hard .hard-sep { display: none; }
+/* the live line under the plan maker's exercise dial */
+.pm-hard {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 9px;
+  margin: -4px 0 2px; min-height: 15px;
+}
+.pm-hard-note { font-size: 11px; font-weight: 600; color: var(--t5); }
