@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v213';
+  const APP_VERSION = 'v214';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1391,8 +1391,15 @@
         paint(left, ph);
         return;
       }
-      beep();
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      /* The alert marks a moment something is due — a rest run out, a hold
+         served. A lead-in ends by starting work, which needs no announcement:
+         its three ticks already counted you in. */
+      if (ph.lead) {
+        haptic();
+      } else {
+        beep();
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      }
       if (phase < phases.length - 1) {
         phase++;
         holdEndTs = Date.now() + phases[phase].dur * 1000;
