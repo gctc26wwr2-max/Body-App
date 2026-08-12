@@ -116,7 +116,7 @@
 <!-- Plan (block) builder -->
 <div id="sheet-plan" class="sheet tall" hidden>
   <div class="sheet-handle"></div>
-  <button type="button" class="sheet-x" data-close aria-label="Close">✕</button>
+  <button type="button" class="sheet-x" id="plan-x" aria-label="Close">✕</button>
   <h2 id="sheet-plan-title">New block</h2>
   <form id="form-plan">
     <label>Block name
@@ -129,10 +129,7 @@
     <div class="micro" style="margin: 4px 0 10px">Training days · rep targets are ranges (e.g. 8–12)</div>
     <div id="plan-days"></div>
     <button type="button" id="plan-add-day" class="pf-add">＋ Add training day</button>
-    <div class="sheet-actions">
-      <button type="button" class="btn-sheet-ghost" data-close>Cancel</button>
-      <button type="submit" class="btn-sheet-lime">Save block</button>
-    </div>
+    <button type="submit" hidden></button>
   </form>
 </div>
 

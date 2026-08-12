@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v215';
+  const APP_VERSION = 'v216';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -219,6 +219,24 @@
       back.onclick = e => { if (e.target === back) { back.remove(); res(false); } };
       document.body.appendChild(back);
     });
+  }
+
+  /* Leaving an editor with unsaved work: save it, throw it away, or stay.
+     One question, asked the same way by Settings, About you and the block
+     editor — so none of them need a Cancel/Save row at the bottom. */
+  async function askOnClose({ what, save, leave }) {
+    const pick = await appChoose({
+      title: 'Save your changes?',
+      body: `Your ${what} has changed and is not saved yet.`,
+      options: [
+        { label: 'Save', value: 'save', primary: true },
+        { label: 'Discard', value: 'discard' },
+        { label: 'Keep editing', value: null }
+      ]
+    });
+    if (!pick) return;
+    if (pick === 'save') { await save(); return; }
+    leave();
   }
 
   /* same dialog, but with more than two ways out */
@@ -564,11 +582,10 @@
 
       // primary CTA per state + text links
       if (mode === 'next') {
-        const cta = el('button', 'btn-cta big');
-        cta.appendChild(svgIcon(PLAY, 13));
-        cta.appendChild(document.createTextNode(' Start ' + day.name));
-        cta.onclick = () => startWorkout(plan, dayIdx);
-        root.appendChild(cta);
+        /* no Start here — every day has its own play button on the Plan tab,
+           and this one only ever offered the same first day */
+        root.appendChild(el('div', 'coach-note',
+          `${day.name} is next — start it from the Plan tab.`));
       } else if (mode === 'live') {
         const cta = el('button', 'btn-cta big');
         cta.appendChild(svgIcon(PLAY, 13));
@@ -869,11 +886,14 @@
     bank.appendChild(el('div', 'l', 'Sets banked'));
     head.appendChild(bank);
 
+    /* what it has cost so far, ticking with the clock */
+    const burn = el('div', 'w-banked w-burn');
+    const burnV = el('div', 'v num', '0');
+    burn.appendChild(burnV);
+    burn.appendChild(el('div', 'l', 'kcal'));
+    head.appendChild(burn);
+
     const btns = el('div', 'w-btns');
-    const addEx = el('button', 'w-chip', '＋');
-    addEx.title = 'Add an exercise to this session';
-    addEx.onclick = () => openAddToSession();
-    btns.appendChild(addEx);
     const fin = el('button', 'w-chip fin');
     fin.innerHTML = '<svg viewBox="0 0 14 14" width="15" height="15"><path d="M2 7.5 L5.5 11 L12 3.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     fin.title = 'Finish workout';
@@ -915,7 +935,10 @@
     root.appendChild(head);
     clearInterval(elapsedInt);
     elapsedInt = null;
-    const tickClock = () => clock.textContent = fmtClock(wElapsed(lw));
+    const tickClock = () => {
+      clock.textContent = fmtClock(wElapsed(lw));
+      burnV.textContent = String(liftKcal(wElapsed(lw) / 60, lastBodyKg));
+    };
     tickClock();
     // a paused clock does not tick — that is the whole point of the button
     if (!paused) elapsedInt = setInterval(tickClock, 1000);
@@ -2214,21 +2237,11 @@
     openSheet('#sheet-addex');
   }
 
-  function openAddToSession() {
-    openDialPicker({
-      title: 'Add to this session',
-      cta: 'Add to this session',
-      live: true,
-      onPick: (item, sets, reps) => addExerciseToLive(item, sets, reps)
-    });
-  }
-
   function renderDialPicker() {
     const root = $('#addex-body');
     const opts = addTarget;
     if (!root || !opts) return;
     root.innerHTML = '';
-    if (opts.live && !live.get()) { closeSheets(); return; }
 
     /* your own list first — anything you have ever added or written — then
        the rest of the catalog */
@@ -2321,33 +2334,6 @@
     root.appendChild(own);
   }
 
-  /* one exercise, appended to the session you are standing in */
-  async function addExerciseToLive(item, sets, reps) {
-    const lw = live.get();
-    if (!lw) return;
-    const ex = await ensureExercise(item);
-    const sessions = await DB.all('sessions');
-    const hist = sessions.filter(s => s.exerciseId === ex.id).sort((a, b) => b.ts - a.ts);
-    const lastMax = hist.length ? Math.max(...hist[0].sets.map(s => s.weight || 0)) : 0;
-    const timed = /second/i.test(ex.notes || '');
-    lw.exercises.push({
-      exerciseId: ex.id, name: ex.name,
-      timed, perSide: /side/i.test(ex.notes || ''),
-      repLo: reps.lo, repHi: reps.hi, rest: restDefault(), added: true,
-      sets: Array.from({ length: sets }, () => ({
-        kg: timed ? 0 : lastMax, reps: reps.lo,
-        targetLo: reps.lo, targetHi: reps.hi, done: false
-      }))
-    });
-    lw.exIndex = lw.exercises.length - 1;
-    live.set(lw);
-    haptic();
-    closeSheets();
-    scrollToEx = true;
-    show('workout');
-    renderWorkout();
-  }
-
   /* Docked rest bar — a slim glass strip over the page while resting */
   function dockedRestBar(lw) {
     const outer = el('div', 'dock-rest');
@@ -2359,11 +2345,18 @@
     const nextEx = lw.advanceAfterRest
       && lw.exercises.find((e2, i) => i > lw.exIndex && !e2.passed);
     bar.appendChild(el('span', 'dock-next', nextEx ? 'Next · ' + nextEx.name : lw.exercises[lw.exIndex].name));
+    // both ways, like the card on the workout screen — this bar only ever
+    // let you add time
+    const m15 = el('button', 'dock-btn num', '−15');
+    m15.onclick = () => {
+      lw.restEndsAt = Math.max(Date.now(), lw.restEndsAt - 15000);
+      live.set(lw); restTick(); haptic();
+    };
     const p15 = el('button', 'dock-btn num', '+15');
-    p15.onclick = () => { lw.restEndsAt += 15000; live.set(lw); restTick(); };
+    p15.onclick = () => { lw.restEndsAt += 15000; live.set(lw); restTick(); haptic(); };
     const skip = el('button', 'dock-skip', 'Skip');
     skip.onclick = () => { stopRest(); renderWorkout(); };
-    bar.append(p15, skip);
+    bar.append(m15, p15, skip);
     outer.appendChild(bar);
     return outer;
   }
@@ -2404,6 +2397,7 @@
 
     const sessionsAll = await DB.all('sessions');
     const mins = Math.max(1, Math.round(wElapsed(lw) / 60));
+    const kcal = liftKcal(wElapsed(lw) / 60, lastBodyKg);
     let volume = 0, setCount = 0;
     const prs = [];
 
@@ -2449,7 +2443,7 @@
     const workout = {
       id: DB.uid(), date: todayStr(), ts: Date.now(),
       planId: lw.planId, dayIndex: lw.dayIndex, name: lw.dayName,
-      duration: mins, volume: Math.round(volume), sets: setCount,
+      duration: mins, volume: Math.round(volume), sets: setCount, kcal,
       prs, feel: null
     };
     await DB.put('workouts', workout);
@@ -2485,6 +2479,13 @@
     const prC = sumCard(String(w.prs.length), 'Records');
     prC.classList.add('hl');
     grid.appendChild(prC);
+    /* energy last and full width — it is an estimate off the clock, not a
+       measurement like the four above it */
+    if (w.kcal) {
+      const kc = sumCard('~' + w.kcal + ' kcal', 'Energy · estimated from time');
+      kc.classList.add('wide');
+      grid.appendChild(kc);
+    }
     root.appendChild(grid);
 
     for (const pr of w.prs) {
@@ -2889,14 +2890,15 @@
     hl.appendChild(el('div', 't-date', 'Shapes every block you build'));
     hl.appendChild(el('h1', 'pm-name-static', 'About you'));
     head.appendChild(hl);
-    const close = el('button', 'w-chip', '✕');
-    close.onclick = async () => {
-      if (dirty() && !await appConfirm({
-        title: 'Discard changes?',
-        body: 'Nothing you have changed here has been saved yet.',
-        ok: 'Discard', cancel: 'Keep editing', warn: true
-      })) return;
+    const commit = () => {
+      localStorage.setItem('profile', JSON.stringify(sDraft));
+      haptic();
       leave();
+    };
+    const close = el('button', 'w-chip', '✕');
+    close.onclick = () => {
+      if (!dirty()) { leave(); return; }
+      askOnClose({ what: 'profile', save: commit, leave });
     };
     head.appendChild(close);
     root.appendChild(head);
@@ -3037,24 +3039,7 @@
     bfPaint();
     root.appendChild(bfEl);
 
-    const acts = el('div', 'ab-acts');
-    const discard = el('button', 'btn-ghost', 'Discard');
-    discard.onclick = async () => {
-      if (dirty() && !await appConfirm({
-        title: 'Discard changes?',
-        body: 'Nothing you have changed here has been saved yet.',
-        ok: 'Discard', cancel: 'Keep editing', warn: true
-      })) return;
-      leave();
-    };
-    const save = el('button', 'btn-cta big', 'Save');
-    save.onclick = () => {
-      localStorage.setItem('profile', JSON.stringify(sDraft));
-      haptic();
-      leave();
-    };
-    acts.append(discard, save);
-    root.appendChild(acts);
+    /* no Cancel/Save row — the X asks */
   }
 
   /* Settings — the app's own preferences. Placeholders for now: the rows are
@@ -3120,14 +3105,16 @@
     hl.appendChild(el('div', 't-date', 'Rackside ' + APP_VERSION));
     hl.appendChild(el('h1', 'pm-name-static', 'Settings'));
     head.appendChild(hl);
-    const close = el('button', 'w-chip', '✕');
-    close.onclick = async () => {
-      if (dirty() && !await appConfirm({
-        title: 'Discard changes?',
-        body: 'Nothing you have changed here has been saved yet.',
-        ok: 'Discard', cancel: 'Keep editing', warn: true
-      })) return;
+    const commit = () => {
+      localStorage.setItem('profile', JSON.stringify(pDraft));
+      beepBuiltFor = null;        // the fallback clip follows the new sound
+      haptic();
       leave();
+    };
+    const close = el('button', 'w-chip', '✕');
+    close.onclick = () => {
+      if (!dirty()) { leave(); return; }
+      askOnClose({ what: 'settings', save: commit, leave });
     };
     head.appendChild(close);
     root.appendChild(head);
@@ -3193,7 +3180,6 @@
               btn.classList.add('on');
               const val = r.querySelector('.pref-val');
               if (val) val.textContent = a.label;
-              paintActs();
             };
             snd.appendChild(btn);
           });
@@ -3213,7 +3199,6 @@
               out.textContent = fmtClock(REST_LENS[i]);
               const val = r.querySelector('.pref-val');
               if (val) val.textContent = fmtClock(REST_LENS[i]);
-              paintActs();
             }, 74));
           panel.appendChild(el('div', 'ab-hint',
             'Every set in a new session starts its rest here. During training you '
@@ -3224,35 +3209,7 @@
       root.appendChild(list);
     });
 
-    /* Discard and Save, the same pair About you carries. The rails and the
-       sound list change the draft without a re-render, so this row is
-       repainted on its own. */
-    const acts = el('div', 'ab-acts');
-    const discard = el('button', 'btn-ghost', 'Discard');
-    discard.onclick = async () => {
-      if (dirty() && !await appConfirm({
-        title: 'Discard changes?',
-        body: 'Nothing you have changed here has been saved yet.',
-        ok: 'Discard', cancel: 'Keep editing', warn: true
-      })) return;
-      leave();
-    };
-    const save = el('button', 'btn-cta big', 'Save');
-    save.onclick = () => {
-      localStorage.setItem('profile', JSON.stringify(pDraft));
-      beepBuiltFor = null;        // the fallback clip follows the new sound
-      haptic();
-      leave();
-    };
-    const paintActs = () => {
-      const on = dirty();
-      save.disabled = !on;
-      save.style.opacity = on ? '1' : '.4';
-      save.textContent = on ? 'Save' : 'Saved';
-    };
-    paintActs();
-    acts.append(discard, save);
-    root.appendChild(acts);
+    /* no Cancel/Save row — the X asks */
   }
 
   /* ============================================================
@@ -4485,6 +4442,21 @@
   function cardioKcal(met, mins, kg, effort) {
     return Math.round(met * mulOf(effort) * 3.5 * (kg || 80) / 200 * mins);
   }
+
+  /* What a lifting session costs, from time on the clock. The compendium puts
+     resistance training with multiple exercises at 6 METs for vigorous effort
+     and 3.5 for general; 5.0 sits between them and is what a real session of
+     working sets and rests averages out at. Paused time is already out of the
+     minutes we pass in. It is an estimate and the app says so. */
+  const LIFT_MET = 5.0;
+  const liftKcal = (mins, kg) => Math.round(LIFT_MET * 3.5 * (kg || 80) / 200 * mins);
+
+  /* the body weight to reckon with — the last one logged, or 80kg */
+  let lastBodyKg = 80;
+  DB.all('bodyweight').then(rows => {
+    const sorted = (rows || []).sort((a, b) => a.ts - b.ts);
+    if (sorted.length) lastBodyKg = sorted[sorted.length - 1].kg;
+  }).catch(() => {});
 
   /* Picker wheel — the same ruler language as the weight and rep scales:
      tick lines running down a dial with a fixed clay indicator.
@@ -5762,6 +5734,12 @@
      produces — the dropdown only offered 2 to 6 */
   const EDIT_WEEKS = Array.from({ length: 15 }, (_, i) => i + 2);
 
+  /* the block editor's draft, compared against what is stored so its X can
+     ask the same question the other editors ask */
+  let planSaved = null;
+  const planDirty = () => JSON.stringify({ n: $('#form-plan').name.value, d: planDraft })
+    !== planSaved;
+
   function openPlanForm(plan, template) {
     editingPlanId = plan ? plan.id : null;
     const src = plan || template;
@@ -5798,6 +5776,7 @@
     if (ix < 0) planDraft.weeks = 4;
     sayLen();
     renderPlanDays();
+    planSaved = JSON.stringify({ n: form.name.value, d: planDraft });
     openSheet('#sheet-plan');
   }
 
@@ -5873,6 +5852,17 @@
     i.oninput = () => set(Number(i.value) || 1);
     return i;
   }
+  /* the editor's X is the only way out, so it carries the question */
+  $('#plan-x').onclick = () => {
+    const form = $('#form-plan');
+    const leave = () => { planSaved = null; closeSheets(); renderTab(); };
+    if (!planDirty()) { leave(); return; }
+    askOnClose({
+      what: 'block',
+      save: () => form.requestSubmit(),
+      leave
+    });
+  };
   $('#plan-add-day').onclick = () => {
     planDraft.days.push({ name: `Day ${planDraft.days.length + 1}`, items: [] });
     renderPlanDays();
@@ -5889,6 +5879,7 @@
     plan.days = days.map(d => ({ name: d.name.trim() || 'Day', items: d.items }));
     delete plan.items;
     await DB.put('plans', plan);
+    planSaved = null;
     closeSheets();
     show('today');
     renderTab();

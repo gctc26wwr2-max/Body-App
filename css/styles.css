@@ -642,6 +642,8 @@ body { font-size: 14px; }
 .hrow { position: relative; padding-left: 32px; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
 .hrow.old { opacity: .8; }
 .ex-node.small { width: 18px; height: 18px; border-radius: 10px; top: 6px; left: 2px; }  /* centred on the rail line */
+/* ...but on a day row it centres on the row, level with the day name */
+.pday-row .ex-node.small { top: 50%; margin-top: -9px; }
 .hrow .ex-node { background: var(--ctrl); border-color: rgba(255,255,255,.16); }         /* past practices: grey */
 .hrow .ex-node i { width: 5px; height: 5px; background: var(--t5); }
 .hrow-body { flex: 1; min-width: 0; }
@@ -1738,3 +1740,9 @@ body { font-size: 14px; }
 .snd-btn svg { color: var(--t6); }
 .snd-btn.on { background: var(--lime-bg); border-color: var(--lime-border); color: var(--lime); font-weight: 800; }
 .snd-btn.on svg { color: var(--lime); }
+
+/* the live energy estimate sits beside the sets banked */
+.w-burn { min-width: 38px; }
+.w-burn .v { color: var(--amber); }
+/* the summary's energy card takes the full width, after the four square ones */
+.sum-grid .card.wide { grid-column: 1 / -1; }
