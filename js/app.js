@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v200';
+  const APP_VERSION = 'v201';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -815,6 +815,20 @@
     lw.exercises.forEach((cur2, ei) => {
       rail.appendChild(exerciseCard(lw, cur2, ei, sessions));
     });
+    /* reorder mid-session: the rack you wanted is taken, so do the next one
+       first. The exercise you were on stays the one you are on, wherever it
+       lands. */
+    dragReorder(rail, '.exx', (from, to) => {
+      const moved = lw.exercises.splice(from, 1)[0];
+      lw.exercises.splice(to, 0, moved);
+      const cur0 = lw.exIndex;
+      lw.exIndex = cur0 === from ? to
+        : (cur0 > from && cur0 <= to) ? cur0 - 1
+        : (cur0 < from && cur0 >= to) ? cur0 + 1
+        : cur0;
+      live.set(lw);
+      renderWorkout();
+    }, on => rail.classList.toggle('reordering', on));
     rail.appendChild(el('div', 'end-label', 'End of session'));
     root.appendChild(rail);
 
@@ -860,6 +874,7 @@
     hd.appendChild(col);
     const doneN = cur.sets.filter(s => s.done).length;
     hd.appendChild(el('div', 'exx-count num', `${doneN}/${cur.sets.length}`));
+    hd.appendChild(gripEl('Drag to move it up or down the session'));
     hd.onclick = () => {
       if (lw.exIndex === ei) return;
       lw.exIndex = ei;
@@ -1112,6 +1127,15 @@
         g.innerHTML = bwGraphSVG(pts);
         card.appendChild(g);
       }
+    }
+    /* everything below the header goes in one wrapper, so grabbing a grip can
+       fold the open exercise shut — you cannot aim a drop at a card that is
+       taller than the screen */
+    const openBits = [...card.children].filter(n => n !== node && n !== hd);
+    if (openBits.length) {
+      const bodyWrap = el('div', 'exx-body');
+      openBits.forEach(n => bodyWrap.appendChild(n));
+      card.appendChild(bodyWrap);
     }
     return card;
   }
@@ -1444,6 +1468,81 @@
     try { hapticSwitch.click(); } catch (e) { /* no haptics available */ }
   }
 
+  /* ---------------- drag to reorder ----------------
+     One grip per row. A touch screen has no HTML5 drag worth having, so this
+     is pointer-driven: hold the grip and the row lifts, the rows it passes
+     slide out of its way, letting go commits the new order. Nothing moves
+     until you let go, so a mis-grab costs nothing.
+     `prep` runs before anything is measured — the workout rail uses it to
+     fold the open exercise shut so you can see where you are dropping. */
+  function dragReorder(container, rowSel, onDrop, prep) {
+    container.addEventListener('pointerdown', e => {
+      const grip = e.target.closest && e.target.closest('.drag-grip');
+      if (!grip || !container.contains(grip)) return;
+      const row = grip.closest(rowSel);
+      if (!row) return;
+      e.preventDefault();
+
+      if (prep) prep(true);
+      const rows = [...container.querySelectorAll(rowSel)];
+      const from = rows.indexOf(row);
+      if (from < 0) { if (prep) prep(false); return; }
+      const boxes = rows.map(r => r.getBoundingClientRect());
+      const mids = boxes.map(b => b.top + b.height / 2);
+      const lift = boxes[from].height + 12;   // how far a displaced row shifts
+
+      let to = from;
+      const startY = e.clientY;
+      row.classList.add('drag-lift');
+      grip.setPointerCapture(e.pointerId);
+      haptic();
+
+      const move = ev => {
+        const dy = ev.clientY - startY;
+        row.style.transform = `translateY(${dy}px)`;
+        const centre = mids[from] + dy;
+        let next = from;
+        for (let i = 0; i < rows.length; i++) {
+          if (i === from) continue;
+          if (i < from && centre < mids[i]) { next = Math.min(next, i); }
+          if (i > from && centre > mids[i]) { next = Math.max(next, i); }
+        }
+        if (next !== to) { to = next; haptic(); }
+        rows.forEach((r, i) => {
+          if (i === from) return;
+          let shift = 0;
+          if (to > from && i > from && i <= to) shift = -lift;
+          if (to < from && i >= to && i < from) shift = lift;
+          r.style.transform = shift ? `translateY(${shift}px)` : '';
+        });
+      };
+      const end = () => {
+        grip.removeEventListener('pointermove', move);
+        grip.removeEventListener('pointerup', end);
+        grip.removeEventListener('pointercancel', end);
+        rows.forEach(r => { r.style.transform = ''; r.classList.remove('drag-lift'); });
+        if (prep) prep(false);
+        if (to !== from) onDrop(from, to);
+      };
+      grip.addEventListener('pointermove', move);
+      grip.addEventListener('pointerup', end);
+      grip.addEventListener('pointercancel', end);
+    });
+  }
+
+  const gripEl = title => {
+    const g = el('button', 'drag-grip');
+    g.title = title || 'Drag to reorder';
+    // the workout card's header switches exercises on tap — the grip is not
+    // a tap on the card
+    g.onclick = e => { e.preventDefault(); e.stopPropagation(); };
+    g.innerHTML = '<svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor">'
+      + '<circle cx="6" cy="4" r="1.35"/><circle cx="10" cy="4" r="1.35"/>'
+      + '<circle cx="6" cy="8" r="1.35"/><circle cx="10" cy="8" r="1.35"/>'
+      + '<circle cx="6" cy="12" r="1.35"/><circle cx="10" cy="12" r="1.35"/></svg>';
+    return g;
+  };
+
   /* Sliding ruler — ticks glide left/right under a fixed indicator.
      Drag it like a real scale, or tap a tick / the ± buttons. */
   function rulerScale(opts) {
@@ -1634,12 +1733,18 @@
     undo.title = 'Back to ' + fmtClock(openedWith);
     undo.onclick = () => ruler.setVal(openedWith);
     ctr.appendChild(undo);
+    /* three suggestions at most, and they come from this exercise's own
+       target rather than a fixed list — a 10 s side plank has no use for a
+       one-minute button, and six pills in a row was unreadable anyway */
     const quick = el('div', 'ks-plates');
-    [15, 20, 30, 45, 60].forEach(s => {
-      const b = el('button', 'num', fmtClock(s));
-      b.onclick = () => ruler.setVal(s);
-      quick.appendChild(b);
-    });
+    const round5 = v => Math.max(5, Math.round(v / 5) * 5);
+    [...new Set([round5(cur.repLo), round5(cur.repHi), round5(cur.repHi + 15)])]
+      .slice(0, 3)
+      .forEach(s => {
+        const b = el('button', 'num', fmtClock(s));
+        b.onclick = () => ruler.setVal(s);
+        quick.appendChild(b);
+      });
     ctr.appendChild(quick);
     box.appendChild(ctr);
     return box;
@@ -3854,7 +3959,14 @@
         const x = el('button', 'hist-del', '✕');
         x.onclick = () => { day.items.splice(i, 1); renderPlanMaker(); };
         r.appendChild(x);
+        r.appendChild(gripEl('Drag to move it up or down the day'));
         idx.appendChild(r);
+      });
+      /* the order you put them in is the order you train them, so it has to
+         be changeable without deleting and re-adding */
+      dragReorder(idx, '.exi-row', (from, to) => {
+        day.items.splice(to, 0, day.items.splice(from, 1)[0]);
+        renderPlanMaker();
       });
       root.appendChild(idx);
     } else {
