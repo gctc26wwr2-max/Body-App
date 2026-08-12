@@ -1224,15 +1224,21 @@ body { font-size: 14px; }
 .pf-day-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .pf-day-head input { flex: 1; margin-top: 0 !important; font-weight: 700; }
 .pf-day-head .del { background: none; border: none; color: var(--amber); font-size: 15px; }
+/* name on its own line, numbers under it — nothing gets clipped */
 .pf-item {
-  display: flex; align-items: center; gap: 7px;
+  display: flex; flex-direction: column; gap: 8px;
   background: var(--surface); border: 1px solid var(--hair); border-radius: 12px;
-  padding: 8px 10px; margin-bottom: 8px; font-size: 13px;
+  padding: 10px 10px 10px 12px; margin-bottom: 8px; font-size: 13px;
 }
-.pf-item .n { flex: 1; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-item-top { display: flex; align-items: flex-start; gap: 8px; }
+.pf-item .n { flex: 1; font-weight: 700; min-width: 0; line-height: 1.3; }
+.pf-item-nums { display: flex; align-items: center; gap: 7px; }
+.pf-item-nums .lbl {
+  font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--t7);
+}
 .pf-item input { width: 46px !important; text-align: center; padding: 8px 2px !important; margin-top: 0 !important; }
 .pf-item .x { color: var(--t5); font-size: 12px; }
-.pf-item .del { background: none; border: none; color: var(--amber); font-size: 13px; }
+.pf-item .del { background: none; border: none; color: var(--amber); font-size: 13px; flex: 0 0 auto; padding: 0 2px; }
 .pf-add { width: 100%; height: 42px; border-radius: 12px; background: none; border: 1px dashed var(--lime-border); color: var(--lime); font-size: 13px; font-weight: 600; }
 
 .file-label input[type=file] { display: none; }
@@ -1676,12 +1682,7 @@ body { font-size: 14px; }
   font-variant-numeric: tabular-nums; margin-top: -4px;
 }
 #pause-pop-body { font-size: 12.5px; font-weight: 600; line-height: 1.45; color: var(--t4); }
-#pause-pop-go { width: 100%; margin-top: 6px; }
-#pause-pop-away {
-  height: 44px; padding: 0 22px; border-radius: 14px;
-  background: none; border: 1px solid var(--hair-strong); color: var(--t4);
-  font-size: 12.5px; font-weight: 700;
-}
+#pause-pop-go { width: 100%; margin-top: 10px; }
 .rail.held { opacity: .38; pointer-events: none; filter: saturate(.5); }
 
 /* every sheet gets a way out in the corner, not just a swipe or a Cancel
