@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v204';
+  const APP_VERSION = 'v205';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -914,7 +914,7 @@
         if (cur.feel) {
           const tag = el('span', 'hd-feel ' + cur.feel);
           tag.title = cur.feel;
-          tag.appendChild(feelFace(cur.feel, 15));
+          tag.appendChild(feelIcon(cur.feel, 15));
           sum.appendChild(tag);
         }
         card.appendChild(sum);
@@ -1168,7 +1168,7 @@
       const strip = el('div', 'feel-strip');
       [['easy', 'Easy'], ['moderate', 'Moderate'], ['hard', 'Hard']].forEach(([k, label]) => {
         const b = el('button', 'feel-btn ' + k + (cur.feel === k ? ' sel' : ''));
-        b.appendChild(feelFace(k));
+        b.appendChild(feelIcon(k));
         b.title = label;
         b.setAttribute('aria-label', label);
         b.onclick = () => {
@@ -1562,29 +1562,35 @@
      between sets with one thumb. The same line-art the rest of the icons use:
      mouth up, mouth flat, mouth down. The heading above says the word, so
      nothing has to be guessed. */
-  const FEEL_FACE = {
-    easy: 'M7.6 14.4q4.4 4 8.8 0',
-    moderate: 'M8.2 15h7.6',
-    hard: 'M7.6 16.6q4.4-4 8.8 0'
+  /* How hard it was, as load on a bar — one plate a side is a warm-up, three
+     is a grind. Effort, not mood: a frowning face says you had a bad time,
+     which is not the question being asked. */
+  const FEEL_PLATES = {
+    easy: [[9.7, 3.6]],
+    moderate: [[9.7, 4.6], [6.7, 3.4]],
+    hard: [[9.7, 5.2], [6.7, 4.1], [3.7, 3]]
   };
-  function feelFace(key, size = 26) {
+  function feelIcon(key, size = 30) {
     const NS = 'http://www.w3.org/2000/svg';
+    const plates = FEEL_PLATES[key] || FEEL_PLATES.moderate;
     const s = document.createElementNS(NS, 'svg');
     s.setAttribute('viewBox', '0 0 24 24');
     s.setAttribute('width', size);
     s.setAttribute('height', size);
     s.setAttribute('fill', 'none');
     s.setAttribute('stroke', 'currentColor');
-    s.setAttribute('stroke-width', '1.7');
     s.setAttribute('stroke-linecap', 'round');
-    const add = (tag, attrs) => {
-      const n = document.createElementNS(NS, tag);
-      for (const a in attrs) n.setAttribute(a, attrs[a]);
+    const add = (d, w) => {
+      const n = document.createElementNS(NS, 'path');
+      n.setAttribute('d', d);
+      n.setAttribute('stroke-width', w);
       s.appendChild(n);
     };
-    add('circle', { cx: 12, cy: 12, r: 9 });
-    add('path', { d: 'M9.2 9.6h.01M14.8 9.6h.01', 'stroke-width': 2.3 });
-    add('path', { d: FEEL_FACE[key] || FEEL_FACE.moderate });
+    add('M2.2 12 H21.8', 1.5);                       // the bar
+    plates.forEach(([x, h]) => {                     // loaded both ends,
+      add(`M${x} ${12 - h} V ${12 + h}`, 2.1);       // heaviest plate inside
+      add(`M${24 - x} ${12 - h} V ${12 + h}`, 2.1);
+    });
     s.style.display = 'block';
     return s;
   }
@@ -2329,7 +2335,7 @@
     const feel = el('div', 'feel-row');
     [['Easy', 'easy'], ['Solid', 'moderate'], ['Brutal', 'hard']].forEach(([f, face]) => {
       const b = el('button', w.feel === f ? 'sel' : null);
-      b.appendChild(feelFace(face, 28));
+      b.appendChild(feelIcon(face, 28));
       b.title = f;
       b.setAttribute('aria-label', f);
       b.onclick = async () => {
@@ -2510,7 +2516,7 @@
             if (s.feel) {
               const tag = el('span', 'hd-feel ' + s.feel);
               tag.title = s.feel;
-              tag.appendChild(feelFace(s.feel, 14));
+              tag.appendChild(feelIcon(s.feel, 14));
               hs.appendChild(tag);
             }
             dr.appendChild(hs);
