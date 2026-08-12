@@ -525,46 +525,27 @@ body { font-size: 14px; }
 /* the length itself is a setting now — this only says where it came from */
 .rest-note { font-size: 10.5px; font-weight: 600; color: var(--t6); }
 
-/* docked rest bar — glass strip over the page while resting */
-.dock-rest {
+/* ============ REST DOCK ============
+   The rest timer lives at the foot of the workout screen — one timer, always
+   in the same place, whichever exercise is open. The rail scrolls under it
+   and fades out rather than cutting off at a hard edge. */
+.rest-dock {
   position: fixed; left: 0; right: 0; z-index: 60;
-  top: var(--winH); transform: translateY(-100%);
-  padding: 14px 22px calc(16px + var(--safe-bottom));
-  background: linear-gradient(to top, #0B0908 42%, rgba(11,9,8,.9) 78%, transparent);
+  bottom: 0; padding: 0 20px calc(14px + var(--safe-bottom));
+}
+.rest-dock::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 46px;
+  background: linear-gradient(to bottom, rgba(11,9,8,0), rgba(11,9,8,.82) 55%, var(--canvas));
   pointer-events: none;
 }
-.dock-inner {
-  pointer-events: auto;
-  max-width: 596px; margin: 0 auto;
-  height: 52px; border-radius: 17px; padding: 0 8px 0 14px;
-  background: rgba(30,20,14,.94); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(206,107,61,.34);
-  display: flex; align-items: center; gap: 10px;
+.rest-dock .rest-inline {
+  background: rgba(21,17,16,.93); border-color: var(--hair-strong);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 10px 30px rgba(0,0,0,.5);
 }
-.dock-time { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
-.dock-next { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; color: var(--t5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dock-btn { width: 40px; height: 38px; border-radius: 12px; background: var(--ctrl-alt); border: none; color: #E4DBD2; font-size: 11px; font-weight: 800; flex: 0 0 auto; }
-.dock-skip { height: 38px; border-radius: 12px; padding: 0 14px; background: var(--lime); border: none; color: var(--on-accent); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; flex: 0 0 auto; }
-/* room so the end of the session clears the docked bar */
-#view-workout.view { padding-bottom: calc(120px + var(--safe-bottom)); }
-
-/* then list */
-.then-label { font-family: var(--cond); font-size: 12px; font-weight: 700; letter-spacing: .2em; color: var(--t5); text-transform: uppercase; }
-.then-row {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--surface); border: 1px solid rgba(255,255,255,.05);
-  border-radius: 16px; padding: 10px 14px 10px 10px; cursor: pointer;
-}
-.then-row .tn-thumb { width: 44px; height: 44px; border-radius: 12px; overflow: hidden; background: var(--sunken); flex: 0 0 auto; }
-.then-row .tn-idx { font-family: var(--cond); font-size: 14px; font-weight: 700; color: var(--t6); }
-.then-row .tn-name { font-size: 15px; font-weight: 600; }
-.then-row .tn-scheme { font-size: 13px; color: var(--t5); }
-.btn-finish {
-  height: 54px; border-radius: 16px; background: none;
-  border: 1px solid var(--hair-strong); color: var(--t3);
-  font-family: var(--cond); font-size: 17px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .12em; width: 100%;
-}
+.rest-dock.held { opacity: .38; pointer-events: none; }
+/* the rail has to clear the dock, or the last exercise hides behind it */
+#view-workout .rail { padding-bottom: 188px; }
 
 /* ============ SUMMARY ============ */
 .sum-title { font-family: var(--cond); font-size: 46px; font-weight: 700; line-height: .94; text-transform: uppercase; }
