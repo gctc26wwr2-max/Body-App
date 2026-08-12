@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v206';
+  const APP_VERSION = 'v207';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -723,6 +723,23 @@
     renderWorkout();
   }
 
+  /* The paused screen is a popup, not a panel on the page — a session that
+     is not running should not look like one you can carry on tapping. */
+  function paintPausePop() {
+    const pop = $('#pause-pop');
+    if (!pop) return;
+    const lw = live.get();
+    if (!lw || !lw.pausedAt || $('#view-workout').hidden) { pop.hidden = true; return; }
+    $('#pause-pop-time').textContent = fmtClock(wElapsed(lw));
+    $('#pause-pop-body').textContent = lw.restLeft
+      ? `Your rest is holding at ${fmtClock(lw.restLeft)}. Nothing logs until you start again.`
+      : 'Nothing logs until you start again.';
+    $('#pause-pop-go').onclick = () => resumeWorkout();
+    $('#pause-pop-away').onclick = () => { pop.hidden = true; show('today'); renderTab(); };
+    pop.hidden = false;
+  }
+  function closePausePop() { const p2 = $('#pause-pop'); if (p2) p2.hidden = true; }
+
   function resumeWorkout() {
     const lw = live.get();
     if (!lw || !lw.pausedAt) return;
@@ -734,6 +751,7 @@
     }
     live.set(lw);
     haptic();
+    closePausePop();
     if (lw.restEndsAt) armRestTick();
     show('workout');
     renderWorkout();
@@ -870,26 +888,9 @@
     // a paused clock does not tick — that is the whole point of the button
     if (!paused) elapsedInt = setInterval(tickClock, 1000);
 
-    /* paused: the session is held where it is, and nothing can be logged
-       until it starts again. Two ways on from here — carry on, or put the
-       phone away and pick it up later from Today. */
-    if (paused) {
-      const hold = el('div', 'w-paused');
-      hold.appendChild(el('div', 'wp-title', 'Session paused'));
-      hold.appendChild(el('div', 'wp-body', lw.restLeft
-        ? `The clock is stopped at ${fmtClock(wElapsed(lw))} and your rest is holding at ${fmtClock(lw.restLeft)}. Nothing logs until you start again.`
-        : `The clock is stopped at ${fmtClock(wElapsed(lw))}. Nothing logs until you start again.`));
-      const acts = el('div', 'wp-acts');
-      const go = el('button', 'btn-cta big');
-      go.appendChild(svgIcon(PLAY, 13));
-      go.appendChild(document.createTextNode(' Start again'));
-      go.onclick = () => resumeWorkout();
-      const away = el('button', 'btn-ghost', 'Leave it paused');
-      away.onclick = () => { show('today'); renderTab(); };
-      acts.append(go, away);
-      hold.appendChild(acts);
-      root.appendChild(hold);
-    }
+    /* paused: the popup takes the screen so there is nothing to poke at, and
+       the rail behind it is out of reach either way */
+    paintPausePop();
 
     // ---- the rail: every exercise threaded on one line ----
     const rail = el('div', 'rail' + (paused ? ' held' : ''));
@@ -5219,6 +5220,79 @@
     return wrap;
   }
 
+  /* ---------------- this exercise's place in your block ----------------
+     Where you add it to a day, take it out, or open the day to change its
+     sets and reps. Everything here is the block itself, so it holds for
+     every week from the next session on — unlike the pass and remove
+     buttons in a live session, which are about today only. */
+  function blockMembership(ex) {
+    const wrap = el('div', 'det-sec');
+    const plan = activePlan();
+    wrap.appendChild(el('div', 'micro', 'In your block'));
+    if (!plan || !(plan.days || []).length) {
+      wrap.appendChild(el('div', 'det-hard-note',
+        'No block is running yet — build one in Blocks and this exercise can go in it.'));
+      return wrap;
+    }
+    const save = async () => {
+      await DB.put('plans', plan);
+      plans = await DB.all('plans');
+      openDetail(ex.id, detailReturn);
+    };
+    const list = el('div', 'blk-mem');
+    let inAny = false;
+    plan.days.forEach((day, di) => {
+      const item = (day.items || []).find(it => it.exerciseId === ex.id);
+      if (!item) return;
+      inAny = true;
+      const r = el('div', 'bm-row');
+      const c = el('div');
+      c.appendChild(el('div', 'bm-day', `${plan.name} · ${day.name}`));
+      c.appendChild(el('div', 'bm-scheme num', `${item.sets} × ${item.repLo}–${item.repHi}`));
+      r.appendChild(c);
+      const edit = el('button', 'bm-btn', 'Edit');
+      edit.title = 'Change its sets and reps';
+      edit.onclick = () => openPlanForm(plan);
+      const drop = el('button', 'bm-btn warn', 'Remove');
+      drop.title = 'Take it out of the block for good';
+      drop.onclick = async () => {
+        if (!await appConfirm({
+          title: `Remove from ${day.name}?`,
+          body: `It comes out of "${plan.name}" from the next session on — this week and every week after. `
+            + 'Your logged history is kept.',
+          ok: 'Remove', cancel: 'Keep it', warn: true
+        })) return;
+        day.items = day.items.filter(it => it.exerciseId !== ex.id);
+        await save();
+      };
+      r.append(edit, drop);
+      list.appendChild(r);
+    });
+    if (inAny) wrap.appendChild(list);
+    else wrap.appendChild(el('div', 'det-hard-note',
+      `Not in "${plan.name}" yet. Add it to a day and it is there every week.`));
+
+    const free = plan.days.map((d, i) => [d, i]).filter(([d]) => !(d.items || []).some(it => it.exerciseId === ex.id));
+    if (free.length) {
+      const add = el('div', 'bm-add');
+      add.appendChild(el('span', 'bm-add-lbl', inAny ? 'Also add to' : 'Add to'));
+      free.forEach(([day, di]) => {
+        const b = el('button', 'bm-btn add', '＋ ' + day.name);
+        b.onclick = async () => {
+          plan.days[di].items = plan.days[di].items || [];
+          plan.days[di].items.push({ exerciseId: ex.id, sets: 3, repLo: 8, repHi: 12, kg: 0 });
+          haptic();
+          await save();
+        };
+        add.appendChild(b);
+      });
+      wrap.appendChild(add);
+    }
+    wrap.appendChild(el('div', 'det-hard-note',
+      'Changes here are permanent. To drop it for today only, use the buttons on its card during a session.'));
+    return wrap;
+  }
+
   async function openDetail(exId, from) {
     detailReturn = from || 'library';
     const ex = await DB.get('exercises', exId);
@@ -5263,6 +5337,8 @@
     }
     const muscles = musclePanel(ex, con);
     if (muscles) body.appendChild(muscles);
+
+    body.appendChild(blockMembership(ex));
 
     if (ex.notes) {
       const cuesWrap = el('div');

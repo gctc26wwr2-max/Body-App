@@ -1654,14 +1654,64 @@ body { font-size: 14px; }
    clipping the day name */
 .w-head.paused .w-live { letter-spacing: .1em; }
 .w-head.paused .live-dot.idle { animation: none; background: var(--t6); }
-.w-paused {
-  border-radius: 20px; padding: 18px; margin-top: 4px;
-  background: var(--grad-amber); border: 1px solid var(--amber-border);
-  display: flex; flex-direction: column; gap: 10px;
+#pause-pop {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(11,9,8,.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
 }
-.wp-title { font-size: 19px; font-weight: 800; letter-spacing: -.025em; color: var(--t1); }
-.wp-body { font-size: 12.5px; font-weight: 600; line-height: 1.45; color: var(--t4); }
-.wp-acts { display: flex; align-items: center; gap: 10px; }
-.wp-acts .btn-cta { flex: 1; white-space: nowrap; }
-.wp-acts .btn-ghost { flex: 0 0 auto; white-space: nowrap; }
+#pause-pop[hidden] { display: none; }
+#pause-pop-card {
+  width: 100%; max-width: 340px; display: flex; flex-direction: column;
+  align-items: center; gap: 12px; text-align: center;
+}
+#pause-pop-tag {
+  font-size: 12px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--amber);
+}
+#pause-pop-time {
+  font-family: var(--cond); font-size: 92px; line-height: .92; font-weight: 800;
+  letter-spacing: -.05em; color: var(--t1); font-variant-numeric: tabular-nums;
+}
+#pause-pop-body { font-size: 12.5px; font-weight: 600; line-height: 1.45; color: var(--t4); }
+#pause-pop-go { width: 100%; margin-top: 6px; }
+#pause-pop-away {
+  height: 44px; padding: 0 22px; border-radius: 14px;
+  background: none; border: 1px solid var(--hair-strong); color: var(--t4);
+  font-size: 12.5px; font-weight: 700;
+}
 .rail.held { opacity: .38; pointer-events: none; filter: saturate(.5); }
+
+/* every sheet gets a way out in the corner, not just a swipe or a Cancel
+   button buried under a long form */
+.sheet { position: fixed; }
+.sheet-x {
+  position: absolute; top: 12px; right: 14px; z-index: 2;
+  width: 34px; height: 34px; border-radius: 12px;
+  background: rgba(255,255,255,.07); border: none; color: var(--t3);
+  font-size: 14px; font-weight: 700; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.sheet h2 { padding-right: 44px; }
+
+/* ============ AN EXERCISE'S PLACE IN THE BLOCK ============ */
+.blk-mem { display: flex; flex-direction: column; gap: 8px; }
+.bm-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--sunken); border: 1px solid var(--hair-7);
+  border-radius: 14px; padding: 10px 10px 10px 13px;
+}
+.bm-row > div:first-child { flex: 1; min-width: 0; }
+.bm-day { font-size: 13px; font-weight: 700; color: var(--t1); }
+.bm-scheme { font-size: 11.5px; font-weight: 600; color: var(--t5); margin-top: 2px; }
+.bm-btn {
+  flex: 0 0 auto; height: 32px; padding: 0 12px; border-radius: 10px;
+  background: none; border: 1px solid var(--hair-strong); color: var(--t3);
+  font-size: 11.5px; font-weight: 700; white-space: nowrap;
+}
+.bm-btn.warn { color: var(--amber); border-color: var(--amber-border); }
+.bm-btn.add { color: var(--lime); border-color: var(--lime-border); }
+.bm-add { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 9px; }
+.bm-add-lbl {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--t7);
+}
+/* the "this is permanent" line needs room off the row above it */
+.det-sec > .det-hard-note { margin-top: 9px; line-height: 1.45; }
