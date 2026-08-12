@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v214';
+  const APP_VERSION = 'v215';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -3097,18 +3097,38 @@
   ];
 
   let prefOpen = null;
-  function openPrefs() { prefOpen = null; show('prefs'); renderPrefs(); }
+  let pDraft = null;                       // edits live here until you Save
+  function openPrefs() { prefOpen = null; pDraft = null; show('prefs'); renderPrefs(); }
 
   function renderPrefs() {
     const root = $('#view-prefs');
     root.innerHTML = '';
+    /* nothing here takes effect until Save, the way About you works — so you
+       can audition five alert sounds and still walk away with the one you
+       came in with */
+    if (!pDraft) pDraft = { ...getProfile() };
+    const saved = getProfile();
+    const dirty = () => JSON.stringify(pDraft) !== JSON.stringify(saved);
+    const leave = () => { pDraft = null; show('profile'); renderTab(); };
+    /* the screen previews the draft, not what is stored */
+    const dRest = () => { const v = +pDraft.restSec; return v >= 15 && v <= 900 ? v : 120; };
+    const dSound = () => alertOf(pDraft.alertSound);
+    const dImperial = () => pDraft.units === 'lb';
+
     const head = el('div', 'w-head pm-head');
     const hl = el('div', 'w-left');
     hl.appendChild(el('div', 't-date', 'Rackside ' + APP_VERSION));
     hl.appendChild(el('h1', 'pm-name-static', 'Settings'));
     head.appendChild(hl);
     const close = el('button', 'w-chip', '✕');
-    close.onclick = () => { show('profile'); renderTab(); };
+    close.onclick = async () => {
+      if (dirty() && !await appConfirm({
+        title: 'Discard changes?',
+        body: 'Nothing you have changed here has been saved yet.',
+        ok: 'Discard', cancel: 'Keep editing', warn: true
+      })) return;
+      leave();
+    };
     head.appendChild(close);
     root.appendChild(head);
 
@@ -3127,15 +3147,15 @@
         r.appendChild(ic);
         r.appendChild(el('span', 'pref-lbl', label));
         if (live === 'units') {
-          r.appendChild(el('span', 'pref-val', wUnit() === 'lb' ? 'lb · ft' : 'kg · cm'));
+          r.appendChild(el('span', 'pref-val', dImperial() ? 'lb · ft' : 'kg · cm'));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'units' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'units' ? null : 'units'; renderPrefs(); };
         } else if (live === 'rest') {
-          r.appendChild(el('span', 'pref-val num', fmtClock(restDefault())));
+          r.appendChild(el('span', 'pref-val num', fmtClock(dRest())));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'rest' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'rest' ? null : 'rest'; renderPrefs(); };
         } else if (live === 'sound') {
-          r.appendChild(el('span', 'pref-val', alertOf(alertKey()).label));
+          r.appendChild(el('span', 'pref-val', dSound().label));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'sound' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'sound' ? null : 'sound'; renderPrefs(); };
         } else {
@@ -3146,11 +3166,10 @@
           const panel = el('div', 'pref-panel');
           panel.appendChild(segToggle(
             [['metric', 'kg · cm'], ['imperial', 'lb · ft']],
-            wUnit() === 'lb' ? 'imperial' : 'metric',
+            dImperial() ? 'imperial' : 'metric',
             k => {
-              setProfile(k === 'imperial'
-                ? { units: 'lb', hUnits: 'ft' }
-                : { units: 'kg', hUnits: 'cm' });
+              if (k === 'imperial') { pDraft.units = 'lb'; pDraft.hUnits = 'ft'; }
+              else { pDraft.units = 'kg'; pDraft.hUnits = 'cm'; }
               renderPrefs();
             }, 'you-seg'));
           panel.appendChild(el('div', 'ab-hint',
@@ -3161,19 +3180,20 @@
           const panel = el('div', 'pref-panel');
           const snd = el('div', 'snd-list');
           ALERTS.forEach(a => {
-            const btn = el('button', 'snd-btn' + (a.key === alertKey() ? ' on' : ''));
+            const btn = el('button', 'snd-btn' + (a.key === dSound().key ? ' on' : ''));
             btn.appendChild(el('span', 'snd-name', a.label));
             btn.appendChild(svgIcon(PLAY, 10));
             /* tapping picks it and plays it — you cannot choose a sound you
                have not heard */
             btn.onclick = () => {
-              setProfile({ alertSound: a.key });
+              pDraft.alertSound = a.key;
               playAlert(a.key);
               haptic();
               snd.querySelectorAll('.snd-btn').forEach(x => x.classList.remove('on'));
               btn.classList.add('on');
               const val = r.querySelector('.pref-val');
               if (val) val.textContent = a.label;
+              paintActs();
             };
             snd.appendChild(btn);
           });
@@ -3184,15 +3204,16 @@
         }
         if (live === 'rest' && prefOpen === 'rest') {
           const panel = el('div', 'pref-panel');
-          const out = el('div', 'ab-val num', fmtClock(restDefault()));
+          const out = el('div', 'ab-val num', fmtClock(dRest()));
           panel.appendChild(out);
           panel.appendChild(optionRail(REST_LENS.map(fmtClock),
-            Math.max(0, REST_LENS.indexOf(restDefault())),
+            Math.max(0, REST_LENS.indexOf(dRest())),
             i => {
-              setProfile({ restSec: REST_LENS[i] });
+              pDraft.restSec = REST_LENS[i];
               out.textContent = fmtClock(REST_LENS[i]);
               const val = r.querySelector('.pref-val');
               if (val) val.textContent = fmtClock(REST_LENS[i]);
+              paintActs();
             }, 74));
           panel.appendChild(el('div', 'ab-hint',
             'Every set in a new session starts its rest here. During training you '
@@ -3202,6 +3223,36 @@
       });
       root.appendChild(list);
     });
+
+    /* Discard and Save, the same pair About you carries. The rails and the
+       sound list change the draft without a re-render, so this row is
+       repainted on its own. */
+    const acts = el('div', 'ab-acts');
+    const discard = el('button', 'btn-ghost', 'Discard');
+    discard.onclick = async () => {
+      if (dirty() && !await appConfirm({
+        title: 'Discard changes?',
+        body: 'Nothing you have changed here has been saved yet.',
+        ok: 'Discard', cancel: 'Keep editing', warn: true
+      })) return;
+      leave();
+    };
+    const save = el('button', 'btn-cta big', 'Save');
+    save.onclick = () => {
+      localStorage.setItem('profile', JSON.stringify(pDraft));
+      beepBuiltFor = null;        // the fallback clip follows the new sound
+      haptic();
+      leave();
+    };
+    const paintActs = () => {
+      const on = dirty();
+      save.disabled = !on;
+      save.style.opacity = on ? '1' : '.4';
+      save.textContent = on ? 'Save' : 'Saved';
+    };
+    paintActs();
+    acts.append(discard, save);
+    root.appendChild(acts);
   }
 
   /* ============================================================
