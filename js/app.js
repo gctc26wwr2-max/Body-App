@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v219';
+  const APP_VERSION = 'v220';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5192,7 +5192,7 @@
         const b = el('button', 'equip-tile' + (on ? ' on' : '') + (q.always ? ' fixed' : ''));
         const ico = el('span', 'equip-ic');
         ico.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" '
-          + 'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
+          + 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
           + ((window.EQUIP_ICON || {})[q.key] || (window.EQUIP_ICON || {}).machine || '') + '</svg>';
         b.appendChild(ico);
         b.appendChild(el('span', 'equip-lbl', q.label));
