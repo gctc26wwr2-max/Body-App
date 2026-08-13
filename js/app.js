@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v218';
+  const APP_VERSION = 'v219';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1858,6 +1858,52 @@
     });
   }
 
+  /* Swipe a row sideways to take it out. Either direction — you are not
+     going to remember which. It drags with your thumb, snaps back if you
+     change your mind, and only commits once it is properly out of the way. */
+  function swipeToRemove(row, onRemove) {
+    const GO = 96;
+    let sx = null, sy = null, dx = 0, locked = false;
+    row.style.touchAction = 'pan-y';
+    row.addEventListener('pointerdown', e => {
+      if (e.target.closest('input, button, .drag-grip')) return;
+      sx = e.clientX; sy = e.clientY; dx = 0; locked = false;
+      row.style.transition = 'none';
+    });
+    row.addEventListener('pointermove', e => {
+      if (sx === null) return;
+      dx = e.clientX - sx;
+      if (!locked) {
+        // let a vertical scroll win; only take over once it is clearly sideways
+        if (Math.abs(e.clientY - sy) > Math.abs(dx)) { sx = null; return; }
+        if (Math.abs(dx) < 10) return;
+        locked = true;
+        row.setPointerCapture(e.pointerId);
+        row.classList.add('swiping');
+      }
+      row.style.transform = `translateX(${dx}px)`;
+      row.style.opacity = String(Math.max(0.25, 1 - Math.abs(dx) / (GO * 2.2)));
+      row.classList.toggle('will-go', Math.abs(dx) >= GO);
+    });
+    const end = () => {
+      if (sx === null) { row.classList.remove('swiping', 'will-go'); return; }
+      sx = null;
+      row.classList.remove('swiping', 'will-go');
+      row.style.transition = 'transform .18s ease-out, opacity .18s ease-out';
+      if (Math.abs(dx) >= GO) {
+        row.style.transform = `translateX(${dx > 0 ? 400 : -400}px)`;
+        row.style.opacity = '0';
+        haptic();
+        setTimeout(onRemove, 150);
+        return;
+      }
+      row.style.transform = '';
+      row.style.opacity = '';
+    };
+    row.addEventListener('pointerup', end);
+    row.addEventListener('pointercancel', end);
+  }
+
   const gripEl = title => {
     const g = el('button', 'drag-grip');
     g.title = title || 'Drag to reorder';
@@ -2527,7 +2573,7 @@
         w.stars = n || null;
         await DB.put('workouts', w);
         paintStars();
-      }, 34));
+      }, 22));
     };
     paintStars();
     root.appendChild(feelAsk);
@@ -5144,6 +5190,11 @@
       (window.EQUIPMENT || []).filter(q => (q.sec || 'Other') === sec).forEach(q => {
         const on = q.always || owned.has(q.key);
         const b = el('button', 'equip-tile' + (on ? ' on' : '') + (q.always ? ' fixed' : ''));
+        const ico = el('span', 'equip-ic');
+        ico.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" '
+          + 'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
+          + ((window.EQUIP_ICON || {})[q.key] || (window.EQUIP_ICON || {}).machine || '') + '</svg>';
+        b.appendChild(ico);
         b.appendChild(el('span', 'equip-lbl', q.label));
         const n = all.filter(x => equipOf(x).includes(q.key)).length;
         b.appendChild(el('span', 'equip-n', q.always ? 'always' : `${n} move${n === 1 ? '' : 's'}`));
@@ -5843,6 +5894,7 @@
         nums.appendChild(el('span', 'x', '–'));
         nums.appendChild(numIn(item.repHi, v => item.repHi = v));
         r.appendChild(nums);
+        swipeToRemove(r, () => { day.items.splice(ii, 1); renderPlanDays(); });
         card.appendChild(r);
       });
 
