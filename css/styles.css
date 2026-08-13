@@ -1364,7 +1364,6 @@ body { font-size: 14px; }
   font-family: var(--cond); font-size: 30px; font-weight: 800;
   letter-spacing: -.03em; text-transform: uppercase; line-height: 1.05; color: var(--t1);
 }
-.ab-row { display: flex; flex-direction: column; gap: 6px; }
 .ab-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .ab-val.unset { color: var(--t6); font-weight: 700; font-size: 13px; }
 .ab-val { font-size: 17px; font-weight: 800; color: var(--t1); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
@@ -1756,19 +1755,26 @@ body { font-size: 14px; }
 .pf-item.swiping { transition: none; }
 .pf-item.will-go { border-color: var(--amber-border); background: var(--grad-amber); }
 
-/* About you: a list of answers, one dial open at a time */
-.ab-row { padding: 4px 0; }
+/* About you — every answer is a card that shows its control, because a
+   screen of collapsed rows tells you nothing about what it is asking. The
+   controls differ on purpose: a choice gets a rail of words, a measurement
+   gets a tape. */
+.ab-card {
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--sunken); border: 1px solid var(--hair);
+  border-radius: 18px; padding: 14px;
+}
+.ab-card.off { border-style: dashed; }
 /* label left, value right against the switch — space-between put the value
    wherever the label happened to end, so no two rows lined up */
 .ab-head {
-  cursor: pointer; display: grid; grid-template-columns: 1fr auto 44px;
+  display: grid; grid-template-columns: 1fr auto 44px;
   align-items: center; gap: 14px;
 }
 .ab-head .micro { min-width: 0; }
 .ab-head .ab-val { text-align: right; }
-.ab-head .inj-sw.sm, .ab-head .ab-go { justify-self: end; margin-left: 0; }
-/* a row with no switch still leaves the column, so the values stay in line */
-.ab-go { width: 100%; text-align: right; }
-.ab-go { color: var(--t7); font-size: 17px; transition: transform .18s ease; margin-left: 4px; }
-.ab-go.open { transform: rotate(90deg); color: var(--lime); }
-.ab-row.open .ab-head .micro { color: var(--lime); }
+.ab-head .inj-sw.sm { justify-self: end; margin-left: 0; }
+.ab-card .ab-hint { margin-top: 0; }
+.tape-card .ab-bf { margin-top: 2px; padding-top: 10px; border-top: 1px solid var(--hair); }
+/* the cards need air between them */
+#view-about.view.stack { gap: 12px; }

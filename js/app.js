@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v223';
+  const APP_VERSION = 'v224';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2921,10 +2921,10 @@
     : 0;
 
   /* Settings — one page with everything on it, no rows that open more rows. */
-  function openAbout() { sDraft = null; aboutOpen = null; show('about'); renderAbout(); }
+  function openAbout() { sDraft = null; abTape = 'heightCm'; show('about'); renderAbout(); }
 
   let sDraft = null;                       // edits live here until you Save
-  let aboutOpen = null;                    // the one row showing its dial
+  let abTape = 'heightCm';                 // which figure the tape card is on
 
   function renderAbout() {
     const root = $('#view-about');
@@ -2935,9 +2935,7 @@
     const dirty = () => JSON.stringify(sDraft) !== JSON.stringify(saved);
 
     /* the screen previews your draft, so units read as you have just set them */
-    const dW = () => (pr.units === 'lb' ? 'lb' : 'kg');
     const dH = () => (pr.hUnits === 'ft' ? 'ft' : 'cm');
-    const dToW = kg => (dW() === 'lb' ? kg * LB_PER_KG : kg);
 
     const leave = () => { sDraft = null; show('profile'); renderTab(); };
 
@@ -2959,43 +2957,31 @@
     head.appendChild(close);
     root.appendChild(head);
 
-    /* One row per answer, and only the one you are editing shows its dial.
-       Nine identical rulers stacked back to back read as one long stripe and
-       none of them look like the thing they set. The switch still means
-       "not set" when it is off. */
-    const slide = (key, label, readout, make, hint, lock) => {
-      const open = aboutOpen === key && (!lock || lock.on);
-      const b = el('div', 'ab-row' + (open ? ' open' : ''));
+    root.appendChild(el('div', 'coach-note',
+      'Six answers. Nothing here is required — a switch turned off just means '
+      + 'not set, and the app works without it.'));
+
+    /* Every answer is a card that shows its control, because a screen of
+       collapsed rows tells you nothing about what it wants. The controls
+       differ on purpose: a choice gets a rail of words, a measurement gets a
+       tape, and the four tape figures share one card instead of stacking four
+       identical rulers. */
+    const card = (key, label, readout, node, hint, lock) => {
+      const b = el('div', 'ab-card' + (lock && !lock.on ? ' off' : ''));
       const h = el('div', 'ab-head');
       h.appendChild(el('div', 'micro', label));
       if (readout) h.appendChild(readout);
       if (lock) {
         const sw = el('button', 'inj-sw sm' + (lock.on ? ' on' : ''));
         sw.appendChild(el('i', 'inj-knob'));
-        sw.onclick = e => {
-          e.stopPropagation();
-          const wasOn = lock.on;
-          lock.toggle();
-          aboutOpen = wasOn ? null : key;   // turning one on opens it
-          haptic();
-          renderAbout();
-        };
+        sw.onclick = () => { lock.toggle(); haptic(); renderAbout(); };
         h.appendChild(sw);
-      } else {
-        h.appendChild(el('span', 'ab-go' + (open ? ' open' : ''), '›'));
-      }
-      h.onclick = () => {
-        if (lock && !lock.on) return;      // off means not set; nothing to edit
-        aboutOpen = open ? null : key;
-        renderAbout();
-      };
+      } else h.appendChild(el('span'));
       b.appendChild(h);
-      if (open) {
-        const body = el('div', 'ab-body');
-        body.appendChild(make());
-        b.appendChild(body);
-        if (hint) b.appendChild(el('div', 'ab-hint', hint));
-      }
+      const body = el('div', 'ab-body' + (lock && !lock.on ? ' locked' : ''));
+      body.appendChild(node);
+      b.appendChild(body);
+      if (hint) b.appendChild(el('div', 'ab-hint', hint));
       root.appendChild(b);
       return b;
     };
@@ -3004,111 +2990,125 @@
       toggle: () => { if (pr[key] != null) delete sDraft[key]; else sDraft[key] = dflt; }
     });
 
-    // ---- choices ----
+    // ---- what you are training for ----
     const goalOut = el('div', 'ab-val' + (pr.goal ? '' : ' unset'),
-      (GOALS.find(g => g.key === pr.goal) || {}).label || 'not set');
-    slide('goal', 'Goal', goalOut,
-      () => optionRail(GOALS.map(g => g.label), GOALS.findIndex(g => g.key === pr.goal), i => {
+      (GOALS.find(g => g.key === pr.goal) || {}).reps || 'not set');
+    const goalHint = el('div', 'ab-hint', (GOALS.find(g => g.key === pr.goal) || {}).note
+      || 'Sets the rep range a new block starts on');
+    card('goal', 'Goal', goalOut,
+      optionRail(GOALS.map(g => g.label), GOALS.findIndex(g => g.key === pr.goal), i => {
         sDraft.goal = GOALS[i].key;
-        goalOut.textContent = GOALS[i].label; goalOut.classList.remove('unset');
-      }),
-      (GOALS.find(g => g.key === pr.goal) || {}).note || 'Sets the rep range a new block starts on',
-      lockFor('goal', GOALS[0].key));
+        goalOut.textContent = GOALS[i].reps; goalOut.classList.remove('unset');
+        goalHint.textContent = GOALS[i].note;
+      }), null, lockFor('goal', GOALS[0].key)).appendChild(goalHint);
 
     const lvOut = el('div', 'ab-val' + (pr.level ? '' : ' unset'),
       (LEVELS.find(l => l.key === pr.level) || {}).label || 'not set');
-    slide('level', 'Experience', lvOut,
-      () => optionRail(LEVELS.map(l => l.label), LEVELS.findIndex(l => l.key === pr.level), i => {
+    const lvHint = el('div', 'ab-hint', (LEVELS.find(l => l.key === pr.level) || {}).note
+      || 'How fast the weight should climb');
+    card('level', 'Experience', lvOut,
+      optionRail(LEVELS.map(l => l.label), LEVELS.findIndex(l => l.key === pr.level), i => {
         sDraft.level = LEVELS[i].key;
         lvOut.textContent = LEVELS[i].label; lvOut.classList.remove('unset');
-      }),
-      (LEVELS.find(l => l.key === pr.level) || {}).note || 'How fast the weight should climb',
-      lockFor('level', LEVELS[0].key));
+        lvHint.textContent = LEVELS[i].note;
+      }), null, lockFor('level', LEVELS[0].key)).appendChild(lvHint);
 
-    slide('sex', 'Sex',
-      el('div', 'ab-val' + (pr.sex ? '' : ' unset'), pr.sex === 'female' ? 'Female' : (pr.sex ? 'Male' : 'not set')),
-      () => segToggle([['male', 'Male'], ['female', 'Female']], pr.sex || '',
+    // ---- how long you have ---- a handful of lengths, not a ruler
+    const minsOut = el('div', 'ab-val' + (pr.sessionMins != null ? '' : ' unset'),
+      (pr.sessionMins != null ? pr.sessionMins : 60) + ' min');
+    card('sessionMins', 'Time per session', minsOut,
+      optionRail(SESSION_MINS.map(m => m + ' min'),
+        Math.max(0, SESSION_MINS.indexOf(pr.sessionMins != null ? +pr.sessionMins : 60)),
+        i => {
+          sDraft.sessionMins = SESSION_MINS[i];
+          minsOut.textContent = SESSION_MINS[i] + ' min';
+          minsOut.classList.remove('unset');
+        }, 78),
+      'Each training day gets a clock in the builder', lockFor('sessionMins', 60));
+
+    // ---- who you are ----
+    card('sex', 'Sex', null,
+      segToggle([['male', 'Male'], ['female', 'Female']], pr.sex || '',
         k => { sDraft.sex = k; renderAbout(); }, 'you-seg'),
-      'Used for the body-fat estimate', lockFor('sex', 'male'));
+      'Only used for the body-fat estimate', lockFor('sex', 'male'));
 
-    // ---- numbers, all on rulers ----
-    const num = (key, label, unit, def, step, min, decimals, hint, every) => {
-      const out = el('div', 'ab-val');
-      let set = pr[key] != null;
-      const paint = v => {
-        out.textContent = (decimals ? v.toFixed(decimals) : String(v)) + ' ' + unit + (set ? '' : ' · not set');
-        out.classList.toggle('unset', !set);
-      };
-      const start = set ? +pr[key] : def;
-      paint(start);
-      const r = rulerScale({
-        value: start, step, tickW: every === 1 ? 34 : 30, span: 14, min,
-        labelEvery: every || (decimals ? 2 : 5), majorEvery: decimals ? 2 : 5, decimals,
-        dragOnly: true, cls: (decimals ? 'fine' : '') + (every === 1 ? ' dense' : ''),
-        onChange: v => { set = true; paint(v); sDraft[key] = v; bfPaint(); }
-      });
-      slide(key, label, out, () => r.el, hint, lockFor(key, def));
+    const ageOut = el('div', 'ab-val' + (pr.age != null ? '' : ' unset'),
+      (pr.age != null ? pr.age : 30) + ' yrs');
+    const ageR = rulerScale({
+      value: pr.age != null ? +pr.age : 30, step: 1, tickW: 34, span: 14, min: 12,
+      labelEvery: 1, majorEvery: 5, dragOnly: true, cls: 'dense',
+      onChange: v => { sDraft.age = v; ageOut.textContent = v + ' yrs'; ageOut.classList.remove('unset'); }
+    });
+    card('age', 'Age', ageOut, ageR.el, null, lockFor('age', 30));
+
+    /* ---- the tape ----
+       Height, waist and neck are the same action with the tape in three
+       places, so they share one card and one ruler. Four identical rulers in
+       a column looked like a printing error. */
+    const TAPES = [
+      { key: 'heightCm', label: 'Height', def: 175, hint: 'Standing, shoes off' },
+      { key: 'waistCm', label: 'Waist', def: 85, hint: 'At the navel, tape level, breathe out' },
+      { key: 'neckCm', label: 'Neck', def: 38, hint: 'Just below the Adam’s apple' }
+    ];
+    if (pr.sex === 'female') TAPES.push({ key: 'hipCm', label: 'Hips', def: 95, hint: 'Widest point' });
+    if (!TAPES.some(t => t.key === abTape)) abTape = TAPES[0].key;
+    const tape = TAPES.find(t => t.key === abTape);
+    const imperial = dH() === 'ft';
+    const isSet = pr[tape.key] != null;
+    const fromCm = cm => (imperial ? +(cm / 2.54).toFixed(1) : +cm);
+    const toCm = v => (imperial ? +(v * 2.54).toFixed(1) : v);
+    const unit = imperial ? 'in' : 'cm';
+
+    const tapeCard = el('div', 'ab-card tape-card');
+    const th = el('div', 'ab-head');
+    th.appendChild(el('div', 'micro', 'Tape measure'));
+    const tapeOut = el('div', 'ab-val' + (isSet ? '' : ' unset'));
+    const paintTape = v => {
+      tapeOut.textContent = (imperial ? v.toFixed(1) : Math.round(v * 10) / 10) + ' ' + unit
+        + (pr[tape.key] != null ? '' : ' · not set');
+      tapeOut.classList.toggle('unset', pr[tape.key] == null);
     };
-    num('sessionMins', 'Time per session', 'min', 60, 5, 15, 0, 'Each day gets a clock in the builder');
-    num('age', 'Age', 'yrs', 30, 1, 12, 0, null, 1);
-
-    if (dH() === 'ft') {
-      const out = el('div', 'ab-val' + (pr.heightCm != null ? '' : ' unset'));
-      let set = pr.heightCm != null;
-      const paint = inch => {
-        out.textContent = `${Math.floor(inch / 12)}'${Math.round(inch % 12)}"` + (set ? '' : ' · not set');
-        out.classList.toggle('unset', !set);
-      };
-      const startIn = Math.round((set ? pr.heightCm : 175) / 2.54);
-      paint(startIn);
-      const r = rulerScale({
-        value: startIn, step: 1, tickW: 34, span: 14, min: 40,
-        labelEvery: 1, majorEvery: 6, cls: 'dense',
-        fmt: v => `${Math.floor(v / 12)}'${v % 12}`,
-        dragOnly: true,
-        onChange: v => { set = true; paint(v); sDraft.heightCm = +(v * 2.54).toFixed(1); bfPaint(); }
-      });
-      slide('heightCm', 'Height', out, () => r.el, null, lockFor('heightCm', 177.8));
-    } else {
-      num('heightCm', 'Height', 'cm', 175, 1, 100, 0, null, 1);
-    }
-
-    const tape = (key, label, defCm, hint) => {
-      if (dH() !== 'ft') return num(key, label, 'cm', defCm, 0.5, 20, 1, hint);
-      const out = el('div', 'ab-val' + (pr[key] != null ? '' : ' unset'));
-      let set = pr[key] != null;
-      const paint = inch => {
-        out.textContent = inch.toFixed(1) + ' in' + (set ? '' : ' · not set');
-        out.classList.toggle('unset', !set);
-      };
-      const start = +((set ? pr[key] : defCm) / 2.54).toFixed(1);
-      paint(start);
-      const r = rulerScale({
-        value: start, step: 0.5, tickW: 30, span: 14, min: 8,
-        labelEvery: 2, majorEvery: 2, decimals: 1, cls: 'fine', dragOnly: true,
-        onChange: v => { set = true; paint(v); sDraft[key] = +(v * 2.54).toFixed(1); bfPaint(); }
-      });
-      slide(key, label, out, () => r.el, hint, lockFor(key, defCm));
+    th.appendChild(tapeOut);
+    const tsw = el('button', 'inj-sw sm' + (isSet ? ' on' : ''));
+    tsw.appendChild(el('i', 'inj-knob'));
+    tsw.onclick = () => {
+      if (isSet) delete sDraft[tape.key]; else sDraft[tape.key] = tape.def;
+      haptic(); renderAbout();
     };
-    tape('waistCm', 'Waist', 85, 'At the navel, tape level, breathe out');
-    tape('neckCm', 'Neck', 38, 'Just below the Adam\'s apple');
-    if (pr.sex === 'female') tape('hipCm', 'Hips', 95, 'Widest point');
-
+    th.appendChild(tsw);
+    tapeCard.appendChild(th);
+    /* which of the three you are setting */
+    tapeCard.appendChild(segToggle(TAPES.map(t => [t.key, t.label]), abTape,
+      k => { abTape = k; renderAbout(); }, 'you-seg tape-seg'));
+    const tbody = el('div', 'ab-body' + (isSet ? '' : ' locked'));
+    const start = fromCm(isSet ? +pr[tape.key] : tape.def);
+    paintTape(start);
+    tbody.appendChild(rulerScale({
+      value: start, step: imperial ? 0.5 : (tape.key === 'heightCm' ? 1 : 0.5),
+      tickW: 32, span: 14, min: imperial ? 8 : 20,
+      labelEvery: 2, majorEvery: 2, decimals: tape.key === 'heightCm' && !imperial ? 0 : 1,
+      dragOnly: true, cls: 'fine',
+      onChange: v => { sDraft[tape.key] = toCm(v); paintTape(v); bfPaint(); }
+    }).el);
+    tapeCard.appendChild(tbody);
+    tapeCard.appendChild(el('div', 'ab-hint', tape.hint));
     const bfEl = el('div', 'ab-bf');
+    tapeCard.appendChild(bfEl);
+    root.appendChild(tapeCard);
+
     const bfPaint = () => {
       const bf = navyBodyFat(sDraft);
       if (bf) {
-        bfEl.textContent = `Body fat ≈ ${bf}%  ·  tape beats the bathroom scale — watch the trend`;
+        bfEl.textContent = `Body fat ≈ ${bf}% — tape beats the bathroom scale, watch the trend`;
       } else {
-        const need = [['heightCm', 'height'], ['waistCm', 'waist'], ['neckCm', 'neck']]
+        const need = [['sex', 'sex'], ['heightCm', 'height'], ['waistCm', 'waist'], ['neckCm', 'neck']]
           .concat(sDraft.sex === 'female' ? [['hipCm', 'hips']] : [])
           .filter(([k]) => sDraft[k] == null).map(([, n]) => n);
-        bfEl.textContent = need.length ? 'Body fat needs ' + need.join(', ') : 'Body fat needs your sex set';
+        bfEl.textContent = 'Body fat estimate needs ' + need.join(', ');
       }
       bfEl.classList.toggle('on', !!bf);
     };
     bfPaint();
-    root.appendChild(bfEl);
 
     /* no Cancel/Save row — the X asks */
   }
