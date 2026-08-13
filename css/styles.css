@@ -1799,6 +1799,9 @@ body { font-size: 14px; }
   font-size: 13px; font-weight: 800; line-height: 24px; text-align: center;
 }
 .ai-step-t { font-size: 15px; font-weight: 800; letter-spacing: -.01em; }
+/* the quiet button size — these are working buttons, not the session CTA */
+.ai-step .btn-lime { font-size: 13px; letter-spacing: .06em; height: 46px; }
+.ai-out .btn-cta.big { font-size: 13px; }
 .ai-box {
   width: 100%; box-sizing: border-box; resize: vertical;
   background: var(--sunken); border: 1px solid var(--hair); border-radius: 14px;

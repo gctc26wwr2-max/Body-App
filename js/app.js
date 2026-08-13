@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v227';
+  const APP_VERSION = 'v228';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5466,7 +5466,7 @@
       try {
         if (navigator.share) await navigator.share({ title: 'Plan my next block', text: promptText });
         else await navigator.clipboard.writeText(promptText);
-        copy.textContent = 'Copied — paste it to your AI';
+        copy.textContent = 'Copied ✓';
         haptic();
         setTimeout(() => { copy.textContent = 'Copy the prompt'; }, 2600);
       } catch { /* dismissed */ }
