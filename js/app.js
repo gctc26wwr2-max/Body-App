@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v217';
+  const APP_VERSION = 'v218';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1759,6 +1759,43 @@
     return s;
   }
 
+  /* ---------------- rating a session ----------------
+     A finished session gets stars, not an effort word: how hard each exercise
+     was is answered on the card while you are doing it, and by then the
+     question about the whole session is whether it was any good. */
+  const STAR_D = 'M12 3.4l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.9l6.1-.9z';
+  function starIcon(filled, size = 30) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const s2 = document.createElementNS(NS, 'svg');
+    s2.setAttribute('viewBox', '0 0 24 24');
+    s2.setAttribute('width', size);
+    s2.setAttribute('height', size);
+    s2.setAttribute('fill', filled ? 'currentColor' : 'none');
+    s2.setAttribute('stroke', 'currentColor');
+    s2.setAttribute('stroke-width', filled ? '1.2' : '1.6');
+    s2.setAttribute('stroke-linejoin', 'round');
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', STAR_D);
+    s2.appendChild(path);
+    s2.style.display = 'block';
+    return s2;
+  }
+  const STAR_WORD = ['', 'Poor', 'Off day', 'Solid', 'Strong', 'Best in a while'];
+
+  /* five stars, tap to rate — tapping the one already set clears it */
+  function starRow(value, onPick, size) {
+    const row = el('div', 'star-row');
+    for (let i = 1; i <= 5; i++) {
+      const b = el('button', 'star-btn' + (i <= value ? ' on' : ''));
+      b.title = i + ' of 5';
+      b.setAttribute('aria-label', i + ' out of 5');
+      b.appendChild(starIcon(i <= value, size || 30));
+      b.onclick = () => { haptic(); onPick(value === i ? 0 : i); };
+      row.appendChild(b);
+    }
+    return row;
+  }
+
   /* ---------------- drag to reorder ----------------
      One grip per row. A touch screen has no HTML5 drag worth having, so this
      is pointer-driven: hold the grip and the row lifts, the rows it passes
@@ -2422,7 +2459,7 @@
       id: DB.uid(), date: todayStr(), ts: Date.now(),
       planId: lw.planId, dayIndex: lw.dayIndex, name: lw.dayName,
       duration: mins, volume: Math.round(volume), sets: setCount, kcal,
-      prs, feel: null
+      prs, stars: null, feel: null
     };
     await DB.put('workouts', workout);
     live.set(null);
@@ -2478,26 +2515,23 @@
     }
 
     /* the whole session, on the same three faces as the exercises */
-    const feelAsk = el('div', 'micro', 'How did it feel?');
-    if (w.feel) { feelAsk.textContent = 'Felt ' + w.feel.toLowerCase(); feelAsk.classList.add('on'); }
-    root.appendChild(feelAsk);
-    const feel = el('div', 'feel-row');
-    [['Easy', 'easy'], ['Solid', 'moderate'], ['Brutal', 'hard']].forEach(([f, face]) => {
-      const b = el('button', w.feel === f ? 'sel' : null);
-      b.appendChild(feelIcon(face, 28));
-      b.title = f;
-      b.setAttribute('aria-label', f);
-      b.onclick = async () => {
-        w.feel = f;
+    const feelAsk = el('div', 'micro');
+    const holder = el('div');
+    const paintStars = () => {
+      feelAsk.textContent = w.stars
+        ? `${w.stars} of 5 · ${STAR_WORD[w.stars]}`
+        : 'Rate the session';
+      feelAsk.classList.toggle('on', !!w.stars);
+      holder.innerHTML = '';
+      holder.appendChild(starRow(w.stars || 0, async n => {
+        w.stars = n || null;
         await DB.put('workouts', w);
-        feelAsk.textContent = 'Felt ' + f.toLowerCase();
-        feelAsk.classList.add('on');
-        $$('.feel-row button').forEach(x => x.classList.toggle('sel', x === b));
-        haptic();
-      };
-      feel.appendChild(b);
-    });
-    root.appendChild(feel);
+        paintStars();
+      }, 34));
+    };
+    paintStars();
+    root.appendChild(feelAsk);
+    root.appendChild(holder);
 
     const save = el('button', 'btn-cta', 'Save session');
     save.onclick = () => { show('today'); renderTab(); };
@@ -2625,7 +2659,16 @@
       const nm = el('div', 'hrow-name', w.name);
       if (w.prs && w.prs.length) nm.appendChild(el('span', 'pr-chip', w.prs.length + ' PR'));
       c.appendChild(nm);
-      c.appendChild(el('div', 'hrow-meta num', `${fmtW(w.volume)} · ${w.sets} sets${w.feel ? ' · ' + w.feel : ''} ▾`));
+      const meta = el('div', 'hrow-meta num', `${fmtW(w.volume)} · ${w.sets} sets`);
+      if (w.stars) {
+        meta.appendChild(document.createTextNode(' ·'));
+        const st = el('span', 'hrow-stars');
+        st.appendChild(starIcon(true, 11));
+        st.appendChild(el('span', null, String(w.stars)));
+        meta.appendChild(st);
+      } else if (w.feel) meta.appendChild(document.createTextNode(' · ' + w.feel));
+      meta.appendChild(document.createTextNode(' ▾'));
+      c.appendChild(meta);
       r.appendChild(c);
       const del = el('button', 'hist-del', '✕');
       del.title = 'Delete this session';
@@ -3475,7 +3518,7 @@
     L.push(`SESSIONS (${workouts.length} total, latest ${ws.length}):`);
     for (const w of ws) {
       L.push(`${w.date} · ${w.name} · ${w.duration} min · ${fmtW(w.volume)} volume` +
-        (w.feel ? ` · felt: ${w.feel}` : '') +
+        (w.stars ? ` · rated ${w.stars}/5` : (w.feel ? ` · felt: ${w.feel}` : '')) +
         (w.prs && w.prs.length ? ` · ${w.prs.length} PR` : ''));
       const sess = sessions.filter(s => s.date === w.date && s.planId === w.planId);
       for (const s of sess) {

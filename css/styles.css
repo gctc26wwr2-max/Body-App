@@ -1727,3 +1727,16 @@ body { font-size: 14px; }
 .w-burn .v { color: var(--amber); }
 /* the summary's energy card takes the full width, after the four square ones */
 .sum-grid .card.wide { grid-column: 1 / -1; }
+
+/* ============ SESSION STARS ============ */
+.star-row { display: flex; gap: 6px; align-items: center; }
+.star-btn {
+  flex: 1; height: 54px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--hair-7); color: var(--t6);
+  display: flex; align-items: center; justify-content: center;
+}
+.star-btn.on { background: var(--lime-bg); border-color: var(--lime-border); color: var(--lime); }
+.hrow-stars {
+  display: inline-flex; align-items: center; gap: 3px; margin-left: 7px;
+  color: var(--lime); vertical-align: -1px;
+}
