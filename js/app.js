@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v220';
+  const APP_VERSION = 'v221';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1701,24 +1701,12 @@
     return `${d > 0 ? '+' : '−'}${Math.abs(d)} kg vs set ${si}`;
   }
 
-  /* Haptic tick — navigator.vibrate on Android; on iOS (no vibrate API)
-     programmatically toggling a hidden switch control fires the system
-     haptic in Safari 17.4+. */
-  const hapticSwitch = (() => {
-    const label = document.createElement('label');
-    label.style.cssText = 'position:fixed;left:-99px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
-    label.setAttribute('aria-hidden', 'true');
-    const inp = document.createElement('input');
-    inp.type = 'checkbox';
-    inp.setAttribute('switch', '');
-    inp.tabIndex = -1;
-    label.appendChild(inp);
-    document.body.appendChild(label);
-    return inp;
-  })();
+  /* Haptic tick. Android has an API for this; iOS does not, and the trick
+     that works there — toggling a hidden switch control — also plays the
+     system switch sound, which is a click you did not ask for on every tap.
+     A silent app beats a buzzy one, so iOS simply gets no tick. */
   function haptic() {
-    if (navigator.vibrate) { navigator.vibrate(8); return; }
-    try { hapticSwitch.click(); } catch (e) { /* no haptics available */ }
+    if (navigator.vibrate) navigator.vibrate(8);
   }
 
   /* ---------------- how it felt, as a face ----------------
@@ -3124,13 +3112,16 @@
     mail: '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3.5 7.5 12 13l8.5-5.5"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8h.01"/>',
     star: '<path d="M12 3.6l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.8l5.9-.9z"/>',
-    timer: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.8v3.7l2.4 1.6M9.4 2.8h5.2"/>'
+    timer: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.8v3.7l2.4 1.6M9.4 2.8h5.2"/>',
+    kit: '<path d="M2 12h20"/><rect x="5" y="7.5" width="2.4" height="9" rx="1"/>'
+      + '<rect x="16.6" y="7.5" width="2.4" height="9" rx="1"/>'
   };
 
   const PREF_GROUPS = [
     { title: 'Preferences', rows: [
       ['timer', 'Rest between sets', 'rest'],
       ['bell', 'Alert sound', 'sound'],
+      ['kit', 'Equipment', 'kit'],
       ['theme', 'Theme'], ['units', 'Units', 'units']
     ] },
     { title: 'Apple', rows: [
@@ -3208,6 +3199,12 @@
           r.appendChild(el('span', 'pref-val num', fmtClock(dRest())));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'rest' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'rest' ? null : 'rest'; renderPrefs(); };
+        } else if (live === 'kit') {
+          const own = getEquip();
+          const total = (window.EQUIPMENT || []).length;
+          r.appendChild(el('span', 'pref-val num', `${own.size} of ${total}`));
+          r.appendChild(el('span', 'pref-go' + (prefOpen === 'kit' ? ' open' : ''), '›'));
+          r.onclick = () => { prefOpen = prefOpen === 'kit' ? null : 'kit'; renderPrefs(); };
         } else if (live === 'sound') {
           r.appendChild(el('span', 'pref-val', dSound().label));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'sound' ? ' open' : ''), '›'));
@@ -3228,6 +3225,21 @@
             }, 'you-seg'));
           panel.appendChild(el('div', 'ab-hint',
             'Weights, heights and the tape all follow this — nothing stored is rewritten.'));
+          list.appendChild(panel);
+        }
+        if (live === 'kit' && prefOpen === 'kit') {
+          const panel = el('div', 'pref-panel');
+          panel.appendChild(el('div', 'ab-hint',
+            'Switch off anything your gym has not got. The block builder will not pick '
+            + 'an exercise that needs it.'));
+          /* the picker writes straight through — kit is not something you want
+             to have to remember to save */
+          panel.appendChild(equipPicker(renderPrefs));
+          const all = (window.EXERCISE_LIBRARY || []);
+          const off = all.length - all.filter(equipOK).length;
+          panel.appendChild(el('div', 'ab-hint', off
+            ? `${off} exercises need kit you have switched off`
+            : 'Everything in the catalogue is available'));
           list.appendChild(panel);
         }
         if (live === 'sound' && prefOpen === 'sound') {
@@ -3904,7 +3916,7 @@
     { label: '20–30', lo: 20, hi: 30 }
   ];
   let pmDays = null, pmDay = 0, pmSets = 2, pmEx = 0, pmReps = 2, pmName = '';
-  let pmInj = 0, pmGroup = 'All', pmQuery = '', pmKitOpen = false;
+  let pmInj = 0, pmGroup = 'All', pmQuery = '';
   /* a fifth, lighter week on the end of the block — on by default, because a
      four-week block run flat out is where people stall */
   let pmDeload = true, pmWeeks = 4;
@@ -4209,16 +4221,11 @@
     }
     /* the kit list, right here — you find out what the gym is missing while
        you are building, not afterwards */
-    const kitHead = el('div', 'inj-head');
-    kitHead.appendChild(el('div', 'micro', 'Equipment'));
-    const kitBtn = el('button', 'kit-btn', pmKitOpen ? 'Done' : (noKitN ? `${noKitN} off` : 'All on'));
-    kitBtn.onclick = () => { pmKitOpen = !pmKitOpen; renderPlanMaker(); };
-    kitHead.appendChild(kitBtn);
-    root.appendChild(kitHead);
-    if (pmKitOpen) root.appendChild(equipPicker(renderPlanMaker));
-    else root.appendChild(el('div', 'inj-note', noKitN
-      ? `${noKitN} exercises need kit you have switched off`
-      : 'Every exercise available'));
+    /* the picker itself lives in Settings now; this only reports what your
+       kit is doing to the choice of exercises */
+    root.appendChild(el('div', 'inj-note', noKitN
+      ? `${noKitN} exercises need kit you switched off in Settings`
+      : 'Every exercise available with your kit'));
     /* how long the block runs — swiped sideways, the same rail the goal and
        level questions use, so the screen keeps one direction of travel */
     const wkHead = el('div', 'inj-head');
@@ -5058,12 +5065,13 @@
       sub.textContent = `${ok.length} of ${(window.EXERCISE_LIBRARY || []).length} exercises · ${own.size} kit`;
       panel.innerHTML = '';
       if (masterTab === 'new') renderMasterNew(panel);
-      else if (masterTab === 'equipment') renderMasterEquip(panel, fill);
       else renderMasterLib(panel);
     };
+    /* kit lives in Settings now — it is a handful of switches you set once,
+       not something to pick through while building a block */
     root.appendChild(segToggle(
-      [['new', 'New block'], ['exercises', 'Library'], ['equipment', 'Equipment']],
-      masterTab,
+      [['new', 'New block'], ['exercises', 'Library']],
+      masterTab === 'equipment' ? 'new' : masterTab,
       k => { masterTab = k; fill(); },
       'master-seg'));
     root.appendChild(panel);
@@ -5191,13 +5199,14 @@
         const on = q.always || owned.has(q.key);
         const b = el('button', 'equip-tile' + (on ? ' on' : '') + (q.always ? ' fixed' : ''));
         const ico = el('span', 'equip-ic');
-        ico.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" '
+        ico.innerHTML = '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" '
           + 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
           + ((window.EQUIP_ICON || {})[q.key] || (window.EQUIP_ICON || {}).machine || '') + '</svg>';
         b.appendChild(ico);
         b.appendChild(el('span', 'equip-lbl', q.label));
         const n = all.filter(x => equipOf(x).includes(q.key)).length;
-        b.appendChild(el('span', 'equip-n', q.always ? 'always' : `${n} move${n === 1 ? '' : 's'}`));
+        b.appendChild(el('span', 'equip-n', q.always ? 'always' : String(n)));
+        b.title = q.always ? q.label : `${q.label} · ${n} move${n === 1 ? '' : 's'}`;
         if (!q.always) b.onclick = () => {
           const s = getEquip();
           s.has(q.key) ? s.delete(q.key) : s.add(q.key);
@@ -5218,17 +5227,6 @@
     acts.appendChild(homeBtn);
     wrap.appendChild(acts);
     return wrap;
-  }
-
-  function renderMasterEquip(root, after) {
-    root.appendChild(el('div', 'coach-note',
-      'Switch off anything your gym has not got. The block builder will not pick an exercise that needs it.'));
-    root.appendChild(equipPicker(after || renderLibrary));
-    const all = (window.EXERCISE_LIBRARY || []);
-    const off = all.length - all.filter(equipOK).length;
-    root.appendChild(el('div', 'inj-note', off
-      ? `${off} exercises need kit you have switched off`
-      : 'Everything in the catalog is available'));
   }
 
   function renderMasterLib(root) {
