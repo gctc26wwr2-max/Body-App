@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v229';
+  const APP_VERSION = 'v230';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -3160,7 +3160,9 @@
     star: '<path d="M12 3.6l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.8l5.9-.9z"/>',
     timer: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.8v3.7l2.4 1.6M9.4 2.8h5.2"/>',
     kit: '<path d="M2 12h20"/><rect x="5" y="7.5" width="2.4" height="9" rx="1"/>'
-      + '<rect x="16.6" y="7.5" width="2.4" height="9" rx="1"/>'
+      + '<rect x="16.6" y="7.5" width="2.4" height="9" rx="1"/>',
+    aim: '<circle cx="12" cy="12" r="7.4"/><circle cx="12" cy="12" r="2.6"/>'
+      + '<path d="M12 2.2v2.6M12 19.2v2.6M2.2 12h2.6M19.2 12h2.6"/>'
   };
 
   const PREF_GROUPS = [
@@ -3168,6 +3170,7 @@
       ['timer', 'Rest between sets', 'rest'],
       ['bell', 'Alert sound', 'sound'],
       ['kit', 'Equipment', 'kit'],
+      ['aim', 'Muscle focus', 'focus'],
       ['theme', 'Theme'], ['units', 'Units', 'units']
     ] },
     { title: 'Apple', rows: [
@@ -3203,6 +3206,7 @@
     const dRest = () => { const v = +pDraft.restSec; return v >= 15 && v <= 900 ? v : 120; };
     const dSound = () => alertOf(pDraft.alertSound);
     const dImperial = () => pDraft.units === 'lb';
+    const dFocus = () => pDraft.focus || [];
 
     const head = el('div', 'w-head pm-head');
     const hl = el('div', 'w-left');
@@ -3250,6 +3254,12 @@
           r.appendChild(el('span', 'pref-val num', `${own.size} of ${total}`));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'kit' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'kit' ? null : 'kit'; renderPrefs(); };
+        } else if (live === 'focus') {
+          const lbl2 = focusLabels(dFocus());
+          r.appendChild(el('span', 'pref-val',
+            !lbl2.length ? 'Balanced' : (lbl2.join(' · ').length <= 18 ? lbl2.join(' · ') : lbl2.length + ' picked')));
+          r.appendChild(el('span', 'pref-go' + (prefOpen === 'focus' ? ' open' : ''), '›'));
+          r.onclick = () => { prefOpen = prefOpen === 'focus' ? null : 'focus'; renderPrefs(); };
         } else if (live === 'sound') {
           r.appendChild(el('span', 'pref-val', dSound().label));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'sound' ? ' open' : ''), '›'));
@@ -3285,6 +3295,18 @@
           panel.appendChild(el('div', 'ab-hint', off
             ? `${off} exercises need kit you have switched off`
             : 'Everything in the catalogue is available'));
+          list.appendChild(panel);
+        }
+        if (live === 'focus' && prefOpen === 'focus') {
+          const panel = el('div', 'pref-panel');
+          panel.appendChild(focusPicker(dFocus, next => {
+            pDraft.focus = next;
+            const lbl3 = focusLabels(next);
+            const val = r.querySelector('.pref-val');
+            if (val) val.textContent = !lbl3.length ? 'Balanced'
+              : (lbl3.join(' · ').length <= 18 ? lbl3.join(' · ') : lbl3.length + ' picked');
+          }));
+          panel.appendChild(el('div', 'ab-hint', 'Tap a muscle. Up to three; none means balanced.'));
           list.appendChild(panel);
         }
         if (live === 'sound' && prefOpen === 'sound') {
@@ -5240,12 +5262,95 @@
     return pmExerciseList().filter(equipOK).filter(x => !isRisky(x, tags));
   }
 
+  /* ---- muscle focus ----
+     Which parts of you the next block should lean on. Lives in the profile,
+     set from Settings on the body diagram or from the Ask AI chips — one
+     setting, two doors. Capped at three: focus on everything is focus on
+     nothing. */
+  const FOCUS_GROUPS = [
+    { key: 'chest', label: 'Chest', regions: ['chest'] },
+    { key: 'back', label: 'Back', regions: ['upper-back', 'lower-back', 'trapezius'] },
+    { key: 'shoulders', label: 'Shoulders', regions: ['front-deltoids', 'back-deltoids'] },
+    { key: 'arms', label: 'Arms', regions: ['biceps', 'triceps', 'forearm'] },
+    { key: 'core', label: 'Core', regions: ['abs', 'obliques'] },
+    { key: 'glutes', label: 'Glutes', regions: ['gluteal', 'abductors'] },
+    { key: 'quads', label: 'Quads', regions: ['quadriceps'] },
+    { key: 'hams', label: 'Hamstrings', regions: ['hamstring', 'adductor'] },
+    { key: 'calves', label: 'Calves', regions: ['calves', 'left-soleus', 'right-soleus'] }
+  ];
+  const REGION_GROUP = {};
+  FOCUS_GROUPS.forEach(g => g.regions.forEach(r => { REGION_GROUP[r] = g.key; }));
+
+  const focusToggle = (list, key) => {
+    const has = list.includes(key);
+    let next = has ? list.filter(k => k !== key) : [...list, key];
+    if (next.length > 3) next = next.slice(next.length - 3);   // oldest drops off
+    return next;
+  };
+  const focusLabels = list =>
+    list.map(k => (FOCUS_GROUPS.find(g => g.key === k) || {}).label).filter(Boolean);
+
+  /* The body diagram as a control: tap a muscle to focus it. Chips underneath
+     say the same thing in words and toggle too. */
+  function focusPicker(getSel, setSel) {
+    const wrap = el('div', 'focus-pick');
+    const figs = el('div', 'an-row');
+    const holders = [];
+    for (const [view, label] of [['front', 'Front'], ['back', 'Back']]) {
+      const col = el('div', 'an-col');
+      const holder = el('div', 'an-holder');
+      holder.innerHTML = window.BODY_SVG ? window.BODY_SVG[view] : '';
+      holders.push(holder);
+      col.appendChild(holder);
+      col.appendChild(el('div', 'an-cap', label));
+      figs.appendChild(col);
+    }
+    wrap.appendChild(figs);
+    const chips = el('div', 'fp-chips');
+    wrap.appendChild(chips);
+
+    const paint = () => {
+      const sel = new Set(getSel());
+      holders.forEach(h => h.querySelectorAll('[data-m]').forEach(n => {
+        const g = REGION_GROUP[n.getAttribute('data-m')];
+        n.classList.toggle('pri', !!g && sel.has(g));
+      }));
+      chips.querySelectorAll('button').forEach(b =>
+        b.classList.toggle('on', sel.has(b.dataset.k)));
+    };
+    const flip = key => { setSel(focusToggle(getSel(), key)); haptic(); paint(); };
+
+    holders.forEach(h => h.addEventListener('click', e => {
+      const n = e.target.closest && e.target.closest('[data-m]');
+      const g = n && REGION_GROUP[n.getAttribute('data-m')];
+      if (g) flip(g);
+    }));
+    FOCUS_GROUPS.forEach(g => {
+      const b = el('button', '', g.label);
+      b.dataset.k = g.key;
+      b.onclick = () => flip(g.key);
+      chips.appendChild(b);
+    });
+    paint();
+    wrap.repaint = paint;
+    return wrap;
+  }
+
+  /* the default day count: what you are running now, else three */
+  function aiDaysDefault() {
+    const saved = +localStorage.getItem('aiDays');
+    if (saved >= 2 && saved <= 6) return saved;
+    const plan = activePlan();
+    const n = plan && (plan.days || []).length;
+    return n >= 2 && n <= 6 ? n : 3;
+  }
+
   async function buildPlanPrompt() {
     const report = await trainingReport();
     const names = aiPool().map(x => x.name);
-    const plan = activePlan();
-    const dayN = plan && (plan.days || []).length ? plan.days.length : 3;
+    const dayN = aiDaysDefault();
     const pr = getProfile();
+    const focus = focusLabels(pr.focus || []);
     const L = [];
     L.push('You are writing my next training block. I will paste your answer straight '
       + 'into my training app, so the format at the bottom matters as much as the plan.');
@@ -5254,6 +5359,7 @@
     L.push('');
     L.push('WHAT I WANT');
     L.push(`- One block, ${dayN} training day${dayN === 1 ? '' : 's'} a week unless you think that is wrong — say so if you do.`);
+    if (focus.length) L.push(`- Extra attention on: ${focus.join(', ').toLowerCase()} — bias volume there without dropping the rest.`);
     if (pr.sessionMins) L.push(`- Each session has to fit ${pr.sessionMins} minutes including rest.`);
     L.push(/SESSIONS \(0 total/.test(report)
       ? '- I have not logged anything in this app yet, so pick sensible starting weights for my experience and let me correct them.'
@@ -5432,30 +5538,61 @@
     root.appendChild(el('div', 'coach-note',
       'Copy the prompt, paste it to any AI, paste the answer back — done.'));
 
-    /* step one */
+    /* step one — check the dials before the prompt is written */
     const c1 = el('div', 'card ai-step');
     const h1 = el('div', 'ai-step-head');
     h1.appendChild(el('div', 'ai-num', '1'));
     h1.appendChild(el('div', 'ai-step-t', 'Copy the prompt'));
     c1.appendChild(h1);
+
+    let promptText = '';
     const what = el('div', 'hist-meta', 'Reading your training…');
-    c1.appendChild(what);
-    const copy = el('button', 'btn-lime', 'Copy the prompt');
-    copy.style.width = '100%';
-    const seeWrap = el('div');
-    seeWrap.hidden = true;
     const seeBox = el('textarea', 'ai-box');
     seeBox.readOnly = true;
     seeBox.rows = 8;
-    seeWrap.appendChild(seeBox);
-    let promptText = '';
-    buildPlanPrompt().then(t => {
+    const refresh = () => buildPlanPrompt().then(t => {
       promptText = t;
       seeBox.value = t;
       const exN = (t.match(/EXERCISES I CAN PICK FROM \((\d+)/) || [])[1] || '0';
       const sess = (t.match(/SESSIONS \((\d+) total/) || [])[1] || '0';
       what.textContent = `${sess} session${sess === '1' ? '' : 's'} · your numbers, kit, goal · ${exN} exercises`;
     });
+
+    const DAYS = [2, 3, 4, 5, 6];
+    c1.appendChild(el('div', 'micro', 'Days a week'));
+    c1.appendChild(optionRail(DAYS.map(String), DAYS.indexOf(aiDaysDefault()), i => {
+      localStorage.setItem('aiDays', DAYS[i]);
+      refresh();
+    }, 64));
+
+    /* focus is the profile's — the same setting the Settings diagram edits */
+    c1.appendChild(el('div', 'micro', 'Focus'));
+    const fc = el('div', 'fp-chips');
+    const paintFc = () => {
+      const sel = new Set(getProfile().focus || []);
+      fc.querySelectorAll('button').forEach(b => b.classList.toggle('on', sel.has(b.dataset.k)));
+    };
+    FOCUS_GROUPS.forEach(g => {
+      const b = el('button', '', g.label);
+      b.dataset.k = g.key;
+      b.onclick = () => {
+        const pr2 = getProfile();
+        pr2.focus = focusToggle(pr2.focus || [], g.key);
+        localStorage.setItem('profile', JSON.stringify(pr2));
+        haptic(); paintFc(); refresh();
+      };
+      fc.appendChild(b);
+    });
+    paintFc();
+    c1.appendChild(fc);
+
+    c1.appendChild(what);
+    const copy = el('button', 'btn-lime', 'Copy the prompt');
+    copy.style.width = '100%';
+    const seeWrap = el('div');
+    seeWrap.hidden = true;
+    seeWrap.appendChild(seeBox);
+    refresh();
     copy.onclick = async () => {
       if (!promptText) return;
       try {
