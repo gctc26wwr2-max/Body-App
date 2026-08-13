@@ -12,6 +12,7 @@
   --canvas: #0B0908;
   --surface: #151110;
   --sunken: #100C0B;
+  --clay-dim: #6D3A22;                   /* clay at half strength, flattened onto the canvas */
   --ctrl: #241D1A;
   --ctrl-alt: #251E1A;
   --hair: rgba(255,255,255,.06);
@@ -603,7 +604,15 @@ body { font-size: 14px; }
   padding: 4px 0 4px 32px; cursor: pointer;
 }
 .pday-row .ex-node { top: 50%; margin-top: -9px; }
-.pday-row.done { opacity: .5; }
+/* A finished day used to fade the whole row, marker included — and a
+   half-transparent marker let the rail line run straight through the middle of
+   it, which read as the line being drawn on top of the icon. Dim the words and
+   the button instead, and give the marker an opaque muted clay so the line
+   passes behind it like every other node on the rail. */
+.pday-row.done { opacity: 1; }
+.pday-row.done .pd-name, .pday-row.done .pd-meta { opacity: .5; }
+.pday-row.done .pd-go { opacity: .6; }
+.pday-row.done .ex-node.filled { background: var(--clay-dim); border-color: var(--clay-dim); }
 .ex-node.filled { background: var(--lime); border-color: var(--lime); }
 .ex-node.filled i { background: var(--on-accent); }
 .ex-node.active { border-color: var(--lime); }
@@ -621,7 +630,7 @@ body { font-size: 14px; }
 
 /* history rows on the timeline */
 .hrow { position: relative; padding-left: 32px; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
-.hrow.old { opacity: .8; }
+.hrow.old .hrow-body { opacity: .8; }   /* the words fade, the node stays solid */
 .ex-node.small { width: 18px; height: 18px; border-radius: 10px; top: 6px; left: 2px; }  /* centred on the rail line */
 /* ...but on a day row it centres on the row, level with the day name */
 .pday-row .ex-node.small { top: 50%; margin-top: -9px; }
@@ -1628,7 +1637,7 @@ body { font-size: 14px; }
 .exx.passed .exx-head { opacity: .34; filter: grayscale(1); pointer-events: none; }
 .exx.passed .exx-name { text-decoration: line-through; text-decoration-thickness: 1.5px; }
 .exx.passed .exx-count, .exx.passed .drag-grip { display: none; }
-.exx.passed .ex-node { border-style: dashed; border-color: var(--amber-border); background: transparent; }
+.exx.passed .ex-node { border-style: dashed; border-color: var(--amber-border); background: var(--canvas); }
 .exx.passed .ex-node i { background: transparent; }
 .exx-passed { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .pass-tag {
