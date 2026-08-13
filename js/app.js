@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v224';
+  const APP_VERSION = 'v225';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2974,19 +2974,34 @@
       if (lock) {
         const sw = el('button', 'inj-sw sm' + (lock.on ? ' on' : ''));
         sw.appendChild(el('i', 'inj-knob'));
-        sw.onclick = () => { lock.toggle(); haptic(); renderAbout(); };
+        sw.onclick = e => { e.stopPropagation(); lock.toggle(); haptic(); renderAbout(); };
         h.appendChild(sw);
-      } else h.appendChild(el('span'));
+      }
       b.appendChild(h);
       const body = el('div', 'ab-body' + (lock && !lock.on ? ' locked' : ''));
       body.appendChild(node);
       b.appendChild(body);
+      /* A dimmed card used to swallow taps, so reaching for the control did
+         nothing at all. Now the control still works while it is dim: using it
+         is what turns the answer on, and the value you touched is the value
+         you get. */
+      if (lock && !lock.on) {
+        const wake = () => {
+          if (sDraft[key] == null) sDraft[key] = lock.dflt;
+          b.classList.remove('off');
+          body.classList.remove('locked');
+          const s = h.querySelector('.inj-sw');
+          if (s) s.classList.add('on');
+        };
+        body.addEventListener('click', wake);
+        body.addEventListener('pointerup', wake);
+      }
       if (hint) b.appendChild(el('div', 'ab-hint', hint));
       root.appendChild(b);
       return b;
     };
     const lockFor = (key, dflt) => ({
-      on: pr[key] != null,
+      on: pr[key] != null, dflt,
       toggle: () => { if (pr[key] != null) delete sDraft[key]; else sDraft[key] = dflt; }
     });
 
@@ -3027,7 +3042,9 @@
       'Each training day gets a clock in the builder', lockFor('sessionMins', 60));
 
     // ---- who you are ----
-    card('sex', 'Sex', null,
+    const sexOut = el('div', 'ab-val' + (pr.sex ? '' : ' unset'),
+      pr.sex === 'female' ? 'Female' : pr.sex === 'male' ? 'Male' : 'not set');
+    card('sex', 'Sex', sexOut,
       segToggle([['male', 'Male'], ['female', 'Female']], pr.sex || '',
         k => { sDraft.sex = k; renderAbout(); }, 'you-seg'),
       'Only used for the body-fat estimate', lockFor('sex', 'male'));
@@ -3059,7 +3076,7 @@
     const toCm = v => (imperial ? +(v * 2.54).toFixed(1) : v);
     const unit = imperial ? 'in' : 'cm';
 
-    const tapeCard = el('div', 'ab-card tape-card');
+    const tapeCard = el('div', 'ab-card tape-card' + (isSet ? '' : ' off'));
     const th = el('div', 'ab-head');
     th.appendChild(el('div', 'micro', 'Tape measure'));
     const tapeOut = el('div', 'ab-val' + (isSet ? '' : ' unset'));
@@ -3071,7 +3088,8 @@
     th.appendChild(tapeOut);
     const tsw = el('button', 'inj-sw sm' + (isSet ? ' on' : ''));
     tsw.appendChild(el('i', 'inj-knob'));
-    tsw.onclick = () => {
+    tsw.onclick = e => {
+      e.stopPropagation();
       if (isSet) delete sDraft[tape.key]; else sDraft[tape.key] = tape.def;
       haptic(); renderAbout();
     };
@@ -3094,6 +3112,19 @@
     tapeCard.appendChild(el('div', 'ab-hint', tape.hint));
     const bfEl = el('div', 'ab-bf');
     tapeCard.appendChild(bfEl);
+    // same as the other cards: dragging a dimmed tape turns it on and keeps
+    // the figure you dragged to
+    if (!isSet) {
+      const wake = () => {
+        if (sDraft[tape.key] == null) sDraft[tape.key] = tape.def;
+        tapeCard.classList.remove('off');
+        tbody.classList.remove('locked');
+        tsw.classList.add('on');
+        paintTape(fromCm(+sDraft[tape.key]));
+      };
+      tbody.addEventListener('click', wake);
+      tbody.addEventListener('pointerup', wake);
+    }
     root.appendChild(tapeCard);
 
     const bfPaint = () => {
