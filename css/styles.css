@@ -1758,7 +1758,17 @@ body { font-size: 14px; }
 
 /* About you: a list of answers, one dial open at a time */
 .ab-row { padding: 4px 0; }
-.ab-head { cursor: pointer; }
+/* label left, value right against the switch — space-between put the value
+   wherever the label happened to end, so no two rows lined up */
+.ab-head {
+  cursor: pointer; display: grid; grid-template-columns: 1fr auto 44px;
+  align-items: center; gap: 14px;
+}
+.ab-head .micro { min-width: 0; }
+.ab-head .ab-val { text-align: right; }
+.ab-head .inj-sw.sm, .ab-head .ab-go { justify-self: end; margin-left: 0; }
+/* a row with no switch still leaves the column, so the values stay in line */
+.ab-go { width: 100%; text-align: right; }
 .ab-go { color: var(--t7); font-size: 17px; transition: transform .18s ease; margin-left: 4px; }
 .ab-go.open { transform: rotate(90deg); color: var(--lime); }
 .ab-row.open .ab-head .micro { color: var(--lime); }
