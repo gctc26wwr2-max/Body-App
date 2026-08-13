@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v228';
+  const APP_VERSION = 'v229';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2958,8 +2958,7 @@
     root.appendChild(head);
 
     root.appendChild(el('div', 'coach-note',
-      'Six answers. Nothing here is required — a switch turned off just means '
-      + 'not set, and the app works without it.'));
+      'Nothing here is required — off just means not set.'));
 
     /* Every answer is a card that shows its control, because a screen of
        collapsed rows tells you nothing about what it wants. The controls
@@ -3225,8 +3224,7 @@
     root.appendChild(head);
 
     root.appendChild(el('div', 'coach-note',
-      'Rest, alert sound and units work. The rest are placeholders for now — your other '
-      + 'controls are the heart on Profile for About you, and the buttons under Body weight for backup.'));
+      'Rest, alert sound, equipment and units work. The rest are placeholders.'));
 
     PREF_GROUPS.forEach(g => {
       root.appendChild(el('div', 'month-label', g.title));
@@ -3502,7 +3500,7 @@
     const hint = el('div', 'hist-meta');
     hint.style.margin = '8px 0 12px';
     hint.textContent = (lbTs ? `Last backup ${new Date(lbTs).toLocaleDateString('en-GB')} · ` : 'Never backed up · ')
-      + 'in the share sheet choose "Save to Files" → iCloud Drive. Do it monthly — a reminder appears on Today. Photos/videos you attached are not included.';
+      + 'share sheet → "Save to Files" → iCloud Drive. Photos/videos not included.';
     dc.appendChild(hint);
     const report = el('button', 'btn-ghost', 'Report for Claude');
     report.style.cssText = 'width:100%;margin-bottom:10px;color:var(--lime);border-color:var(--lime-border)';
@@ -3510,7 +3508,7 @@
     dc.appendChild(report);
     const rHint = el('div', 'hist-meta');
     rHint.style.margin = '0 0 12px';
-    rHint.textContent = 'Builds a text summary of your program, sessions, times, how they felt, and current numbers — share it into a Claude chat to plan your next block.';
+    rHint.textContent = 'A text summary of your training, for a Claude chat.';
     dc.appendChild(rHint);
     const restoreBtn = el('button', 'btn-ghost', 'Restore from backup');
     restoreBtn.style.cssText = 'width:100%;margin-bottom:10px';
@@ -5170,7 +5168,7 @@
     const q = queuedPlans();
     if (!plans.length) {
       root.appendChild(el('div', 'coach-note',
-        'Three dials — sets, exercise, reps — and the block builds itself. Injuries and the kit you own decide what it can pick from.'));
+        'Three dials — sets, exercise, reps. Your kit and injuries filter the list.'));
       return;
     }
     root.appendChild(el('div', 'micro', 'Your blocks'));
@@ -5432,9 +5430,7 @@
   let aiPasted = '';
   function renderMasterAI(root) {
     root.appendChild(el('div', 'coach-note',
-      'Two steps. Copy a prompt that already carries your history, your numbers, your kit and '
-      + 'anything you are working around — paste it to any AI — then paste its answer back here '
-      + 'and the block builds itself.'));
+      'Copy the prompt, paste it to any AI, paste the answer back — done.'));
 
     /* step one */
     const c1 = el('div', 'card ai-step');
@@ -5458,8 +5454,7 @@
       seeBox.value = t;
       const exN = (t.match(/EXERCISES I CAN PICK FROM \((\d+)/) || [])[1] || '0';
       const sess = (t.match(/SESSIONS \((\d+) total/) || [])[1] || '0';
-      what.textContent = `${sess} logged session${sess === '1' ? '' : 's'} · your numbers, kit and goal · `
-        + `${exN} exercises it is allowed to choose from`;
+      what.textContent = `${sess} session${sess === '1' ? '' : 's'} · your numbers, kit, goal · ${exN} exercises`;
     });
     copy.onclick = async () => {
       if (!promptText) return;
@@ -5489,7 +5484,7 @@
     c2.appendChild(h2);
     const box = el('textarea', 'ai-box');
     box.rows = 5;
-    box.placeholder = 'Paste the whole reply here — the app finds the block in it.';
+    box.placeholder = 'Paste the whole reply here.';
     box.value = aiPasted;
     box.oninput = () => { aiPasted = box.value; };
     c2.appendChild(box);
@@ -5887,7 +5882,7 @@
       wrap.appendChild(add);
     }
     wrap.appendChild(el('div', 'det-hard-note',
-      'Changes here are permanent. To skip it just for today, use Pass on its card during a session.'));
+      'Permanent. To skip one day, use Pass mid-session.'));
     return wrap;
   }
 
@@ -6054,8 +6049,7 @@
     body.appendChild(acts);
     if (!mine) {
       body.appendChild(el('div', 'det-locked',
-        'The name, cues and photos come from the library and stay as they are. '
-        + 'Remove takes it off your list; add your own exercise if you want one you can rewrite.'));
+        'Library exercise — remove it, or add your own to rewrite.'));
     }
     root.appendChild(body);
     show('detail');
