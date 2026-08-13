@@ -1779,3 +1779,37 @@ body { font-size: 14px; }
 .tape-card .ab-bf { margin-top: 2px; padding-top: 10px; border-top: 1px solid var(--hair); }
 /* the cards need air between them */
 #view-about.view.stack { gap: 12px; }
+
+/* ---------- Ask AI: prompt out, block back in ---------- */
+.ai-step { display: flex; flex-direction: column; gap: 10px; }
+.ai-step + .ai-step { margin-top: 12px; }
+.ai-step-head { display: flex; align-items: center; gap: 10px; }
+.ai-num {
+  flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--lime); color: var(--on-accent);
+  font-size: 13px; font-weight: 800; line-height: 24px; text-align: center;
+}
+.ai-step-t { font-size: 15px; font-weight: 800; letter-spacing: -.01em; }
+.ai-box {
+  width: 100%; box-sizing: border-box; resize: vertical;
+  background: var(--sunken); border: 1px solid var(--hair); border-radius: 14px;
+  padding: 12px; color: var(--t2); font-family: inherit; font-size: 13px; line-height: 1.5;
+}
+.ai-box:focus { outline: none; border-color: var(--lime-border); }
+.ai-see { width: 100%; font-size: 13px; }
+.ai-out:empty { display: none; }
+.ai-out { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.ai-good, .ai-bad { font-size: 13px; font-weight: 700; line-height: 1.45; }
+.ai-good { color: var(--lime); }
+.ai-bad { color: var(--amber); }
+.ai-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 9px 0; border-bottom: 1px solid var(--hair);
+}
+.ai-row:last-child { border-bottom: none; }
+.ai-row-l { flex: 1 1 auto; min-width: 0; }
+.ai-row-n { font-size: 14px; font-weight: 700; color: var(--t1); line-height: 1.3; }
+.ai-row-m { flex: 0 0 auto; font-size: 12.5px; color: var(--t5); text-align: right; }
+/* a name the app had to bend, or one it had never heard of */
+.ai-tag { margin-top: 3px; font-size: 11.5px; line-height: 1.35; color: var(--t6); }
+.ai-tag.new { color: var(--amber); }
