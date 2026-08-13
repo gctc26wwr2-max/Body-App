@@ -1755,3 +1755,10 @@ body { font-size: 14px; }
 .pf-item { transition: transform .18s ease-out, opacity .18s ease-out; touch-action: pan-y; }
 .pf-item.swiping { transition: none; }
 .pf-item.will-go { border-color: var(--amber-border); background: var(--grad-amber); }
+
+/* About you: a list of answers, one dial open at a time */
+.ab-row { padding: 4px 0; }
+.ab-head { cursor: pointer; }
+.ab-go { color: var(--t7); font-size: 17px; transition: transform .18s ease; margin-left: 4px; }
+.ab-go.open { transform: rotate(90deg); color: var(--lime); }
+.ab-row.open .ab-head .micro { color: var(--lime); }
