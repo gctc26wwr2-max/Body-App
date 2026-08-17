@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v241';
+  const APP_VERSION = 'v242';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5354,13 +5354,14 @@
       sub.textContent = `${ok.length} of ${(window.EXERCISE_LIBRARY || []).length} exercises · ${own.size} kit`;
       panel.innerHTML = '';
       if (masterTab === 'new') renderMasterNew(panel);
+      else if (masterTab === 'ready') renderMasterReady(panel);
       else if (masterTab === 'ai') renderMasterAI(panel);
       else renderMasterLib(panel);
     };
     /* kit lives in Settings now — it is a handful of switches you set once,
        not something to pick through while building a block */
     root.appendChild(segToggle(
-      [['new', 'New block'], ['ai', 'Ask AI'], ['exercises', 'Library']],
+      [['new', 'Build'], ['ready', 'Ready'], ['ai', 'Ask AI'], ['exercises', 'Library']],
       masterTab === 'equipment' ? 'new' : masterTab,
       k => { masterTab = k; fill(); },
       'master-seg'));
@@ -5443,6 +5444,124 @@
       list.appendChild(pv);
     });
     root.appendChild(list);
+  }
+
+  /* ============================================================
+     READY-MADE BLOCKS
+     Thirty blocks already written, filtered down by who they were built
+     for, how they split the week and how hard they are. Installing one is
+     the same act as finishing your own — queue it behind what is running,
+     or replace it.
+     ============================================================ */
+  const READY_LVL = ['', 'Easy', 'Moderate', 'Hard'];
+  let readyWho = null, readySplit = 'All', readyOpen = null;
+
+  function readyKitGap(plan) {
+    const lib = window.EXERCISE_LIBRARY || [];
+    const miss = new Set();
+    plan.days.forEach(d => d.items.forEach(it => {
+      const rec = lib.find(x => x.name === it[0]);
+      if (rec && !equipOK(rec)) equipOf(rec).forEach(k => {
+        const own = getEquip();
+        if (!own.has(k)) miss.add(k);
+      });
+    }));
+    return [...miss];
+  }
+
+  async function installReady(plan) {
+    const block = {
+      name: plan.name, weeks: plan.weeks, deload: !!plan.deload,
+      days: plan.days.map(d => ({
+        name: d.name,
+        items: d.items.map(([name, sets, lo, hi]) => {
+          const rec = (window.EXERCISE_LIBRARY || []).find(x => x.name === name)
+            || { name, group: 'Other', notes: '' };
+          return { name, rec, sets, repLo: lo, repHi: hi };
+        })
+      }))
+    };
+    return createPlanFromImport(block);
+  }
+
+  function renderMasterReady(root) {
+    const all = window.READY_PLANS || [];
+    if (!all.length) { root.appendChild(el('div', 'coach-note', 'No ready blocks in this build.')); return; }
+    if (readyWho == null) readyWho = getProfile().sex || 'all';
+
+    /* who they were written for, then how the week is split */
+    root.appendChild(segToggle(
+      [['all', 'Anyone'], ['female', 'Women'], ['male', 'Men']], readyWho,
+      k => { readyWho = k; readyOpen = null; renderLibrary(); }, 'you-seg'));
+
+    const forMe = all.filter(p => readyWho === 'all' ? true : (p.who === 'all' || p.who === readyWho));
+    const splits = ['All', ...new Set(forMe.map(p => p.split))];
+    if (!splits.includes(readySplit)) readySplit = 'All';
+    const chips = el('div', 'fp-chips rdy-chips');
+    splits.forEach(sp => {
+      const b = el('button', sp === readySplit ? 'on' : '', sp);
+      b.onclick = () => { readySplit = sp; readyOpen = null; renderLibrary(); };
+      chips.appendChild(b);
+    });
+    root.appendChild(chips);
+
+    const list = forMe.filter(p => readySplit === 'All' || p.split === readySplit);
+    root.appendChild(el('div', 'micro', `${list.length} block${list.length === 1 ? '' : 's'}`));
+
+    const wrap = el('div', 'ex-index');
+    list.forEach(p => {
+      const r = el('div', 'exi-row rdy-row' + (readyOpen === p.id ? ' open' : ''));
+      const bars = el('div', 'hard-bars');
+      for (let i = 1; i <= 3; i++) bars.appendChild(el('i', i <= p.level ? 'on' : ''));
+      r.appendChild(bars);
+      const nm = el('div', 'exi-name', p.name);
+      const total = p.days.reduce((n, d) => n + d.items.length, 0);
+      nm.appendChild(el('span', 'exi-sub',
+        `${p.split} · ${p.days.length}/wk · ${p.weeks}w · ${READY_LVL[p.level]} · ${total} exercises`));
+      r.appendChild(nm);
+      r.appendChild(el('div', 'exi-go', '▾'));
+      wrap.appendChild(r);
+
+      const pv = el('div', 'blk-preview');
+      pv.hidden = readyOpen !== p.id;
+      r.onclick = () => { readyOpen = readyOpen === p.id ? null : p.id; renderLibrary(); };
+      if (readyOpen === p.id) {
+        pv.appendChild(el('div', 'rdy-note', p.note));
+        const gap = readyKitGap(p);
+        if (gap.length) pv.appendChild(el('div', 'rdy-gap',
+          `Needs kit you have switched off: ${gap.join(', ')}`));
+        p.days.forEach(d => {
+          const h = el('div', 'blk-day');
+          h.appendChild(el('div', 'blk-day-name', d.name));
+          h.appendChild(el('div', 'blk-day-meta num', d.items.length + ''));
+          pv.appendChild(h);
+          d.items.forEach(([name, sets, lo, hi]) => {
+            const row = el('div', 'ai-row');
+            const left = el('div', 'ai-row-l');
+            left.appendChild(el('div', 'ai-row-n', name));
+            row.appendChild(left);
+            row.appendChild(el('div', 'ai-row-m num', `${sets} × ${fmtRange(lo, hi)}`));
+            pv.appendChild(row);
+          });
+        });
+        const go = el('button', 'btn-cta big');
+        go.style.cssText = 'width:100%;margin-top:14px';
+        go.textContent = 'Use this block';
+        go.onclick = async e => {
+          e.stopPropagation();
+          go.disabled = true;
+          const made = await installReady(p);
+          if (!made) { go.disabled = false; return; }
+          plans = await DB.all('plans');
+          haptic();
+          masterTab = 'new';
+          renderLibrary();
+        };
+        pv.appendChild(go);
+      }
+      wrap.appendChild(pv);
+    });
+    root.appendChild(wrap);
   }
 
   /* ============================================================
