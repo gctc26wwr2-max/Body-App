@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v236';
+  const APP_VERSION = 'v237';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1435,7 +1435,7 @@
   }
 
   /* ---- live hold timer for timed exercises (plank etc.) ---- */
-  let holdInt = null, holdIdx = -1, holdExIdx = -1, holdEndTs = 0;
+  let holdInt = null, holdIdx = -1, holdExIdx = -1, holdEndTs = 0, holdHeldMs = 0;
   let scrollToEx = false;   // scroll the current exercise into view on next render
 
   function cancelHold() {
@@ -1443,6 +1443,7 @@
     holdInt = null;
     holdIdx = -1;
     holdExIdx = -1;
+    holdHeldMs = 0;
     closeHoldPop();
   }
   function closeHoldPop() {
@@ -1491,8 +1492,23 @@
       });
     }
     pop.hidden = false;
+    /* Pause freezes the clock where it stands — a set can be interrupted by
+       anything, and losing the count means starting the hold again. */
+    holdHeldMs = 0;
+    const hb = $('#hold-pop-hold');
+    const paintHeld = () => {
+      pop.classList.toggle('held', !!holdHeldMs);
+      if (hb) hb.textContent = holdHeldMs ? 'Resume' : 'Pause';
+    };
+    paintHeld();
+    if (hb) hb.onclick = () => {
+      if (holdHeldMs) { holdEndTs = Date.now() + holdHeldMs; holdHeldMs = 0; }
+      else holdHeldMs = Math.max(200, holdEndTs - Date.now());
+      haptic();
+      paintHeld();
+    };
     $('#hold-pop-stop').onclick = () => { cancelHold(); renderWorkout(); };
-    pop.onclick = e => { if (e.target === pop) { cancelHold(); renderWorkout(); } };
+    pop.onclick = e => { if (e.target === pop && !holdHeldMs) { cancelHold(); renderWorkout(); } };
 
     const paint = (left, ph) => {
       pop.classList.toggle('lead', !!ph.lead);
@@ -1503,7 +1519,7 @@
       if (btn) {
         btn.classList.add('on');
         const lbl = btn.querySelector('.hold-lbl');
-        if (lbl) lbl.textContent = ph.lead ? ph.label : fmtClock(left);
+        if (lbl) lbl.textContent = holdHeldMs ? 'Paused' : (ph.lead ? ph.label : fmtClock(left));
       }
     };
     paint(phases[0].dur, phases[0]);
@@ -1511,6 +1527,7 @@
     let lastHoldTick = 0;
     holdInt = setInterval(() => {
       const ph = phases[phase];
+      if (holdHeldMs) { paint(Math.ceil(holdHeldMs / 1000), ph); return; }
       const left = Math.ceil((holdEndTs - Date.now()) / 1000);
       if (left > 0) {
         if (left <= (ph.lead ? 3 : 5) && lastHoldTick !== phase * 1000 + left) {
