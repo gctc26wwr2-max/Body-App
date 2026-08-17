@@ -19,37 +19,43 @@ window.READY_PLANS = [
       "Leg Press",
       2,
       10,
-      15
+      15,
+      "leg-press"
      ],
      [
       "Chest Press Machine",
       2,
       10,
-      15
+      15,
+      "machine-chest-press"
      ],
      [
       "Lat Pulldown",
       2,
       12,
-      15
+      15,
+      "lat-pulldown"
      ],
      [
       "Shoulder Press Machine",
       2,
       12,
-      15
+      15,
+      "machine-shoulder-press"
      ],
      [
       "Seated Leg Curl",
       2,
       12,
-      15
+      15,
+      "seated-leg-curl"
      ],
      [
       "Plank",
       2,
       30,
-      45
+      45,
+      "plank"
      ]
     ]
    },
@@ -60,37 +66,43 @@ window.READY_PLANS = [
       "Goblet Squat",
       2,
       10,
-      15
+      15,
+      "goblet-squat"
      ],
      [
       "Dumbbell Bench Press",
       2,
       10,
-      15
+      15,
+      "dumbbell-bench-press"
      ],
      [
       "Seated Row Machine",
       2,
       12,
-      15
+      15,
+      "seated-cable-row"
      ],
      [
       "Dumbbell Lateral Raise",
       2,
       12,
-      15
+      15,
+      "lateral-raise"
      ],
      [
       "Leg Extension",
       2,
       12,
-      15
+      15,
+      "leg-extension"
      ],
      [
       "Dead Bug",
       2,
       30,
-      45
+      45,
+      "dead-bug"
      ]
     ]
    }
@@ -113,31 +125,36 @@ window.READY_PLANS = [
       "Goblet Squat",
       2,
       10,
-      15
+      15,
+      "goblet-squat"
      ],
      [
       "Dumbbell Bench Press",
       2,
       10,
-      15
+      15,
+      "dumbbell-bench-press"
      ],
      [
       "Lat Pulldown",
       2,
       12,
-      15
+      15,
+      "lat-pulldown"
      ],
      [
       "Dumbbell Lateral Raise",
       2,
       12,
-      15
+      15,
+      "lateral-raise"
      ],
      [
       "Plank",
       2,
       30,
-      45
+      45,
+      "plank"
      ]
     ]
    },
@@ -148,31 +165,36 @@ window.READY_PLANS = [
       "Romanian Deadlift",
       2,
       10,
-      15
+      15,
+      "romanian-deadlift"
      ],
      [
       "Shoulder Press Machine",
       2,
       10,
-      15
+      15,
+      "machine-shoulder-press"
      ],
      [
       "Seated Cable Row",
       2,
       12,
-      15
+      15,
+      "seated-cable-row"
      ],
      [
       "Triceps Pushdown",
       2,
       12,
-      15
+      15,
+      "triceps-pushdown"
      ],
      [
       "Dead Bug",
       2,
       30,
-      45
+      45,
+      "dead-bug"
      ]
     ]
    },
@@ -183,31 +205,36 @@ window.READY_PLANS = [
       "Leg Press",
       2,
       10,
-      15
+      15,
+      "leg-press"
      ],
      [
       "Chest Press Machine",
       2,
       10,
-      15
+      15,
+      "machine-chest-press"
      ],
      [
       "Single-Arm Dumbbell Row",
       2,
       12,
-      15
+      15,
+      "dumbbell-row"
      ],
      [
       "Dumbbell Biceps Curl",
       2,
       12,
-      15
+      15,
+      "dumbbell-curl"
      ],
      [
       "Plank",
       2,
       30,
-      45
+      45,
+      "plank"
      ]
     ]
    }
@@ -230,37 +257,43 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       3,
       8,
-      12
+      12,
+      "box-squat"
      ],
      [
       "Barbell Bench Press",
       3,
       8,
-      12
+      12,
+      "bench-press"
      ],
      [
       "Seated Cable Row",
       3,
       10,
-      15
+      15,
+      "seated-cable-row"
      ],
      [
       "Dumbbell Lateral Raise",
       3,
       10,
-      15
+      15,
+      "lateral-raise"
      ],
      [
       "Lying Leg Curl",
       3,
       10,
-      15
+      15,
+      "leg-curl"
      ],
      [
       "Plank",
       3,
       30,
-      60
+      60,
+      "plank"
      ]
     ]
    },
@@ -271,37 +304,43 @@ window.READY_PLANS = [
       "Romanian Deadlift",
       3,
       8,
-      12
+      12,
+      "romanian-deadlift"
      ],
      [
       "Barbell Overhead Press",
       3,
       8,
-      12
+      12,
+      "overhead-press"
      ],
      [
       "Lat Pulldown",
       3,
       10,
-      15
+      15,
+      "lat-pulldown"
      ],
      [
       "Dumbbell Biceps Curl",
       3,
       10,
-      15
+      15,
+      "dumbbell-curl"
      ],
      [
       "Standing Calf Raise",
       3,
       10,
-      15
+      15,
+      "calf-raise"
      ],
      [
       "Hanging Leg Raise",
       3,
       12,
-      20
+      20,
+      "hanging-leg-raise"
      ]
     ]
    },
@@ -312,37 +351,43 @@ window.READY_PLANS = [
       "Leg Press",
       3,
       8,
-      12
+      12,
+      "leg-press"
      ],
      [
       "Incline Dumbbell Press",
       3,
       8,
-      12
+      12,
+      "incline-dumbbell-press"
      ],
      [
       "Barbell Bent-Over Row",
       3,
       10,
-      15
+      15,
+      "barbell-row"
      ],
      [
       "Rope Triceps Pushdown",
       3,
       10,
-      15
+      15,
+      "rope-triceps-pushdown"
      ],
      [
       "Leg Extension",
       3,
       10,
-      15
+      15,
+      "leg-extension"
      ],
      [
       "Cable Crunch",
       3,
       12,
-      20
+      20,
+      "cable-crunch"
      ]
     ]
    }
@@ -365,37 +410,43 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       4,
       5,
-      8
+      8,
+      "box-squat"
      ],
      [
       "Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "bench-press"
      ],
      [
       "Barbell Bent-Over Row",
       4,
       5,
-      8
+      8,
+      "barbell-row"
      ],
      [
       "Romanian Deadlift",
       3,
       8,
-      12
+      12,
+      "romanian-deadlift"
      ],
      [
       "Dumbbell Lateral Raise",
       3,
       8,
-      12
+      12,
+      "lateral-raise"
      ],
      [
       "Ab Wheel Rollout",
       3,
       12,
-      20
+      20,
+      "ab-wheel-rollout"
      ]
     ]
    },
@@ -406,37 +457,43 @@ window.READY_PLANS = [
       "Conventional Deadlift",
       4,
       5,
-      8
+      8,
+      "deadlift"
      ],
      [
       "Barbell Overhead Press",
       4,
       5,
-      8
+      8,
+      "overhead-press"
      ],
      [
       "Pull-Up",
       4,
       5,
-      8
+      8,
+      "pull-up"
      ],
      [
       "Bulgarian Split Squat",
       3,
       8,
-      12
+      12,
+      "bulgarian-split-squat"
      ],
      [
       "Rope Triceps Pushdown",
       3,
       8,
-      12
+      12,
+      "rope-triceps-pushdown"
      ],
      [
       "Plank",
       3,
       45,
-      60
+      60,
+      "plank"
      ]
     ]
    },
@@ -447,37 +504,43 @@ window.READY_PLANS = [
       "Barbell Front Squat",
       4,
       5,
-      8
+      8,
+      "front-squat"
      ],
      [
       "Incline Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "incline-barbell-bench-press"
      ],
      [
       "T-Bar Row",
       4,
       5,
-      8
+      8,
+      "t-bar-row"
      ],
      [
       "Barbell Hip Thrust",
       3,
       8,
-      12
+      12,
+      "hip-thrust"
      ],
      [
       "Barbell Biceps Curl",
       3,
       8,
-      12
+      12,
+      "barbell-curl"
      ],
      [
       "Hanging Leg Raise",
       3,
       12,
-      20
+      20,
+      "hanging-leg-raise"
      ]
     ]
    }
@@ -500,37 +563,43 @@ window.READY_PLANS = [
       "Leg Press",
       2,
       10,
-      15
+      15,
+      "leg-press"
      ],
      [
       "Chest Press Machine",
       2,
       10,
-      15
+      15,
+      "machine-chest-press"
      ],
      [
       "Seated Row Machine",
       2,
       12,
-      15
+      15,
+      "seated-cable-row"
      ],
      [
       "Shoulder Press Machine",
       2,
       12,
-      15
+      15,
+      "machine-shoulder-press"
      ],
      [
       "Leg Extension",
       2,
       12,
-      15
+      15,
+      "leg-extension"
      ],
      [
       "Captain's Chair Knee Raise",
       2,
       12,
-      20
+      20,
+      "hanging-leg-raise"
      ]
     ]
    },
@@ -541,37 +610,43 @@ window.READY_PLANS = [
       "Hack Squat Machine",
       2,
       10,
-      15
+      15,
+      "hack-squat-machine"
      ],
      [
       "Pec Deck / Machine Fly",
       2,
       10,
-      15
+      15,
+      "pec-deck-machine-fly"
      ],
      [
       "Lat Pulldown",
       2,
       12,
-      15
+      15,
+      "lat-pulldown"
      ],
      [
       "Lateral Raise Machine",
       2,
       12,
-      15
+      15,
+      "lateral-raise"
      ],
      [
       "Seated Leg Curl",
       2,
       12,
-      15
+      15,
+      "seated-leg-curl"
      ],
      [
       "Cable Crunch",
       2,
       12,
-      20
+      20,
+      "cable-crunch"
      ]
     ]
    },
@@ -582,37 +657,43 @@ window.READY_PLANS = [
       "Hip Thrust Machine",
       2,
       10,
-      15
+      15,
+      "hip-thrust"
      ],
      [
       "Assisted Dip Machine",
       2,
       10,
-      15
+      15,
+      "assisted-dip-machine"
      ],
      [
       "Close-Grip Lat Pulldown",
       2,
       12,
-      15
+      15,
+      "close-grip-lat-pulldown"
      ],
      [
       "Biceps Curl Machine",
       2,
       12,
-      15
+      15,
+      "biceps-curl-machine"
      ],
      [
       "Standing Calf Raise",
       2,
       12,
-      15
+      15,
+      "calf-raise"
      ],
      [
       "Plank",
       2,
       30,
-      45
+      45,
+      "plank"
      ]
     ]
    }
@@ -635,37 +716,43 @@ window.READY_PLANS = [
       "Goblet Squat",
       3,
       8,
-      12
+      12,
+      "goblet-squat"
      ],
      [
       "Dumbbell Bench Press",
       3,
       8,
-      12
+      12,
+      "dumbbell-bench-press"
      ],
      [
       "Single-Arm Dumbbell Row",
       3,
       10,
-      15
+      15,
+      "dumbbell-row"
      ],
      [
       "Dumbbell Shoulder Press",
       3,
       10,
-      15
+      15,
+      "dumbbell-shoulder-press"
      ],
      [
       "Dumbbell Romanian Deadlift",
       3,
       10,
-      15
+      15,
+      "romanian-deadlift"
      ],
      [
       "Plank",
       3,
       30,
-      60
+      60,
+      "plank"
      ]
     ]
    },
@@ -676,37 +763,43 @@ window.READY_PLANS = [
       "Bulgarian Split Squat",
       3,
       8,
-      12
+      12,
+      "bulgarian-split-squat"
      ],
      [
       "Incline Dumbbell Press",
       3,
       8,
-      12
+      12,
+      "incline-dumbbell-press"
      ],
      [
       "Single-Arm Dumbbell Row",
       3,
       10,
-      15
+      15,
+      "dumbbell-row"
      ],
      [
       "Dumbbell Lateral Raise",
       3,
       10,
-      15
+      15,
+      "lateral-raise"
      ],
      [
       "Hammer Curl",
       3,
       10,
-      15
+      15,
+      "hammer-curl"
      ],
      [
       "Farmer's Carry",
       3,
       30,
-      60
+      60,
+      "farmer-s-carry"
      ]
     ]
    },
@@ -717,37 +810,43 @@ window.READY_PLANS = [
       "Dumbbell Squat",
       3,
       8,
-      12
+      12,
+      "dumbbell-squat"
      ],
      [
       "Seated Dumbbell Press",
       3,
       8,
-      12
+      12,
+      "seated-dumbbell-press"
      ],
      [
       "Rear Delt Fly",
       3,
       10,
-      15
+      15,
+      "rear-delt-fly"
      ],
      [
       "Overhead Triceps Extension",
       3,
       10,
-      15
+      15,
+      "overhead-triceps-extension"
      ],
      [
       "Step-Up",
       3,
       10,
-      15
+      15,
+      "step-up"
      ],
      [
       "Dead Bug",
       3,
       30,
-      60
+      60,
+      "dead-bug"
      ]
     ]
    }
@@ -770,37 +869,43 @@ window.READY_PLANS = [
       "Barbell Bench Press",
       3,
       8,
-      12
+      12,
+      "bench-press"
      ],
      [
       "Barbell Bent-Over Row",
       3,
       8,
-      12
+      12,
+      "barbell-row"
      ],
      [
       "Dumbbell Shoulder Press",
       3,
       10,
-      15
+      15,
+      "dumbbell-shoulder-press"
      ],
      [
       "Lat Pulldown",
       3,
       10,
-      15
+      15,
+      "lat-pulldown"
      ],
      [
       "Dumbbell Biceps Curl",
       3,
       10,
-      15
+      15,
+      "dumbbell-curl"
      ],
      [
       "Rope Triceps Pushdown",
       3,
       10,
-      15
+      15,
+      "rope-triceps-pushdown"
      ]
     ]
    },
@@ -811,37 +916,43 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       3,
       8,
-      12
+      12,
+      "box-squat"
      ],
      [
       "Romanian Deadlift",
       3,
       8,
-      12
+      12,
+      "romanian-deadlift"
      ],
      [
       "Leg Press",
       3,
       10,
-      15
+      15,
+      "leg-press"
      ],
      [
       "Lying Leg Curl",
       3,
       10,
-      15
+      15,
+      "leg-curl"
      ],
      [
       "Standing Calf Raise",
       3,
       10,
-      15
+      15,
+      "calf-raise"
      ],
      [
       "Plank",
       3,
       30,
-      60
+      60,
+      "plank"
      ]
     ]
    },
@@ -852,37 +963,43 @@ window.READY_PLANS = [
       "Incline Dumbbell Press",
       3,
       8,
-      12
+      12,
+      "incline-dumbbell-press"
      ],
      [
       "Seated Cable Row",
       3,
       8,
-      12
+      12,
+      "seated-cable-row"
      ],
      [
       "Barbell Overhead Press",
       3,
       10,
-      15
+      15,
+      "overhead-press"
      ],
      [
       "Close-Grip Lat Pulldown",
       3,
       10,
-      15
+      15,
+      "close-grip-lat-pulldown"
      ],
      [
       "Hammer Curl",
       3,
       10,
-      15
+      15,
+      "hammer-curl"
      ],
      [
       "Triceps Pushdown",
       3,
       10,
-      15
+      15,
+      "triceps-pushdown"
      ]
     ]
    },
@@ -893,37 +1010,43 @@ window.READY_PLANS = [
       "Trap Bar Deadlift",
       3,
       8,
-      12
+      12,
+      "trap-bar-deadlift"
      ],
      [
       "Bulgarian Split Squat",
       3,
       8,
-      12
+      12,
+      "bulgarian-split-squat"
      ],
      [
       "Hip Thrust Machine",
       3,
       10,
-      15
+      15,
+      "hip-thrust"
      ],
      [
       "Leg Extension",
       3,
       10,
-      15
+      15,
+      "leg-extension"
      ],
      [
       "Seated Calf Raise",
       3,
       10,
-      15
+      15,
+      "seated-calf-raise"
      ],
      [
       "Cable Crunch",
       3,
       12,
-      20
+      20,
+      "cable-crunch"
      ]
     ]
    }
@@ -946,31 +1069,36 @@ window.READY_PLANS = [
       "Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "bench-press"
      ],
      [
       "Barbell Bent-Over Row",
       4,
       5,
-      8
+      8,
+      "barbell-row"
      ],
      [
       "Barbell Overhead Press",
       4,
       5,
-      8
+      8,
+      "overhead-press"
      ],
      [
       "Pull-Up",
       3,
       8,
-      12
+      12,
+      "pull-up"
      ],
      [
       "Skullcrusher",
       3,
       8,
-      12
+      12,
+      "skull-crusher"
      ]
     ]
    },
@@ -981,31 +1109,36 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       4,
       5,
-      8
+      8,
+      "box-squat"
      ],
      [
       "Romanian Deadlift",
       4,
       5,
-      8
+      8,
+      "romanian-deadlift"
      ],
      [
       "Leg Press",
       3,
       8,
-      12
+      12,
+      "leg-press"
      ],
      [
       "Lying Leg Curl",
       3,
       8,
-      12
+      12,
+      "leg-curl"
      ],
      [
       "Ab Wheel Rollout",
       3,
       12,
-      20
+      20,
+      "ab-wheel-rollout"
      ]
     ]
    },
@@ -1016,31 +1149,36 @@ window.READY_PLANS = [
       "Incline Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "incline-barbell-bench-press"
      ],
      [
       "Chin-Up",
       4,
       5,
-      8
+      8,
+      "chin-up"
      ],
      [
       "Push Press",
       4,
       5,
-      8
+      8,
+      "push-press"
      ],
      [
       "T-Bar Row",
       3,
       8,
-      12
+      12,
+      "t-bar-row"
      ],
      [
       "EZ-Bar Curl",
       3,
       8,
-      12
+      12,
+      "ez-bar-curl"
      ]
     ]
    },
@@ -1051,31 +1189,36 @@ window.READY_PLANS = [
       "Conventional Deadlift",
       4,
       5,
-      8
+      8,
+      "deadlift"
      ],
      [
       "Barbell Front Squat",
       4,
       5,
-      8
+      8,
+      "front-squat"
      ],
      [
       "Barbell Hip Thrust",
       3,
       8,
-      12
+      12,
+      "hip-thrust"
      ],
      [
       "Seated Leg Curl",
       3,
       8,
-      12
+      12,
+      "seated-leg-curl"
      ],
      [
       "Hanging Leg Raise",
       3,
       12,
-      20
+      20,
+      "hanging-leg-raise"
      ]
     ]
    }
@@ -1098,25 +1241,29 @@ window.READY_PLANS = [
       "Chest Press Machine",
       2,
       10,
-      15
+      15,
+      "machine-chest-press"
      ],
      [
       "Seated Row Machine",
       2,
       10,
-      15
+      15,
+      "seated-cable-row"
      ],
      [
       "Shoulder Press Machine",
       2,
       12,
-      15
+      15,
+      "machine-shoulder-press"
      ],
      [
       "Biceps Curl Machine",
       2,
       12,
-      15
+      15,
+      "biceps-curl-machine"
      ]
     ]
    },
@@ -1127,31 +1274,36 @@ window.READY_PLANS = [
       "Leg Press",
       2,
       10,
-      15
+      15,
+      "leg-press"
      ],
      [
       "Seated Leg Curl",
       2,
       10,
-      15
+      15,
+      "seated-leg-curl"
      ],
      [
       "Leg Extension",
       2,
       12,
-      15
+      15,
+      "leg-extension"
      ],
      [
       "Standing Calf Raise",
       2,
       12,
-      15
+      15,
+      "calf-raise"
      ],
      [
       "Plank",
       2,
       30,
-      45
+      45,
+      "plank"
      ]
     ]
    },
@@ -1162,25 +1314,29 @@ window.READY_PLANS = [
       "Pec Deck / Machine Fly",
       2,
       10,
-      15
+      15,
+      "pec-deck-machine-fly"
      ],
      [
       "Lat Pulldown",
       2,
       10,
-      15
+      15,
+      "lat-pulldown"
      ],
      [
       "Lateral Raise Machine",
       2,
       12,
-      15
+      15,
+      "lateral-raise"
      ],
      [
       "Triceps Extension Machine",
       2,
       12,
-      15
+      15,
+      "triceps-extension-machine"
      ]
     ]
    },
@@ -1191,31 +1347,36 @@ window.READY_PLANS = [
       "Hip Thrust Machine",
       2,
       10,
-      15
+      15,
+      "hip-thrust"
      ],
      [
       "Goblet Squat",
       2,
       10,
-      15
+      15,
+      "goblet-squat"
      ],
      [
       "Hip Abduction Machine",
       2,
       12,
-      15
+      15,
+      "hip-abduction-machine"
      ],
      [
       "Seated Calf Raise",
       2,
       12,
-      15
+      15,
+      "seated-calf-raise"
      ],
      [
       "Dead Bug",
       2,
       30,
-      45
+      45,
+      "dead-bug"
      ]
     ]
    }
@@ -1238,37 +1399,43 @@ window.READY_PLANS = [
       "Barbell Hip Thrust",
       3,
       8,
-      12
+      12,
+      "hip-thrust"
      ],
      [
       "Romanian Deadlift",
       3,
       8,
-      12
+      12,
+      "romanian-deadlift"
      ],
      [
       "Bulgarian Split Squat",
       3,
       10,
-      15
+      15,
+      "bulgarian-split-squat"
      ],
      [
       "Hip Abduction Machine",
       3,
       10,
-      15
+      15,
+      "hip-abduction-machine"
      ],
      [
       "Cable Glute Kickback",
       3,
       10,
-      15
+      15,
+      "cable-glute-kickback"
      ],
      [
       "Plank",
       3,
       30,
-      60
+      60,
+      "plank"
      ]
     ]
    },
@@ -1279,31 +1446,36 @@ window.READY_PLANS = [
       "Dumbbell Bench Press",
       3,
       8,
-      12
+      12,
+      "dumbbell-bench-press"
      ],
      [
       "Lat Pulldown",
       3,
       8,
-      12
+      12,
+      "lat-pulldown"
      ],
      [
       "Dumbbell Shoulder Press",
       3,
       10,
-      15
+      15,
+      "dumbbell-shoulder-press"
      ],
      [
       "Seated Cable Row",
       3,
       10,
-      15
+      15,
+      "seated-cable-row"
      ],
      [
       "Dumbbell Biceps Curl",
       3,
       10,
-      15
+      15,
+      "dumbbell-curl"
      ]
     ]
    },
@@ -1314,37 +1486,43 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       3,
       8,
-      12
+      12,
+      "box-squat"
      ],
      [
       "Cable Pull-Through",
       3,
       8,
-      12
+      12,
+      "cable-pull-through"
      ],
      [
       "Walking Lunge",
       3,
       10,
-      15
+      15,
+      "walking-lunge"
      ],
      [
       "Seated Leg Curl",
       3,
       10,
-      15
+      15,
+      "seated-leg-curl"
      ],
      [
       "Standing Calf Raise",
       3,
       10,
-      15
+      15,
+      "calf-raise"
      ],
      [
       "Cable Crunch",
       3,
       12,
-      20
+      20,
+      "cable-crunch"
      ]
     ]
    },
@@ -1355,31 +1533,36 @@ window.READY_PLANS = [
       "Incline Dumbbell Press",
       3,
       8,
-      12
+      12,
+      "incline-dumbbell-press"
      ],
      [
       "Seated Row Machine",
       3,
       8,
-      12
+      12,
+      "seated-cable-row"
      ],
      [
       "Cable Lateral Raise",
       3,
       10,
-      15
+      15,
+      "cable-lateral-raise"
      ],
      [
       "Face Pull",
       3,
       10,
-      15
+      15,
+      "face-pull"
      ],
      [
       "Rope Triceps Pushdown",
       3,
       10,
-      15
+      15,
+      "rope-triceps-pushdown"
      ]
     ]
    }
@@ -1402,37 +1585,43 @@ window.READY_PLANS = [
       "Barbell Bench Press",
       3,
       8,
-      12
+      12,
+      "bench-press"
      ],
      [
       "Barbell Bent-Over Row",
       3,
       8,
-      12
+      12,
+      "barbell-row"
      ],
      [
       "Barbell Biceps Curl",
       3,
       10,
-      15
+      15,
+      "barbell-curl"
      ],
      [
       "Skullcrusher",
       3,
       10,
-      15
+      15,
+      "skull-crusher"
      ],
      [
       "Hammer Curl",
       3,
       10,
-      15
+      15,
+      "hammer-curl"
      ],
      [
       "Rope Triceps Pushdown",
       3,
       10,
-      15
+      15,
+      "rope-triceps-pushdown"
      ]
     ]
    },
@@ -1443,37 +1632,43 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       3,
       8,
-      12
+      12,
+      "box-squat"
      ],
      [
       "Romanian Deadlift",
       3,
       8,
-      12
+      12,
+      "romanian-deadlift"
      ],
      [
       "Leg Press",
       3,
       10,
-      15
+      15,
+      "leg-press"
      ],
      [
       "Lying Leg Curl",
       3,
       10,
-      15
+      15,
+      "leg-curl"
      ],
      [
       "Standing Calf Raise",
       3,
       10,
-      15
+      15,
+      "calf-raise"
      ],
      [
       "Plank",
       3,
       30,
-      60
+      60,
+      "plank"
      ]
     ]
    },
@@ -1484,37 +1679,43 @@ window.READY_PLANS = [
       "Incline Dumbbell Press",
       3,
       8,
-      12
+      12,
+      "incline-dumbbell-press"
      ],
      [
       "Pull-Up",
       3,
       8,
-      12
+      12,
+      "pull-up"
      ],
      [
       "Preacher Curl",
       3,
       10,
-      15
+      15,
+      "preacher-curl"
      ],
      [
       "Close-Grip Bench Press",
       3,
       10,
-      15
+      15,
+      "close-grip-bench-press"
      ],
      [
       "Incline Dumbbell Curl",
       3,
       10,
-      15
+      15,
+      "incline-dumbbell-curl"
      ],
      [
       "Overhead Triceps Extension",
       3,
       10,
-      15
+      15,
+      "overhead-triceps-extension"
      ]
     ]
    },
@@ -1525,37 +1726,43 @@ window.READY_PLANS = [
       "Trap Bar Deadlift",
       3,
       8,
-      12
+      12,
+      "trap-bar-deadlift"
      ],
      [
       "Leg Press",
       3,
       8,
-      12
+      12,
+      "leg-press"
      ],
      [
       "Bulgarian Split Squat",
       3,
       10,
-      15
+      15,
+      "bulgarian-split-squat"
      ],
      [
       "Seated Leg Curl",
       3,
       10,
-      15
+      15,
+      "seated-leg-curl"
      ],
      [
       "Seated Calf Raise",
       3,
       10,
-      15
+      15,
+      "seated-calf-raise"
      ],
      [
       "Hanging Leg Raise",
       3,
       12,
-      20
+      20,
+      "hanging-leg-raise"
      ]
     ]
    }
@@ -1578,31 +1785,36 @@ window.READY_PLANS = [
       "Barbell Bench Press",
       3,
       8,
-      12
+      12,
+      "bench-press"
      ],
      [
       "Barbell Overhead Press",
       3,
       8,
-      12
+      12,
+      "overhead-press"
      ],
      [
       "Incline Dumbbell Press",
       3,
       10,
-      15
+      15,
+      "incline-dumbbell-press"
      ],
      [
       "Dumbbell Lateral Raise",
       3,
       10,
-      15
+      15,
+      "lateral-raise"
      ],
      [
       "Rope Triceps Pushdown",
       3,
       10,
-      15
+      15,
+      "rope-triceps-pushdown"
      ]
     ]
    },
@@ -1613,31 +1825,36 @@ window.READY_PLANS = [
       "Barbell Bent-Over Row",
       3,
       8,
-      12
+      12,
+      "barbell-row"
      ],
      [
       "Lat Pulldown",
       3,
       8,
-      12
+      12,
+      "lat-pulldown"
      ],
      [
       "Seated Cable Row",
       3,
       10,
-      15
+      15,
+      "seated-cable-row"
      ],
      [
       "Face Pull",
       3,
       10,
-      15
+      15,
+      "face-pull"
      ],
      [
       "Dumbbell Biceps Curl",
       3,
       10,
-      15
+      15,
+      "dumbbell-curl"
      ]
     ]
    },
@@ -1648,37 +1865,43 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       3,
       8,
-      12
+      12,
+      "box-squat"
      ],
      [
       "Romanian Deadlift",
       3,
       8,
-      12
+      12,
+      "romanian-deadlift"
      ],
      [
       "Leg Press",
       3,
       10,
-      15
+      15,
+      "leg-press"
      ],
      [
       "Lying Leg Curl",
       3,
       10,
-      15
+      15,
+      "leg-curl"
      ],
      [
       "Standing Calf Raise",
       3,
       10,
-      15
+      15,
+      "calf-raise"
      ],
      [
       "Plank",
       3,
       30,
-      60
+      60,
+      "plank"
      ]
     ]
    }
@@ -1701,31 +1924,36 @@ window.READY_PLANS = [
       "Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "bench-press"
      ],
      [
       "Barbell Overhead Press",
       4,
       5,
-      8
+      8,
+      "overhead-press"
      ],
      [
       "Incline Dumbbell Press",
       3,
       8,
-      12
+      12,
+      "incline-dumbbell-press"
      ],
      [
       "Cable Lateral Raise",
       3,
       8,
-      12
+      12,
+      "cable-lateral-raise"
      ],
      [
       "Skullcrusher",
       3,
       8,
-      12
+      12,
+      "skull-crusher"
      ]
     ]
    },
@@ -1736,31 +1964,36 @@ window.READY_PLANS = [
       "Barbell Bent-Over Row",
       4,
       5,
-      8
+      8,
+      "barbell-row"
      ],
      [
       "Pull-Up",
       4,
       5,
-      8
+      8,
+      "pull-up"
      ],
      [
       "Seated Cable Row",
       3,
       8,
-      12
+      12,
+      "seated-cable-row"
      ],
      [
       "Face Pull",
       3,
       8,
-      12
+      12,
+      "face-pull"
      ],
      [
       "Barbell Biceps Curl",
       3,
       8,
-      12
+      12,
+      "barbell-curl"
      ]
     ]
    },
@@ -1771,37 +2004,43 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       4,
       5,
-      8
+      8,
+      "box-squat"
      ],
      [
       "Romanian Deadlift",
       4,
       5,
-      8
+      8,
+      "romanian-deadlift"
      ],
      [
       "Leg Press",
       3,
       8,
-      12
+      12,
+      "leg-press"
      ],
      [
       "Lying Leg Curl",
       3,
       8,
-      12
+      12,
+      "leg-curl"
      ],
      [
       "Standing Calf Raise",
       3,
       8,
-      12
+      12,
+      "calf-raise"
      ],
      [
       "Ab Wheel Rollout",
       3,
       12,
-      20
+      20,
+      "ab-wheel-rollout"
      ]
     ]
    },
@@ -1812,31 +2051,36 @@ window.READY_PLANS = [
       "Incline Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "incline-barbell-bench-press"
      ],
      [
       "Seated Dumbbell Press",
       4,
       5,
-      8
+      8,
+      "seated-dumbbell-press"
      ],
      [
       "Chest Dip",
       3,
       8,
-      12
+      12,
+      "chest-dip"
      ],
      [
       "Rear Delt Fly",
       3,
       8,
-      12
+      12,
+      "rear-delt-fly"
      ],
      [
       "Rope Triceps Pushdown",
       3,
       8,
-      12
+      12,
+      "rope-triceps-pushdown"
      ]
     ]
    },
@@ -1847,31 +2091,36 @@ window.READY_PLANS = [
       "T-Bar Row",
       4,
       5,
-      8
+      8,
+      "t-bar-row"
      ],
      [
       "Close-Grip Lat Pulldown",
       4,
       5,
-      8
+      8,
+      "close-grip-lat-pulldown"
      ],
      [
       "Chest-Supported Row",
       3,
       8,
-      12
+      12,
+      "chest-supported-row"
      ],
      [
       "Straight-Arm Pulldown",
       3,
       8,
-      12
+      12,
+      "straight-arm-pulldown"
      ],
      [
       "EZ-Bar Curl",
       3,
       8,
-      12
+      12,
+      "ez-bar-curl"
      ]
     ]
    },
@@ -1882,37 +2131,43 @@ window.READY_PLANS = [
       "Conventional Deadlift",
       4,
       5,
-      8
+      8,
+      "deadlift"
      ],
      [
       "Barbell Front Squat",
       4,
       5,
-      8
+      8,
+      "front-squat"
      ],
      [
       "Bulgarian Split Squat",
       3,
       8,
-      12
+      12,
+      "bulgarian-split-squat"
      ],
      [
       "Seated Leg Curl",
       3,
       8,
-      12
+      12,
+      "seated-leg-curl"
      ],
      [
       "Seated Calf Raise",
       3,
       8,
-      12
+      12,
+      "seated-calf-raise"
      ],
      [
       "Hanging Leg Raise",
       3,
       12,
-      20
+      20,
+      "hanging-leg-raise"
      ]
     ]
    }
@@ -1935,25 +2190,29 @@ window.READY_PLANS = [
       "Chest Press Machine",
       2,
       10,
-      15
+      15,
+      "machine-chest-press"
      ],
      [
       "Shoulder Press Machine",
       2,
       10,
-      15
+      15,
+      "machine-shoulder-press"
      ],
      [
       "Pec Deck / Machine Fly",
       2,
       12,
-      15
+      15,
+      "pec-deck-machine-fly"
      ],
      [
       "Triceps Pushdown",
       2,
       12,
-      15
+      15,
+      "triceps-pushdown"
      ]
     ]
    },
@@ -1964,25 +2223,29 @@ window.READY_PLANS = [
       "Lat Pulldown",
       2,
       10,
-      15
+      15,
+      "lat-pulldown"
      ],
      [
       "Seated Row Machine",
       2,
       10,
-      15
+      15,
+      "seated-cable-row"
      ],
      [
       "Face Pull",
       2,
       12,
-      15
+      15,
+      "face-pull"
      ],
      [
       "Biceps Curl Machine",
       2,
       12,
-      15
+      15,
+      "biceps-curl-machine"
      ]
     ]
    },
@@ -1993,31 +2256,36 @@ window.READY_PLANS = [
       "Leg Press",
       2,
       10,
-      15
+      15,
+      "leg-press"
      ],
      [
       "Seated Leg Curl",
       2,
       10,
-      15
+      15,
+      "seated-leg-curl"
      ],
      [
       "Leg Extension",
       2,
       12,
-      15
+      15,
+      "leg-extension"
      ],
      [
       "Standing Calf Raise",
       2,
       12,
-      15
+      15,
+      "calf-raise"
      ],
      [
       "Plank",
       2,
       30,
-      45
+      45,
+      "plank"
      ]
     ]
    }
@@ -2040,37 +2308,43 @@ window.READY_PLANS = [
       "Barbell Hip Thrust",
       3,
       8,
-      12
+      12,
+      "hip-thrust"
      ],
      [
       "Romanian Deadlift",
       3,
       8,
-      12
+      12,
+      "romanian-deadlift"
      ],
      [
       "Walking Lunge",
       3,
       10,
-      15
+      15,
+      "walking-lunge"
      ],
      [
       "Hip Abduction Machine",
       3,
       10,
-      15
+      15,
+      "hip-abduction-machine"
      ],
      [
       "Seated Leg Curl",
       3,
       10,
-      15
+      15,
+      "seated-leg-curl"
      ],
      [
       "Plank",
       3,
       30,
-      60
+      60,
+      "plank"
      ]
     ]
    },
@@ -2081,31 +2355,36 @@ window.READY_PLANS = [
       "Dumbbell Bench Press",
       3,
       8,
-      12
+      12,
+      "dumbbell-bench-press"
      ],
      [
       "Dumbbell Shoulder Press",
       3,
       8,
-      12
+      12,
+      "dumbbell-shoulder-press"
      ],
      [
       "Cable Chest Fly",
       3,
       10,
-      15
+      15,
+      "dumbbell-fly"
      ],
      [
       "Cable Lateral Raise",
       3,
       10,
-      15
+      15,
+      "cable-lateral-raise"
      ],
      [
       "Rope Triceps Pushdown",
       3,
       10,
-      15
+      15,
+      "rope-triceps-pushdown"
      ]
     ]
    },
@@ -2116,31 +2395,36 @@ window.READY_PLANS = [
       "Lat Pulldown",
       3,
       8,
-      12
+      12,
+      "lat-pulldown"
      ],
      [
       "Seated Cable Row",
       3,
       8,
-      12
+      12,
+      "seated-cable-row"
      ],
      [
       "Face Pull",
       3,
       10,
-      15
+      15,
+      "face-pull"
      ],
      [
       "Rear Delt Fly",
       3,
       10,
-      15
+      15,
+      "rear-delt-fly"
      ],
      [
       "Dumbbell Biceps Curl",
       3,
       10,
-      15
+      15,
+      "dumbbell-curl"
      ]
     ]
    },
@@ -2151,37 +2435,43 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       3,
       8,
-      12
+      12,
+      "box-squat"
      ],
      [
       "Cable Pull-Through",
       3,
       8,
-      12
+      12,
+      "cable-pull-through"
      ],
      [
       "Bulgarian Split Squat",
       3,
       10,
-      15
+      15,
+      "bulgarian-split-squat"
      ],
      [
       "Cable Glute Kickback",
       3,
       10,
-      15
+      15,
+      "cable-glute-kickback"
      ],
      [
       "Standing Calf Raise",
       3,
       10,
-      15
+      15,
+      "calf-raise"
      ],
      [
       "Cable Crunch",
       3,
       12,
-      20
+      20,
+      "cable-crunch"
      ]
     ]
    }
@@ -2204,31 +2494,36 @@ window.READY_PLANS = [
       "Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "bench-press"
      ],
      [
       "Incline Dumbbell Press",
       4,
       5,
-      8
+      8,
+      "incline-dumbbell-press"
      ],
      [
       "Chest Dip",
       3,
       8,
-      12
+      12,
+      "chest-dip"
      ],
      [
       "Cable Lateral Raise",
       3,
       8,
-      12
+      12,
+      "cable-lateral-raise"
      ],
      [
       "Skullcrusher",
       3,
       8,
-      12
+      12,
+      "skull-crusher"
      ]
     ]
    },
@@ -2239,31 +2534,36 @@ window.READY_PLANS = [
       "Barbell Bent-Over Row",
       4,
       5,
-      8
+      8,
+      "barbell-row"
      ],
      [
       "Pull-Up",
       4,
       5,
-      8
+      8,
+      "pull-up"
      ],
      [
       "Chest-Supported Row",
       3,
       8,
-      12
+      12,
+      "chest-supported-row"
      ],
      [
       "Face Pull",
       3,
       8,
-      12
+      12,
+      "face-pull"
      ],
      [
       "Barbell Biceps Curl",
       3,
       8,
-      12
+      12,
+      "barbell-curl"
      ]
     ]
    },
@@ -2274,37 +2574,43 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       4,
       5,
-      8
+      8,
+      "box-squat"
      ],
      [
       "Romanian Deadlift",
       4,
       5,
-      8
+      8,
+      "romanian-deadlift"
      ],
      [
       "Leg Press",
       3,
       8,
-      12
+      12,
+      "leg-press"
      ],
      [
       "Lying Leg Curl",
       3,
       8,
-      12
+      12,
+      "leg-curl"
      ],
      [
       "Standing Calf Raise",
       3,
       8,
-      12
+      12,
+      "calf-raise"
      ],
      [
       "Hanging Leg Raise",
       3,
       12,
-      20
+      20,
+      "hanging-leg-raise"
      ]
     ]
    },
@@ -2315,31 +2621,36 @@ window.READY_PLANS = [
       "Barbell Overhead Press",
       4,
       5,
-      8
+      8,
+      "overhead-press"
      ],
      [
       "Decline Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "decline-barbell-bench-press"
      ],
      [
       "Pec Deck / Machine Fly",
       3,
       8,
-      12
+      12,
+      "pec-deck-machine-fly"
      ],
      [
       "Rear Delt Fly",
       3,
       8,
-      12
+      12,
+      "rear-delt-fly"
      ],
      [
       "Close-Grip Bench Press",
       3,
       8,
-      12
+      12,
+      "close-grip-bench-press"
      ]
     ]
    },
@@ -2350,31 +2661,36 @@ window.READY_PLANS = [
       "T-Bar Row",
       4,
       5,
-      8
+      8,
+      "t-bar-row"
      ],
      [
       "Close-Grip Lat Pulldown",
       4,
       5,
-      8
+      8,
+      "close-grip-lat-pulldown"
      ],
      [
       "Straight-Arm Pulldown",
       3,
       8,
-      12
+      12,
+      "straight-arm-pulldown"
      ],
      [
       "Barbell Shrug",
       3,
       8,
-      12
+      12,
+      "shrug"
      ],
      [
       "Preacher Curl",
       3,
       8,
-      12
+      12,
+      "preacher-curl"
      ]
     ]
    }
@@ -2397,31 +2713,36 @@ window.READY_PLANS = [
       "Chest Press Machine",
       2,
       10,
-      15
+      15,
+      "machine-chest-press"
      ],
      [
       "Shoulder Press Machine",
       2,
       10,
-      15
+      15,
+      "machine-shoulder-press"
      ],
      [
       "Pec Deck / Machine Fly",
       2,
       12,
-      15
+      15,
+      "pec-deck-machine-fly"
      ],
      [
       "Lateral Raise Machine",
       2,
       12,
-      15
+      15,
+      "lateral-raise"
      ],
      [
       "Triceps Extension Machine",
       2,
       12,
-      15
+      15,
+      "triceps-extension-machine"
      ]
     ]
    },
@@ -2432,31 +2753,36 @@ window.READY_PLANS = [
       "Lat Pulldown",
       2,
       10,
-      15
+      15,
+      "lat-pulldown"
      ],
      [
       "Seated Row Machine",
       2,
       10,
-      15
+      15,
+      "seated-cable-row"
      ],
      [
       "Close-Grip Lat Pulldown",
       2,
       12,
-      15
+      15,
+      "close-grip-lat-pulldown"
      ],
      [
       "Rear Delt Fly Machine",
       2,
       12,
-      15
+      15,
+      "rear-delt-fly"
      ],
      [
       "Biceps Curl Machine",
       2,
       12,
-      15
+      15,
+      "biceps-curl-machine"
      ]
     ]
    },
@@ -2467,37 +2793,43 @@ window.READY_PLANS = [
       "Leg Press",
       2,
       10,
-      15
+      15,
+      "leg-press"
      ],
      [
       "Hip Thrust Machine",
       2,
       10,
-      15
+      15,
+      "hip-thrust"
      ],
      [
       "Leg Extension",
       2,
       12,
-      15
+      15,
+      "leg-extension"
      ],
      [
       "Seated Leg Curl",
       2,
       12,
-      15
+      15,
+      "seated-leg-curl"
      ],
      [
       "Standing Calf Raise",
       2,
       12,
-      15
+      15,
+      "calf-raise"
      ],
      [
       "Captain's Chair Knee Raise",
       2,
       12,
-      20
+      20,
+      "hanging-leg-raise"
      ]
     ]
    }
@@ -2520,31 +2852,36 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       3,
       8,
-      12
+      12,
+      "box-squat"
      ],
      [
       "Barbell Bench Press",
       3,
       8,
-      12
+      12,
+      "bench-press"
      ],
      [
       "Dumbbell Shoulder Press",
       3,
       10,
-      15
+      15,
+      "dumbbell-shoulder-press"
      ],
      [
       "Leg Extension",
       3,
       10,
-      15
+      15,
+      "leg-extension"
      ],
      [
       "Rope Triceps Pushdown",
       3,
       10,
-      15
+      15,
+      "rope-triceps-pushdown"
      ]
     ]
    },
@@ -2555,31 +2892,36 @@ window.READY_PLANS = [
       "Romanian Deadlift",
       3,
       8,
-      12
+      12,
+      "romanian-deadlift"
      ],
      [
       "Barbell Bent-Over Row",
       3,
       8,
-      12
+      12,
+      "barbell-row"
      ],
      [
       "Lat Pulldown",
       3,
       10,
-      15
+      15,
+      "lat-pulldown"
      ],
      [
       "Lying Leg Curl",
       3,
       10,
-      15
+      15,
+      "leg-curl"
      ],
      [
       "Dumbbell Biceps Curl",
       3,
       10,
-      15
+      15,
+      "dumbbell-curl"
      ]
     ]
    },
@@ -2590,31 +2932,36 @@ window.READY_PLANS = [
       "Leg Press",
       3,
       8,
-      12
+      12,
+      "leg-press"
      ],
      [
       "Incline Dumbbell Press",
       3,
       8,
-      12
+      12,
+      "incline-dumbbell-press"
      ],
      [
       "Barbell Overhead Press",
       3,
       10,
-      15
+      15,
+      "overhead-press"
      ],
      [
       "Cable Lateral Raise",
       3,
       10,
-      15
+      15,
+      "cable-lateral-raise"
      ],
      [
       "Triceps Pushdown",
       3,
       10,
-      15
+      15,
+      "triceps-pushdown"
      ]
     ]
    },
@@ -2625,31 +2972,36 @@ window.READY_PLANS = [
       "Trap Bar Deadlift",
       3,
       8,
-      12
+      12,
+      "trap-bar-deadlift"
      ],
      [
       "Seated Cable Row",
       3,
       8,
-      12
+      12,
+      "seated-cable-row"
      ],
      [
       "Close-Grip Lat Pulldown",
       3,
       10,
-      15
+      15,
+      "close-grip-lat-pulldown"
      ],
      [
       "Face Pull",
       3,
       10,
-      15
+      15,
+      "face-pull"
      ],
      [
       "Hammer Curl",
       3,
       10,
-      15
+      15,
+      "hammer-curl"
      ]
     ]
    }
@@ -2672,31 +3024,36 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       4,
       5,
-      8
+      8,
+      "box-squat"
      ],
      [
       "Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "bench-press"
      ],
      [
       "Barbell Overhead Press",
       4,
       5,
-      8
+      8,
+      "overhead-press"
      ],
      [
       "Chest Dip",
       3,
       8,
-      12
+      12,
+      "chest-dip"
      ],
      [
       "Skullcrusher",
       3,
       8,
-      12
+      12,
+      "skull-crusher"
      ]
     ]
    },
@@ -2707,31 +3064,36 @@ window.READY_PLANS = [
       "Conventional Deadlift",
       4,
       5,
-      8
+      8,
+      "deadlift"
      ],
      [
       "Barbell Bent-Over Row",
       4,
       5,
-      8
+      8,
+      "barbell-row"
      ],
      [
       "Pull-Up",
       3,
       8,
-      12
+      12,
+      "pull-up"
      ],
      [
       "Barbell Biceps Curl",
       3,
       8,
-      12
+      12,
+      "barbell-curl"
      ],
      [
       "Ab Wheel Rollout",
       3,
       12,
-      20
+      20,
+      "ab-wheel-rollout"
      ]
     ]
    },
@@ -2742,25 +3104,29 @@ window.READY_PLANS = [
       "Barbell Front Squat",
       4,
       5,
-      8
+      8,
+      "front-squat"
      ],
      [
       "Incline Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "incline-barbell-bench-press"
      ],
      [
       "Push Press",
       3,
       8,
-      12
+      12,
+      "push-press"
      ],
      [
       "Close-Grip Bench Press",
       3,
       8,
-      12
+      12,
+      "close-grip-bench-press"
      ]
     ]
    },
@@ -2771,31 +3137,36 @@ window.READY_PLANS = [
       "Rack Pull",
       4,
       5,
-      8
+      8,
+      "rack-pull"
      ],
      [
       "T-Bar Row",
       4,
       5,
-      8
+      8,
+      "t-bar-row"
      ],
      [
       "Chin-Up",
       3,
       8,
-      12
+      12,
+      "chin-up"
      ],
      [
       "EZ-Bar Curl",
       3,
       8,
-      12
+      12,
+      "ez-bar-curl"
      ],
      [
       "Hanging Leg Raise",
       3,
       12,
-      20
+      20,
+      "hanging-leg-raise"
      ]
     ]
    }
@@ -2818,31 +3189,36 @@ window.READY_PLANS = [
       "Leg Press",
       2,
       10,
-      15
+      15,
+      "leg-press"
      ],
      [
       "Chest Press Machine",
       2,
       10,
-      15
+      15,
+      "machine-chest-press"
      ],
      [
       "Shoulder Press Machine",
       2,
       12,
-      15
+      15,
+      "machine-shoulder-press"
      ],
      [
       "Triceps Pushdown",
       2,
       12,
-      15
+      15,
+      "triceps-pushdown"
      ],
      [
       "Plank",
       2,
       30,
-      45
+      45,
+      "plank"
      ]
     ]
    },
@@ -2853,31 +3229,36 @@ window.READY_PLANS = [
       "Seated Leg Curl",
       2,
       10,
-      15
+      15,
+      "seated-leg-curl"
      ],
      [
       "Lat Pulldown",
       2,
       10,
-      15
+      15,
+      "lat-pulldown"
      ],
      [
       "Seated Row Machine",
       2,
       12,
-      15
+      15,
+      "seated-cable-row"
      ],
      [
       "Biceps Curl Machine",
       2,
       12,
-      15
+      15,
+      "biceps-curl-machine"
      ],
      [
       "Dead Bug",
       2,
       30,
-      45
+      45,
+      "dead-bug"
      ]
     ]
    }
@@ -2900,31 +3281,36 @@ window.READY_PLANS = [
       "Barbell Bench Press",
       3,
       8,
-      12
+      12,
+      "bench-press"
      ],
      [
       "Barbell Overhead Press",
       3,
       8,
-      12
+      12,
+      "overhead-press"
      ],
      [
       "Incline Dumbbell Press",
       3,
       10,
-      15
+      15,
+      "incline-dumbbell-press"
      ],
      [
       "Cable Lateral Raise",
       3,
       10,
-      15
+      15,
+      "cable-lateral-raise"
      ],
      [
       "Leg Press",
       3,
       10,
-      15
+      15,
+      "leg-press"
      ]
     ]
    },
@@ -2935,31 +3321,36 @@ window.READY_PLANS = [
       "Barbell Bent-Over Row",
       3,
       8,
-      12
+      12,
+      "barbell-row"
      ],
      [
       "Pull-Up",
       3,
       8,
-      12
+      12,
+      "pull-up"
      ],
      [
       "Seated Cable Row",
       3,
       10,
-      15
+      15,
+      "seated-cable-row"
      ],
      [
       "Barbell Biceps Curl",
       3,
       10,
-      15
+      15,
+      "barbell-curl"
      ],
      [
       "Romanian Deadlift",
       3,
       10,
-      15
+      15,
+      "romanian-deadlift"
      ]
     ]
    },
@@ -2970,31 +3361,36 @@ window.READY_PLANS = [
       "Incline Barbell Bench Press",
       3,
       8,
-      12
+      12,
+      "incline-barbell-bench-press"
      ],
      [
       "Seated Dumbbell Press",
       3,
       8,
-      12
+      12,
+      "seated-dumbbell-press"
      ],
      [
       "Cable Chest Fly",
       3,
       10,
-      15
+      15,
+      "dumbbell-fly"
      ],
      [
       "Rope Triceps Pushdown",
       3,
       10,
-      15
+      15,
+      "rope-triceps-pushdown"
      ],
      [
       "Bulgarian Split Squat",
       3,
       10,
-      15
+      15,
+      "bulgarian-split-squat"
      ]
     ]
    },
@@ -3005,31 +3401,36 @@ window.READY_PLANS = [
       "T-Bar Row",
       3,
       8,
-      12
+      12,
+      "t-bar-row"
      ],
      [
       "Lat Pulldown",
       3,
       8,
-      12
+      12,
+      "lat-pulldown"
      ],
      [
       "Face Pull",
       3,
       10,
-      15
+      15,
+      "face-pull"
      ],
      [
       "Hammer Curl",
       3,
       10,
-      15
+      15,
+      "hammer-curl"
      ],
      [
       "Lying Leg Curl",
       3,
       10,
-      15
+      15,
+      "leg-curl"
      ]
     ]
    }
@@ -3052,31 +3453,36 @@ window.READY_PLANS = [
       "Barbell Bench Press",
       3,
       8,
-      12
+      12,
+      "bench-press"
      ],
      [
       "Incline Dumbbell Press",
       3,
       8,
-      12
+      12,
+      "incline-dumbbell-press"
      ],
      [
       "Cable Chest Fly",
       3,
       10,
-      15
+      15,
+      "dumbbell-fly"
      ],
      [
       "Chest Dip",
       3,
       10,
-      15
+      15,
+      "chest-dip"
      ],
      [
       "Pec Deck / Machine Fly",
       3,
       10,
-      15
+      15,
+      "pec-deck-machine-fly"
      ]
     ]
    },
@@ -3087,31 +3493,36 @@ window.READY_PLANS = [
       "Barbell Bent-Over Row",
       3,
       8,
-      12
+      12,
+      "barbell-row"
      ],
      [
       "Lat Pulldown",
       3,
       8,
-      12
+      12,
+      "lat-pulldown"
      ],
      [
       "Seated Cable Row",
       3,
       10,
-      15
+      15,
+      "seated-cable-row"
      ],
      [
       "Straight-Arm Pulldown",
       3,
       10,
-      15
+      15,
+      "straight-arm-pulldown"
      ],
      [
       "Barbell Shrug",
       3,
       10,
-      15
+      15,
+      "shrug"
      ]
     ]
    },
@@ -3122,37 +3533,43 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       3,
       8,
-      12
+      12,
+      "box-squat"
      ],
      [
       "Romanian Deadlift",
       3,
       8,
-      12
+      12,
+      "romanian-deadlift"
      ],
      [
       "Leg Press",
       3,
       10,
-      15
+      15,
+      "leg-press"
      ],
      [
       "Lying Leg Curl",
       3,
       10,
-      15
+      15,
+      "leg-curl"
      ],
      [
       "Standing Calf Raise",
       3,
       10,
-      15
+      15,
+      "calf-raise"
      ],
      [
       "Plank",
       3,
       30,
-      60
+      60,
+      "plank"
      ]
     ]
    },
@@ -3163,31 +3580,36 @@ window.READY_PLANS = [
       "Barbell Overhead Press",
       3,
       8,
-      12
+      12,
+      "overhead-press"
      ],
      [
       "Dumbbell Lateral Raise",
       3,
       8,
-      12
+      12,
+      "lateral-raise"
      ],
      [
       "Rear Delt Fly",
       3,
       10,
-      15
+      15,
+      "rear-delt-fly"
      ],
      [
       "Upright Row",
       3,
       10,
-      15
+      15,
+      "upright-row"
      ],
      [
       "Face Pull",
       3,
       10,
-      15
+      15,
+      "face-pull"
      ]
     ]
    },
@@ -3198,31 +3620,36 @@ window.READY_PLANS = [
       "Barbell Biceps Curl",
       3,
       8,
-      12
+      12,
+      "barbell-curl"
      ],
      [
       "Close-Grip Bench Press",
       3,
       8,
-      12
+      12,
+      "close-grip-bench-press"
      ],
      [
       "Hammer Curl",
       3,
       10,
-      15
+      15,
+      "hammer-curl"
      ],
      [
       "Rope Triceps Pushdown",
       3,
       10,
-      15
+      15,
+      "rope-triceps-pushdown"
      ],
      [
       "Preacher Curl",
       3,
       10,
-      15
+      15,
+      "preacher-curl"
      ]
     ]
    }
@@ -3245,31 +3672,36 @@ window.READY_PLANS = [
       "Barbell Hip Thrust",
       3,
       8,
-      12
+      12,
+      "hip-thrust"
      ],
      [
       "Cable Pull-Through",
       3,
       8,
-      12
+      12,
+      "cable-pull-through"
      ],
      [
       "Cable Glute Kickback",
       3,
       10,
-      15
+      15,
+      "cable-glute-kickback"
      ],
      [
       "Hip Abduction Machine",
       3,
       10,
-      15
+      15,
+      "hip-abduction-machine"
      ],
      [
       "Reverse Lunge",
       3,
       10,
-      15
+      15,
+      "lunge"
      ]
     ]
    },
@@ -3280,31 +3712,36 @@ window.READY_PLANS = [
       "Lat Pulldown",
       3,
       8,
-      12
+      12,
+      "lat-pulldown"
      ],
      [
       "Seated Cable Row",
       3,
       8,
-      12
+      12,
+      "seated-cable-row"
      ],
      [
       "Face Pull",
       3,
       10,
-      15
+      15,
+      "face-pull"
      ],
      [
       "Cable Lateral Raise",
       3,
       10,
-      15
+      15,
+      "cable-lateral-raise"
      ],
      [
       "Rear Delt Fly",
       3,
       10,
-      15
+      15,
+      "rear-delt-fly"
      ]
     ]
    },
@@ -3315,37 +3752,43 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       3,
       8,
-      12
+      12,
+      "box-squat"
      ],
      [
       "Romanian Deadlift",
       3,
       8,
-      12
+      12,
+      "romanian-deadlift"
      ],
      [
       "Leg Extension",
       3,
       10,
-      15
+      15,
+      "leg-extension"
      ],
      [
       "Seated Leg Curl",
       3,
       10,
-      15
+      15,
+      "seated-leg-curl"
      ],
      [
       "Standing Calf Raise",
       3,
       10,
-      15
+      15,
+      "calf-raise"
      ],
      [
       "Plank",
       3,
       30,
-      60
+      60,
+      "plank"
      ]
     ]
    },
@@ -3356,37 +3799,43 @@ window.READY_PLANS = [
       "Dumbbell Bench Press",
       3,
       8,
-      12
+      12,
+      "dumbbell-bench-press"
      ],
      [
       "Dumbbell Biceps Curl",
       3,
       8,
-      12
+      12,
+      "dumbbell-curl"
      ],
      [
       "Rope Triceps Pushdown",
       3,
       10,
-      15
+      15,
+      "rope-triceps-pushdown"
      ],
      [
       "Hammer Curl",
       3,
       10,
-      15
+      15,
+      "hammer-curl"
      ],
      [
       "Cable Crunch",
       3,
       10,
-      15
+      15,
+      "cable-crunch"
      ],
      [
       "Plank",
       3,
       30,
-      60
+      60,
+      "plank"
      ]
     ]
    },
@@ -3397,31 +3846,36 @@ window.READY_PLANS = [
       "Bulgarian Split Squat",
       3,
       8,
-      12
+      12,
+      "bulgarian-split-squat"
      ],
      [
       "Hip Thrust Machine",
       3,
       8,
-      12
+      12,
+      "hip-thrust"
      ],
      [
       "Walking Lunge",
       3,
       10,
-      15
+      15,
+      "walking-lunge"
      ],
      [
       "Lying Leg Curl",
       3,
       10,
-      15
+      15,
+      "leg-curl"
      ],
      [
       "Hip Adduction Machine",
       3,
       10,
-      15
+      15,
+      "hip-adduction-machine"
      ]
     ]
    }
@@ -3444,25 +3898,29 @@ window.READY_PLANS = [
       "Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "bench-press"
      ],
      [
       "Incline Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "incline-barbell-bench-press"
      ],
      [
       "Chest Dip",
       3,
       8,
-      12
+      12,
+      "chest-dip"
      ],
      [
       "Cable Chest Fly",
       3,
       8,
-      12
+      12,
+      "dumbbell-fly"
      ]
     ]
    },
@@ -3473,25 +3931,29 @@ window.READY_PLANS = [
       "Barbell Bent-Over Row",
       4,
       5,
-      8
+      8,
+      "barbell-row"
      ],
      [
       "Pull-Up",
       4,
       5,
-      8
+      8,
+      "pull-up"
      ],
      [
       "T-Bar Row",
       3,
       8,
-      12
+      12,
+      "t-bar-row"
      ],
      [
       "Straight-Arm Pulldown",
       3,
       8,
-      12
+      12,
+      "straight-arm-pulldown"
      ]
     ]
    },
@@ -3502,25 +3964,29 @@ window.READY_PLANS = [
       "Decline Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "decline-barbell-bench-press"
      ],
      [
       "Dumbbell Bench Press",
       4,
       5,
-      8
+      8,
+      "dumbbell-bench-press"
      ],
      [
       "Pec Deck / Machine Fly",
       3,
       8,
-      12
+      12,
+      "pec-deck-machine-fly"
      ],
      [
       "Close-Grip Bench Press",
       3,
       8,
-      12
+      12,
+      "close-grip-bench-press"
      ]
     ]
    },
@@ -3531,25 +3997,29 @@ window.READY_PLANS = [
       "Rack Pull",
       4,
       5,
-      8
+      8,
+      "rack-pull"
      ],
      [
       "Chest-Supported Row",
       4,
       5,
-      8
+      8,
+      "chest-supported-row"
      ],
      [
       "Close-Grip Lat Pulldown",
       3,
       8,
-      12
+      12,
+      "close-grip-lat-pulldown"
      ],
      [
       "Barbell Shrug",
       3,
       8,
-      12
+      12,
+      "shrug"
      ]
     ]
    }
@@ -3572,25 +4042,29 @@ window.READY_PLANS = [
       "Barbell Hip Thrust",
       4,
       5,
-      8
+      8,
+      "hip-thrust"
      ],
      [
       "Romanian Deadlift",
       4,
       5,
-      8
+      8,
+      "romanian-deadlift"
      ],
      [
       "Bulgarian Split Squat",
       3,
       8,
-      12
+      12,
+      "bulgarian-split-squat"
      ],
      [
       "Cable Glute Kickback",
       3,
       8,
-      12
+      12,
+      "cable-glute-kickback"
      ]
     ]
    },
@@ -3601,31 +4075,36 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       4,
       5,
-      8
+      8,
+      "box-squat"
      ],
      [
       "Leg Press",
       4,
       5,
-      8
+      8,
+      "leg-press"
      ],
      [
       "Walking Lunge",
       3,
       8,
-      12
+      12,
+      "walking-lunge"
      ],
      [
       "Leg Extension",
       3,
       8,
-      12
+      12,
+      "leg-extension"
      ],
      [
       "Plank",
       3,
       45,
-      60
+      60,
+      "plank"
      ]
     ]
    },
@@ -3636,25 +4115,29 @@ window.READY_PLANS = [
       "Sumo Deadlift",
       4,
       5,
-      8
+      8,
+      "sumo-deadlift"
      ],
      [
       "Hip Thrust Machine",
       4,
       5,
-      8
+      8,
+      "hip-thrust"
      ],
      [
       "Curtsy Lunge",
       3,
       8,
-      12
+      12,
+      "lunge"
      ],
      [
       "Hip Abduction Machine",
       3,
       8,
-      12
+      12,
+      "hip-abduction-machine"
      ]
     ]
    },
@@ -3665,31 +4148,36 @@ window.READY_PLANS = [
       "Lat Pulldown",
       4,
       5,
-      8
+      8,
+      "lat-pulldown"
      ],
      [
       "Dumbbell Shoulder Press",
       4,
       5,
-      8
+      8,
+      "dumbbell-shoulder-press"
      ],
      [
       "Seated Cable Row",
       3,
       8,
-      12
+      12,
+      "seated-cable-row"
      ],
      [
       "Cable Lateral Raise",
       3,
       8,
-      12
+      12,
+      "cable-lateral-raise"
      ],
      [
       "Rope Triceps Pushdown",
       3,
       8,
-      12
+      12,
+      "rope-triceps-pushdown"
      ]
     ]
    }
@@ -3712,31 +4200,36 @@ window.READY_PLANS = [
       "Push-Up",
       2,
       10,
-      15
+      15,
+      "push-up"
      ],
      [
       "Bodyweight Squat",
       2,
       10,
-      15
+      15,
+      "bodyweight-squat"
      ],
      [
       "Inverted Row",
       2,
       12,
-      15
+      15,
+      "inverted-row"
      ],
      [
       "Glute Bridge",
       2,
       12,
-      15
+      15,
+      "glute-bridge"
      ],
      [
       "Plank",
       2,
       30,
-      45
+      45,
+      "plank"
      ]
     ]
    },
@@ -3747,31 +4240,36 @@ window.READY_PLANS = [
       "Incline Push-Up",
       2,
       10,
-      15
+      15,
+      "incline-push-up"
      ],
      [
       "Split Squat",
       2,
       10,
-      15
+      15,
+      "split-squat"
      ],
      [
       "Pike Push-Up",
       2,
       12,
-      15
+      15,
+      "push-up"
      ],
      [
       "Glute Bridge",
       2,
       12,
-      15
+      15,
+      "glute-bridge"
      ],
      [
       "Dead Bug",
       2,
       30,
-      45
+      45,
+      "dead-bug"
      ]
     ]
    },
@@ -3782,31 +4280,36 @@ window.READY_PLANS = [
       "Push-Up",
       2,
       10,
-      15
+      15,
+      "push-up"
      ],
      [
       "Wall Sit",
       2,
       10,
-      15
+      15,
+      "bodyweight-squat"
      ],
      [
       "Inverted Row",
       2,
       12,
-      15
+      15,
+      "inverted-row"
      ],
      [
       "Bench Dip",
       2,
       12,
-      15
+      15,
+      "bench-dip"
      ],
      [
       "Mountain Climber",
       2,
       30,
-      45
+      45,
+      "mountain-climbers"
      ]
     ]
    }
@@ -3829,31 +4332,36 @@ window.READY_PLANS = [
       "Goblet Squat",
       3,
       8,
-      12
+      12,
+      "goblet-squat"
      ],
      [
       "Dumbbell Bench Press",
       3,
       8,
-      12
+      12,
+      "dumbbell-bench-press"
      ],
      [
       "Single-Arm Dumbbell Row",
       3,
       10,
-      15
+      15,
+      "dumbbell-row"
      ],
      [
       "Dumbbell Shoulder Press",
       3,
       10,
-      15
+      15,
+      "dumbbell-shoulder-press"
      ],
      [
       "Plank",
       3,
       30,
-      60
+      60,
+      "plank"
      ]
     ]
    },
@@ -3864,31 +4372,36 @@ window.READY_PLANS = [
       "Dumbbell Romanian Deadlift",
       3,
       8,
-      12
+      12,
+      "romanian-deadlift"
      ],
      [
       "Incline Dumbbell Press",
       3,
       8,
-      12
+      12,
+      "incline-dumbbell-press"
      ],
      [
       "Single-Arm Dumbbell Row",
       3,
       10,
-      15
+      15,
+      "dumbbell-row"
      ],
      [
       "Dumbbell Lateral Raise",
       3,
       10,
-      15
+      15,
+      "lateral-raise"
      ],
      [
       "Hammer Curl",
       3,
       10,
-      15
+      15,
+      "hammer-curl"
      ]
     ]
    },
@@ -3899,37 +4412,43 @@ window.READY_PLANS = [
       "Bulgarian Split Squat",
       3,
       8,
-      12
+      12,
+      "bulgarian-split-squat"
      ],
      [
       "Seated Dumbbell Press",
       3,
       8,
-      12
+      12,
+      "seated-dumbbell-press"
      ],
      [
       "Rear Delt Fly",
       3,
       10,
-      15
+      15,
+      "rear-delt-fly"
      ],
      [
       "Overhead Triceps Extension",
       3,
       10,
-      15
+      15,
+      "overhead-triceps-extension"
      ],
      [
       "Step-Up",
       3,
       10,
-      15
+      15,
+      "step-up"
      ],
      [
       "Farmer's Carry",
       3,
       30,
-      60
+      60,
+      "farmer-s-carry"
      ]
     ]
    }
@@ -3952,31 +4471,36 @@ window.READY_PLANS = [
       "Bodyweight Squat",
       2,
       10,
-      15
+      15,
+      "bodyweight-squat"
      ],
      [
       "Push-Up",
       2,
       10,
-      15
+      15,
+      "push-up"
      ],
      [
       "Band Pull-Apart",
       2,
       12,
-      15
+      15,
+      "band-pull-apart"
      ],
      [
       "Glute Bridge",
       2,
       12,
-      15
+      15,
+      "glute-bridge"
      ],
      [
       "Plank",
       2,
       30,
-      45
+      45,
+      "plank"
      ]
     ]
    },
@@ -3987,31 +4511,36 @@ window.READY_PLANS = [
       "Split Squat",
       2,
       10,
-      15
+      15,
+      "split-squat"
      ],
      [
       "Incline Push-Up",
       2,
       10,
-      15
+      15,
+      "incline-push-up"
      ],
      [
       "Band Pull-Apart",
       2,
       12,
-      15
+      15,
+      "band-pull-apart"
      ],
      [
       "Glute Bridge",
       2,
       12,
-      15
+      15,
+      "glute-bridge"
      ],
      [
       "Dead Bug",
       2,
       30,
-      45
+      45,
+      "dead-bug"
      ]
     ]
    }
@@ -4034,19 +4563,22 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       4,
       5,
-      8
+      8,
+      "box-squat"
      ],
      [
       "Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "bench-press"
      ],
      [
       "Barbell Bent-Over Row",
       4,
       5,
-      8
+      8,
+      "barbell-row"
      ]
     ]
    },
@@ -4057,19 +4589,22 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       4,
       5,
-      8
+      8,
+      "box-squat"
      ],
      [
       "Barbell Overhead Press",
       4,
       5,
-      8
+      8,
+      "overhead-press"
      ],
      [
       "Conventional Deadlift",
       4,
       5,
-      8
+      8,
+      "deadlift"
      ]
     ]
    },
@@ -4080,19 +4615,22 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       4,
       5,
-      8
+      8,
+      "box-squat"
      ],
      [
       "Barbell Bench Press",
       4,
       5,
-      8
+      8,
+      "bench-press"
      ],
      [
       "Barbell Bent-Over Row",
       4,
       5,
-      8
+      8,
+      "barbell-row"
      ]
     ]
    }
@@ -4115,31 +4653,36 @@ window.READY_PLANS = [
       "Barbell Back Squat",
       3,
       8,
-      12
+      12,
+      "box-squat"
      ],
      [
       "Barbell Bench Press",
       3,
       8,
-      12
+      12,
+      "bench-press"
      ],
      [
       "Seated Cable Row",
       3,
       10,
-      15
+      15,
+      "seated-cable-row"
      ],
      [
       "Dumbbell Lateral Raise",
       3,
       10,
-      15
+      15,
+      "lateral-raise"
      ],
      [
       "Plank",
       3,
       30,
-      60
+      60,
+      "plank"
      ]
     ]
    },
@@ -4150,31 +4693,36 @@ window.READY_PLANS = [
       "Kettlebell Swing",
       3,
       8,
-      12
+      12,
+      "kettlebell-swing"
      ],
      [
       "Goblet Squat",
       3,
       8,
-      12
+      12,
+      "goblet-squat"
      ],
      [
       "Push-Up",
       3,
       10,
-      15
+      15,
+      "push-up"
      ],
      [
       "Battle Ropes",
       3,
       30,
-      60
+      60,
+      "battle-ropes"
      ],
      [
       "Mountain Climber",
       3,
       30,
-      60
+      60,
+      "mountain-climbers"
      ]
     ]
    },
@@ -4185,31 +4733,36 @@ window.READY_PLANS = [
       "Romanian Deadlift",
       3,
       8,
-      12
+      12,
+      "romanian-deadlift"
      ],
      [
       "Barbell Overhead Press",
       3,
       8,
-      12
+      12,
+      "overhead-press"
      ],
      [
       "Lat Pulldown",
       3,
       10,
-      15
+      15,
+      "lat-pulldown"
      ],
      [
       "Dumbbell Biceps Curl",
       3,
       10,
-      15
+      15,
+      "dumbbell-curl"
      ],
      [
       "Hanging Leg Raise",
       3,
       12,
-      20
+      20,
+      "hanging-leg-raise"
      ]
     ]
    },
@@ -4220,31 +4773,36 @@ window.READY_PLANS = [
       "Farmer's Carry",
       3,
       8,
-      12
+      12,
+      "farmer-s-carry"
      ],
      [
       "Reverse Lunge",
       3,
       8,
-      12
+      12,
+      "lunge"
      ],
      [
       "Inverted Row",
       3,
       10,
-      15
+      15,
+      "inverted-row"
      ],
      [
       "Jump Rope",
       3,
       30,
-      60
+      60,
+      "jump-rope"
      ],
      [
       "Burpee",
       3,
       12,
-      20
+      20,
+      "mountain-climbers"
      ]
     ]
    }
