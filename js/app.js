@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v234';
+  const APP_VERSION = 'v235';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -891,7 +891,7 @@
         : [pick(['Band Pull-Apart', 'Bird Dog']), pick(['Dead Hang', 'Bird Dog'])];
       const steps = [
         pulse ? ['2 min easy — ', await link(pulse), ' or a brisk walk'] : ['2 min easy — brisk walk or march on the spot'],
-        [await link(loosen[0]), ' × 15 · ', await link(loosen[1]), lower ? ' × 15' : ' × 30 s'],
+        [await link(loosen[0]), ' ×\u00A015 · ', await link(loosen[1]), lower ? ' ×\u00A015' : ' ×\u00A030\u00A0s'],
         [ramp ? `Finish with the two W sets on ${first.name}` : 'Finish with a light first set of your first lift']
       ];
       const wex = await ensureExercise({
@@ -1195,8 +1195,9 @@
       }
     };
 
-    /* a warm-up is instructions first, a clock second; tap a practice you
-       do not know and its page shows you */
+    /* a warm-up is instructions first, a clock second. The name stays plain
+       text — a play button after it is what shows you the movement, the same
+       gesture as everywhere else in the app. */
     if (cur.warmup && cur.steps) {
       const ws = el('div', 'warm-list');
       cur.steps.forEach((parts, i) => {
@@ -1204,12 +1205,13 @@
         row.appendChild(el('i', null, String(i + 1)));
         const body = el('span');
         [].concat(parts).forEach(part => {
-          if (typeof part === 'string') body.appendChild(document.createTextNode(part));
-          else {
-            const b = el('button', 'warm-ex', part.name);
-            b.onclick = e => { e.stopPropagation(); openDetail(part.id, 'workout'); };
-            body.appendChild(b);
-          }
+          if (typeof part === 'string') { body.appendChild(document.createTextNode(part)); return; }
+          body.appendChild(el('b', 'warm-name', part.name));
+          const b = el('button', 'warm-play');
+          b.appendChild(svgIcon(PLAY, 9));
+          b.title = 'Show me ' + part.name;
+          b.onclick = e => { e.stopPropagation(); openDetail(part.id, 'workout'); };
+          body.appendChild(b);
         });
         row.appendChild(body);
         ws.appendChild(row);
