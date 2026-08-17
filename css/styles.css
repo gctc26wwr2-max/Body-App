@@ -1838,32 +1838,41 @@ body { font-size: 14px; }
 }
 .ai-step .micro { margin-top: 2px; }
 
-/* ---------- warm-up: what to actually do ---------- */
-.warm-list { display: flex; flex-direction: column; gap: 7px; margin: 2px 0 4px; }
-.warm-step { display: flex; align-items: baseline; gap: 9px; font-size: 12.5px; color: var(--t3); line-height: 1.4; }
-.warm-step i {
-  flex: 0 0 auto; font-style: normal; width: 17px; height: 17px; border-radius: 9px;
-  font-size: 10px; font-weight: 800; line-height: 17px; text-align: center;
-  color: var(--lime); border: 1px solid var(--lime-border);
+/* ---------- warm-up: what to actually do ----------
+   One practice per line on a fixed grid: lead control, name, amount. The
+   play buttons form a column down the left and the amounts a column down
+   the right — nothing sits in the middle of a sentence. */
+.warm-list { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 4px; }
+.warm-step {
+  display: grid; grid-template-columns: 22px 1fr auto; align-items: center;
+  gap: 10px; min-height: 30px; font-size: 13px; color: var(--t2);
 }
+.warm-step + .warm-step { border-top: 1px solid var(--hair); }
+.warm-n {
+  font-style: normal; width: 22px; height: 22px; border-radius: 11px;
+  font-size: 10px; font-weight: 800; line-height: 21px; text-align: center;
+  color: var(--t5); border: 1px solid var(--hair);
+}
+.warm-name { font-weight: 700; min-width: 0; }
+.warm-note { font-size: 12px; font-weight: 700; color: var(--t5); text-align: right; }
 /* ramp sets on the first lift */
 .sn.warm { color: var(--lime); font-size: 10.5px; letter-spacing: .03em; }
-/* the practice reads as a name; the play button beside it shows you how */
-.warm-name { font-weight: 800; color: var(--t2); }
+/* the lead control on a line that has something to show */
 .warm-play {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 18px; height: 18px; margin: 0 3px; padding: 0; vertical-align: -4px;
-  border: 1px solid var(--lime-border); border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; padding: 0;
+  border: 1px solid var(--lime-border); border-radius: 11px;
   background: rgba(206,107,61,.12); color: var(--lime);
 }
-.warm-play svg { display: block; }
+.warm-play svg { display: block; margin-left: 1px; }
 
 /* the warm-up list, repeated under the running clock */
-#hold-pop-steps { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+#hold-pop-steps { display: flex; flex-direction: column; gap: 4px; width: 100%; }
 .hp-step {
-  display: flex; align-items: baseline; gap: 8px; text-align: left;
-  font-size: 12px; line-height: 1.35; color: var(--t4);
+  display: grid; grid-template-columns: 16px 1fr auto; align-items: center;
+  gap: 8px; text-align: left; font-size: 12px; color: var(--t4);
 }
+.hp-note { color: var(--t5); text-align: right; }
 .hp-step i {
   flex: 0 0 auto; font-style: normal; width: 16px; height: 16px; border-radius: 8px;
   font-size: 9.5px; font-weight: 800; line-height: 16px; text-align: center;

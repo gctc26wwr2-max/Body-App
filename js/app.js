@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v235';
+  const APP_VERSION = 'v236';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -95,10 +95,6 @@
   function applySuggestion(sets, nextKg) {
     sets.forEach(s => { if (!s.done) s.kg = nextKg; });
   }
-  /* a step is text and tappable practices; this is it as plain words */
-  const stepText = parts => [].concat(parts)
-    .map(x => (typeof x === 'string' ? x : x.name)).join('');
-
   function repTone(set) {
     // colour code vs the target range (e.g. 8-10): under / in / above
     if (set.reps < set.targetLo) return 'below';
@@ -889,10 +885,15 @@
       const loosen = lower
         ? [pick(['Bodyweight Squat']), pick(['Glute Bridge', 'Bird Dog'])]
         : [pick(['Band Pull-Apart', 'Bird Dog']), pick(['Dead Hang', 'Bird Dog'])];
+      /* one practice per line: what to do on the left, how much on the right,
+         so the column of play buttons and the column of counts both line up */
       const steps = [
-        pulse ? ['2 min easy — ', await link(pulse), ' or a brisk walk'] : ['2 min easy — brisk walk or march on the spot'],
-        [await link(loosen[0]), ' ×\u00A015 · ', await link(loosen[1]), lower ? ' ×\u00A015' : ' ×\u00A030\u00A0s'],
-        [ramp ? `Finish with the two W sets on ${first.name}` : 'Finish with a light first set of your first lift']
+        pulse ? { ...(await link(pulse)), note: '2 min' } : { name: 'Brisk walk', note: '2 min' },
+        { ...(await link(loosen[0])), note: '15 reps' },
+        { ...(await link(loosen[1])), note: lower ? '15 reps' : '30 s' },
+        ramp
+          ? { name: 'Then the W sets', note: first.name }
+          : { name: 'Then a light first set', note: first ? first.name : '' }
       ];
       const wex = await ensureExercise({
         name: 'Warm-Up', group: 'Cardio',
@@ -1195,25 +1196,22 @@
       }
     };
 
-    /* a warm-up is instructions first, a clock second. The name stays plain
-       text — a play button after it is what shows you the movement, the same
-       gesture as everywhere else in the app. */
+    /* a warm-up is instructions first, a clock second. One practice per line:
+       the lead column is a play button where there is something to show and
+       the step number where there is not, so both columns stay straight. */
     if (cur.warmup && cur.steps) {
       const ws = el('div', 'warm-list');
-      cur.steps.forEach((parts, i) => {
+      cur.steps.forEach((st, i) => {
         const row = el('div', 'warm-step');
-        row.appendChild(el('i', null, String(i + 1)));
-        const body = el('span');
-        [].concat(parts).forEach(part => {
-          if (typeof part === 'string') { body.appendChild(document.createTextNode(part)); return; }
-          body.appendChild(el('b', 'warm-name', part.name));
+        if (st.id) {
           const b = el('button', 'warm-play');
           b.appendChild(svgIcon(PLAY, 9));
-          b.title = 'Show me ' + part.name;
-          b.onclick = e => { e.stopPropagation(); openDetail(part.id, 'workout'); };
-          body.appendChild(b);
-        });
-        row.appendChild(body);
+          b.title = 'Show me ' + st.name;
+          b.onclick = e => { e.stopPropagation(); openDetail(st.id, 'workout'); };
+          row.appendChild(b);
+        } else row.appendChild(el('i', 'warm-n', String(i + 1)));
+        row.appendChild(el('span', 'warm-name', st.name));
+        row.appendChild(el('span', 'warm-note', st.note || ''));
         ws.appendChild(row);
       });
       card.appendChild(ws);
@@ -1482,12 +1480,13 @@
     const stepBox = $('#hold-pop-steps');
     if (stepBox) {
       stepBox.innerHTML = '';
-      const list = exRef.warmup && exRef.steps ? exRef.steps.slice(0, 2) : null;
+      const list = exRef.warmup && exRef.steps ? exRef.steps.slice(0, 3) : null;
       stepBox.hidden = !list;
-      if (list) list.forEach((parts, i) => {
+      if (list) list.forEach((st, i) => {
         const row = el('div', 'hp-step');
         row.appendChild(el('i', null, String(i + 1)));
-        row.appendChild(el('span', null, stepText(parts)));
+        row.appendChild(el('span', null, st.name));
+        row.appendChild(el('span', 'hp-note', st.note || ''));
         stepBox.appendChild(row);
       });
     }
