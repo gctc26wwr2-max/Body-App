@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v232';
+  const APP_VERSION = 'v233';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -869,18 +869,34 @@
       }
       const g1 = first ? ((exercises.find(e => e.id === first.exerciseId) || {}).group || '') : '';
       const lower = /leg/i.test(g1);
+      /* every named practice is one the catalogue can demonstrate, and only
+         ones your kit allows are offered — tapping a name opens its page */
+      const lib = window.EXERCISE_LIBRARY || [];
+      const pick = names => names.find(n => {
+        const r = lib.find(x => x.name === n);
+        return r && equipOK(r);
+      });
+      const link = async name => {
+        const r = lib.find(x => x.name === name);
+        const ex2 = await ensureExercise(r);
+        return { name, id: ex2.id };
+      };
+      const pulse = pick(['Air Bike', 'Jump Rope', 'Battle Ropes']);
+      const loosen = lower
+        ? [pick(['Bodyweight Squat']), pick(['Glute Bridge', 'Bird Dog'])]
+        : [pick(['Band Pull-Apart', 'Bird Dog']), pick(['Dead Hang', 'Bird Dog'])];
+      const steps = [
+        pulse ? ['2 min easy — ', await link(pulse), ' or a brisk walk'] : ['2 min easy — brisk walk or march on the spot'],
+        [await link(loosen[0]), ' × 15 · ', await link(loosen[1]), lower ? ' × 15' : ' × 30 s'],
+        [ramp ? `Finish with the two W sets on ${first.name}` : 'Finish with a light first set of your first lift']
+      ];
       const wex = await ensureExercise({
         name: 'Warm-Up', group: 'Cardio',
         notes: 'Easy 300 seconds — raise the pulse, loosen what today trains.'
       });
       exList.unshift({
         exerciseId: wex.id, name: wex.name, timed: true, perSide: false,
-        repLo: 300, repHi: 300, rest: 60, deload: false, warmup: true,
-        steps: [
-          `2 min easy — ${lower ? 'bike or brisk walk' : 'bike, row or jumping jacks'}`,
-          lower ? '10 hip circles each way · 15 bodyweight squats' : '10 arm circles each way · 15 band pull-aparts',
-          ramp ? `Finish with the two W sets on ${first.name}` : 'Finish with a light first set of your first lift'
-        ],
+        repLo: 300, repHi: 300, rest: 60, deload: false, warmup: true, steps,
         sets: [{ kg: 0, reps: 300, targetLo: 300, targetHi: 300, done: false }]
       });
     }
@@ -1175,13 +1191,23 @@
       }
     };
 
-    /* a warm-up is instructions first, a clock second */
+    /* a warm-up is instructions first, a clock second; tap a practice you
+       do not know and its page shows you */
     if (cur.warmup && cur.steps) {
       const ws = el('div', 'warm-list');
-      cur.steps.forEach((t, i) => {
+      cur.steps.forEach((parts, i) => {
         const row = el('div', 'warm-step');
         row.appendChild(el('i', null, String(i + 1)));
-        row.appendChild(el('span', null, t));
+        const body = el('span');
+        [].concat(parts).forEach(part => {
+          if (typeof part === 'string') body.appendChild(document.createTextNode(part));
+          else {
+            const b = el('button', 'warm-ex', part.name);
+            b.onclick = e => { e.stopPropagation(); openDetail(part.id, 'workout'); };
+            body.appendChild(b);
+          }
+        });
+        row.appendChild(body);
         ws.appendChild(row);
       });
       card.appendChild(ws);
@@ -1329,7 +1355,7 @@
     /* difficulty feedback, on the card the whole time the exercise is open —
        it used to appear only once every set was banked, by which point you
        are already resting and looking at the next thing */
-    if (cur.sets.length) {
+    if (cur.sets.length && !cur.warmup) {   // a warm-up is not rated
       const allDone2 = cur.sets.every(s => s.done);
       const fw = el('div', 'feel-wrap');
       /* the heading carries the word, so the buttons do not have to — and it
