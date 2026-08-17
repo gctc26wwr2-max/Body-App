@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v247';
+  const APP_VERSION = 'v248';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5461,6 +5461,7 @@
     'Push / Pull / Legs': 'A pushing day, a pulling day, a leg day',
     'Push / Pull': 'A pushing day, then a pulling day',
     'Body part': 'One area per day',
+    'Muscle focus': 'The whole week bends toward one muscle',
     'Home': 'No gym needed'
   };
   let readyWho = null, readySplit = 'All';
@@ -5609,15 +5610,21 @@
     if (readySplit === 'All') {
       const pr2 = getProfile();
       const wantLvl = { new: 1, mid: 2, exp: 3 }[pr2.level] || 1;
-      const best = [...forMe].sort((a, b) =>
+      /* a muscle focus set in Settings outranks everything — that block was
+         written for exactly this */
+      const focus = (pr2.focus || [])[0];
+      const focusPlan = focus && forMe.find(x => x.id === 'mf-' + focus);
+      const best = focusPlan || [...forMe].sort((a, b) =>
         (Math.abs(a.level - wantLvl) * 2 + Math.abs(a.days.length - 3))
         - (Math.abs(b.level - wantLvl) * 2 + Math.abs(b.days.length - 3))
         || (b.who !== 'all') - (a.who !== 'all'))[0];
       if (best) {
         root.appendChild(el('div', 'month-label rdy-days', 'A good place to start'));
-        root.appendChild(el('div', 'ab-hint', pr2.level
-          ? 'Picked from your answers in About you. The rest are below.'
-          : 'Answer About you (the heart on Profile) and this pick gets smarter.'));
+        root.appendChild(el('div', 'ab-hint', focusPlan
+          ? `Your muscle focus is ${focusLabels([focus])[0].toLowerCase()} — this block trains it twice a week.`
+          : pr2.level
+            ? 'Picked from your answers in About you. The rest are below.'
+            : 'Answer About you (the heart on Profile) and this pick gets smarter.'));
         const sw = el('div', 'ex-index rdy-pick');
         mkRow(best, sw);
         root.appendChild(sw);

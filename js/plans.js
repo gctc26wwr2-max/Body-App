@@ -4807,5 +4807,1115 @@ window.READY_PLANS = [
     ]
    }
   ]
+ },
+ {
+  "id": "mf-chest",
+  "name": "Chest Focus",
+  "who": "all",
+  "split": "Muscle focus",
+  "level": 2,
+  "weeks": 5,
+  "deload": true,
+  "note": "Chest twice a week at full volume; everything else once, kept honest.",
+  "days": [
+   {
+    "name": "Chest A",
+    "items": [
+     [
+      "Barbell Bench Press",
+      3,
+      8,
+      12,
+      "bench-press"
+     ],
+     [
+      "Incline Dumbbell Press",
+      3,
+      8,
+      12,
+      "incline-dumbbell-press"
+     ],
+     [
+      "Cable Chest Fly",
+      3,
+      10,
+      15,
+      "dumbbell-fly"
+     ],
+     [
+      "Chest Dip",
+      3,
+      10,
+      15,
+      "chest-dip"
+     ]
+    ]
+   },
+   {
+    "name": "Pull",
+    "items": [
+     [
+      "Barbell Bent-Over Row",
+      3,
+      8,
+      12,
+      "barbell-row"
+     ],
+     [
+      "Lat Pulldown",
+      3,
+      8,
+      12,
+      "lat-pulldown"
+     ],
+     [
+      "Face Pull",
+      3,
+      10,
+      15,
+      "face-pull"
+     ],
+     [
+      "Dumbbell Biceps Curl",
+      3,
+      10,
+      15,
+      "dumbbell-curl"
+     ]
+    ]
+   },
+   {
+    "name": "Chest B",
+    "items": [
+     [
+      "Incline Barbell Bench Press",
+      3,
+      8,
+      12,
+      "incline-barbell-bench-press"
+     ],
+     [
+      "Dumbbell Bench Press",
+      3,
+      8,
+      12,
+      "dumbbell-bench-press"
+     ],
+     [
+      "Pec Deck / Machine Fly",
+      3,
+      10,
+      15,
+      "pec-deck-machine-fly"
+     ],
+     [
+      "Rope Triceps Pushdown",
+      3,
+      10,
+      15,
+      "rope-triceps-pushdown"
+     ]
+    ]
+   },
+   {
+    "name": "Legs",
+    "items": [
+     [
+      "Barbell Back Squat",
+      3,
+      8,
+      12,
+      "box-squat"
+     ],
+     [
+      "Romanian Deadlift",
+      3,
+      8,
+      12,
+      "romanian-deadlift"
+     ],
+     [
+      "Leg Press",
+      3,
+      10,
+      15,
+      "leg-press"
+     ],
+     [
+      "Plank",
+      3,
+      30,
+      60,
+      "plank"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "mf-back",
+  "name": "Back Focus",
+  "who": "all",
+  "split": "Muscle focus",
+  "level": 2,
+  "weeks": 5,
+  "deload": true,
+  "note": "Rows and pulldowns lead the week twice; pressing and legs hold their ground.",
+  "days": [
+   {
+    "name": "Back A",
+    "items": [
+     [
+      "Barbell Bent-Over Row",
+      3,
+      8,
+      12,
+      "barbell-row"
+     ],
+     [
+      "Lat Pulldown",
+      3,
+      8,
+      12,
+      "lat-pulldown"
+     ],
+     [
+      "Chest-Supported Row",
+      3,
+      10,
+      15,
+      "chest-supported-row"
+     ],
+     [
+      "Straight-Arm Pulldown",
+      3,
+      10,
+      15,
+      "straight-arm-pulldown"
+     ]
+    ]
+   },
+   {
+    "name": "Push",
+    "items": [
+     [
+      "Barbell Bench Press",
+      3,
+      8,
+      12,
+      "bench-press"
+     ],
+     [
+      "Barbell Overhead Press",
+      3,
+      8,
+      12,
+      "overhead-press"
+     ],
+     [
+      "Dumbbell Lateral Raise",
+      3,
+      10,
+      15,
+      "lateral-raise"
+     ],
+     [
+      "Triceps Pushdown",
+      3,
+      10,
+      15,
+      "triceps-pushdown"
+     ]
+    ]
+   },
+   {
+    "name": "Back B",
+    "items": [
+     [
+      "T-Bar Row",
+      3,
+      8,
+      12,
+      "t-bar-row"
+     ],
+     [
+      "Close-Grip Lat Pulldown",
+      3,
+      8,
+      12,
+      "close-grip-lat-pulldown"
+     ],
+     [
+      "Seated Cable Row",
+      3,
+      10,
+      15,
+      "seated-cable-row"
+     ],
+     [
+      "Barbell Shrug",
+      3,
+      10,
+      15,
+      "shrug"
+     ]
+    ]
+   },
+   {
+    "name": "Legs",
+    "items": [
+     [
+      "Barbell Back Squat",
+      3,
+      8,
+      12,
+      "box-squat"
+     ],
+     [
+      "Romanian Deadlift",
+      3,
+      8,
+      12,
+      "romanian-deadlift"
+     ],
+     [
+      "Lying Leg Curl",
+      3,
+      10,
+      15,
+      "leg-curl"
+     ],
+     [
+      "Plank",
+      3,
+      30,
+      60,
+      "plank"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "mf-shoulders",
+  "name": "Shoulder Focus",
+  "who": "all",
+  "split": "Muscle focus",
+  "level": 2,
+  "weeks": 5,
+  "deload": true,
+  "note": "All three heads of the shoulder, twice a week.",
+  "days": [
+   {
+    "name": "Shoulders A",
+    "items": [
+     [
+      "Barbell Overhead Press",
+      3,
+      8,
+      12,
+      "overhead-press"
+     ],
+     [
+      "Dumbbell Lateral Raise",
+      3,
+      8,
+      12,
+      "lateral-raise"
+     ],
+     [
+      "Rear Delt Fly",
+      3,
+      10,
+      15,
+      "rear-delt-fly"
+     ],
+     [
+      "Dumbbell Front Raise",
+      3,
+      10,
+      15,
+      "front-raise"
+     ]
+    ]
+   },
+   {
+    "name": "Legs",
+    "items": [
+     [
+      "Barbell Back Squat",
+      3,
+      8,
+      12,
+      "box-squat"
+     ],
+     [
+      "Romanian Deadlift",
+      3,
+      8,
+      12,
+      "romanian-deadlift"
+     ],
+     [
+      "Leg Press",
+      3,
+      10,
+      15,
+      "leg-press"
+     ],
+     [
+      "Plank",
+      3,
+      30,
+      60,
+      "plank"
+     ]
+    ]
+   },
+   {
+    "name": "Shoulders B",
+    "items": [
+     [
+      "Seated Dumbbell Press",
+      3,
+      8,
+      12,
+      "seated-dumbbell-press"
+     ],
+     [
+      "Cable Lateral Raise",
+      3,
+      8,
+      12,
+      "cable-lateral-raise"
+     ],
+     [
+      "Face Pull",
+      3,
+      10,
+      15,
+      "face-pull"
+     ],
+     [
+      "Upright Row",
+      3,
+      10,
+      15,
+      "upright-row"
+     ]
+    ]
+   },
+   {
+    "name": "Upper",
+    "items": [
+     [
+      "Dumbbell Bench Press",
+      3,
+      8,
+      12,
+      "dumbbell-bench-press"
+     ],
+     [
+      "Seated Cable Row",
+      3,
+      8,
+      12,
+      "seated-cable-row"
+     ],
+     [
+      "Dumbbell Biceps Curl",
+      3,
+      10,
+      15,
+      "dumbbell-curl"
+     ],
+     [
+      "Rope Triceps Pushdown",
+      3,
+      10,
+      15,
+      "rope-triceps-pushdown"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "mf-arms",
+  "name": "Arm Focus",
+  "who": "all",
+  "split": "Muscle focus",
+  "level": 2,
+  "weeks": 5,
+  "deload": true,
+  "note": "Biceps and triceps twice a week; the big lifts keep the rest of you moving.",
+  "days": [
+   {
+    "name": "Arms A",
+    "items": [
+     [
+      "Barbell Biceps Curl",
+      3,
+      8,
+      12,
+      "barbell-curl"
+     ],
+     [
+      "Close-Grip Bench Press",
+      3,
+      8,
+      12,
+      "close-grip-bench-press"
+     ],
+     [
+      "Hammer Curl",
+      3,
+      10,
+      15,
+      "hammer-curl"
+     ],
+     [
+      "Rope Triceps Pushdown",
+      3,
+      10,
+      15,
+      "rope-triceps-pushdown"
+     ]
+    ]
+   },
+   {
+    "name": "Lower",
+    "items": [
+     [
+      "Barbell Back Squat",
+      3,
+      8,
+      12,
+      "box-squat"
+     ],
+     [
+      "Romanian Deadlift",
+      3,
+      8,
+      12,
+      "romanian-deadlift"
+     ],
+     [
+      "Standing Calf Raise",
+      3,
+      10,
+      15,
+      "calf-raise"
+     ],
+     [
+      "Plank",
+      3,
+      30,
+      60,
+      "plank"
+     ]
+    ]
+   },
+   {
+    "name": "Arms B",
+    "items": [
+     [
+      "Preacher Curl",
+      3,
+      8,
+      12,
+      "preacher-curl"
+     ],
+     [
+      "Skullcrusher",
+      3,
+      8,
+      12,
+      "skull-crusher"
+     ],
+     [
+      "Incline Dumbbell Curl",
+      3,
+      10,
+      15,
+      "incline-dumbbell-curl"
+     ],
+     [
+      "Overhead Triceps Extension",
+      3,
+      10,
+      15,
+      "overhead-triceps-extension"
+     ]
+    ]
+   },
+   {
+    "name": "Upper",
+    "items": [
+     [
+      "Dumbbell Bench Press",
+      3,
+      8,
+      12,
+      "dumbbell-bench-press"
+     ],
+     [
+      "Lat Pulldown",
+      3,
+      8,
+      12,
+      "lat-pulldown"
+     ],
+     [
+      "Dumbbell Lateral Raise",
+      3,
+      10,
+      15,
+      "lateral-raise"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "mf-core",
+  "name": "Core Focus",
+  "who": "all",
+  "split": "Muscle focus",
+  "level": 2,
+  "weeks": 5,
+  "deload": true,
+  "note": "A stronger middle, trained like everything else — plus two full-body days.",
+  "days": [
+   {
+    "name": "Core A",
+    "items": [
+     [
+      "Hanging Leg Raise",
+      3,
+      8,
+      12,
+      "hanging-leg-raise"
+     ],
+     [
+      "Cable Crunch",
+      3,
+      8,
+      12,
+      "cable-crunch"
+     ],
+     [
+      "Dead Bug",
+      3,
+      10,
+      15,
+      "dead-bug"
+     ],
+     [
+      "Plank",
+      3,
+      30,
+      60,
+      "plank"
+     ]
+    ]
+   },
+   {
+    "name": "Full A",
+    "items": [
+     [
+      "Barbell Back Squat",
+      3,
+      8,
+      12,
+      "box-squat"
+     ],
+     [
+      "Barbell Bench Press",
+      3,
+      8,
+      12,
+      "bench-press"
+     ],
+     [
+      "Seated Cable Row",
+      3,
+      10,
+      15,
+      "seated-cable-row"
+     ]
+    ]
+   },
+   {
+    "name": "Core B",
+    "items": [
+     [
+      "Ab Wheel Rollout",
+      3,
+      8,
+      12,
+      "ab-wheel-rollout"
+     ],
+     [
+      "Sit-Up",
+      3,
+      8,
+      12,
+      "sit-up"
+     ],
+     [
+      "Crunch",
+      3,
+      10,
+      15,
+      "crunch"
+     ],
+     [
+      "Plank",
+      3,
+      30,
+      60,
+      "plank"
+     ]
+    ]
+   },
+   {
+    "name": "Full B",
+    "items": [
+     [
+      "Romanian Deadlift",
+      3,
+      8,
+      12,
+      "romanian-deadlift"
+     ],
+     [
+      "Barbell Overhead Press",
+      3,
+      8,
+      12,
+      "overhead-press"
+     ],
+     [
+      "Lat Pulldown",
+      3,
+      10,
+      15,
+      "lat-pulldown"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "mf-glutes",
+  "name": "Glute Focus",
+  "who": "all",
+  "split": "Muscle focus",
+  "level": 2,
+  "weeks": 5,
+  "deload": true,
+  "note": "Hip thrusts and hinges twice a week; the upper body keeps its two days.",
+  "days": [
+   {
+    "name": "Glutes A",
+    "items": [
+     [
+      "Barbell Hip Thrust",
+      3,
+      8,
+      12,
+      "hip-thrust"
+     ],
+     [
+      "Romanian Deadlift",
+      3,
+      8,
+      12,
+      "romanian-deadlift"
+     ],
+     [
+      "Cable Glute Kickback",
+      3,
+      10,
+      15,
+      "cable-glute-kickback"
+     ],
+     [
+      "Hip Abduction Machine",
+      3,
+      10,
+      15,
+      "hip-abduction-machine"
+     ]
+    ]
+   },
+   {
+    "name": "Upper A",
+    "items": [
+     [
+      "Dumbbell Bench Press",
+      3,
+      8,
+      12,
+      "dumbbell-bench-press"
+     ],
+     [
+      "Lat Pulldown",
+      3,
+      8,
+      12,
+      "lat-pulldown"
+     ],
+     [
+      "Dumbbell Shoulder Press",
+      3,
+      10,
+      15,
+      "dumbbell-shoulder-press"
+     ]
+    ]
+   },
+   {
+    "name": "Glutes B",
+    "items": [
+     [
+      "Sumo Deadlift",
+      3,
+      8,
+      12,
+      "sumo-deadlift"
+     ],
+     [
+      "Bulgarian Split Squat",
+      3,
+      8,
+      12,
+      "bulgarian-split-squat"
+     ],
+     [
+      "Glute Bridge",
+      3,
+      10,
+      15,
+      "glute-bridge"
+     ],
+     [
+      "Cable Pull-Through",
+      3,
+      10,
+      15,
+      "cable-pull-through"
+     ]
+    ]
+   },
+   {
+    "name": "Upper B",
+    "items": [
+     [
+      "Seated Cable Row",
+      3,
+      8,
+      12,
+      "seated-cable-row"
+     ],
+     [
+      "Incline Dumbbell Press",
+      3,
+      8,
+      12,
+      "incline-dumbbell-press"
+     ],
+     [
+      "Face Pull",
+      3,
+      10,
+      15,
+      "face-pull"
+     ],
+     [
+      "Plank",
+      3,
+      30,
+      60,
+      "plank"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "mf-quads",
+  "name": "Quad Focus",
+  "who": "all",
+  "split": "Muscle focus",
+  "level": 2,
+  "weeks": 5,
+  "deload": true,
+  "note": "The front of the thigh twice a week, heavy then high.",
+  "days": [
+   {
+    "name": "Quads A",
+    "items": [
+     [
+      "Barbell Back Squat",
+      3,
+      8,
+      12,
+      "box-squat"
+     ],
+     [
+      "Leg Press",
+      3,
+      8,
+      12,
+      "leg-press"
+     ],
+     [
+      "Leg Extension",
+      3,
+      10,
+      15,
+      "leg-extension"
+     ],
+     [
+      "Walking Lunge",
+      3,
+      10,
+      15,
+      "walking-lunge"
+     ]
+    ]
+   },
+   {
+    "name": "Upper A",
+    "items": [
+     [
+      "Barbell Bench Press",
+      3,
+      8,
+      12,
+      "bench-press"
+     ],
+     [
+      "Barbell Bent-Over Row",
+      3,
+      8,
+      12,
+      "barbell-row"
+     ],
+     [
+      "Dumbbell Lateral Raise",
+      3,
+      10,
+      15,
+      "lateral-raise"
+     ]
+    ]
+   },
+   {
+    "name": "Quads B",
+    "items": [
+     [
+      "Hack Squat Machine",
+      3,
+      8,
+      12,
+      "hack-squat-machine"
+     ],
+     [
+      "Bulgarian Split Squat",
+      3,
+      8,
+      12,
+      "bulgarian-split-squat"
+     ],
+     [
+      "Leg Extension",
+      3,
+      10,
+      15,
+      "leg-extension"
+     ],
+     [
+      "Step-Up",
+      3,
+      10,
+      15,
+      "step-up"
+     ]
+    ]
+   },
+   {
+    "name": "Posterior",
+    "items": [
+     [
+      "Romanian Deadlift",
+      3,
+      8,
+      12,
+      "romanian-deadlift"
+     ],
+     [
+      "Lying Leg Curl",
+      3,
+      8,
+      12,
+      "leg-curl"
+     ],
+     [
+      "Standing Calf Raise",
+      3,
+      10,
+      15,
+      "calf-raise"
+     ],
+     [
+      "Plank",
+      3,
+      30,
+      60,
+      "plank"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "mf-hams",
+  "name": "Hamstring Focus",
+  "who": "all",
+  "split": "Muscle focus",
+  "level": 2,
+  "weeks": 5,
+  "deload": true,
+  "note": "The back of the thigh twice a week — hinges and curls.",
+  "days": [
+   {
+    "name": "Hams A",
+    "items": [
+     [
+      "Romanian Deadlift",
+      3,
+      8,
+      12,
+      "romanian-deadlift"
+     ],
+     [
+      "Lying Leg Curl",
+      3,
+      8,
+      12,
+      "leg-curl"
+     ],
+     [
+      "Cable Pull-Through",
+      3,
+      10,
+      15,
+      "cable-pull-through"
+     ],
+     [
+      "45-Degree Back Extension",
+      3,
+      10,
+      15,
+      "back-extension"
+     ]
+    ]
+   },
+   {
+    "name": "Upper A",
+    "items": [
+     [
+      "Barbell Bench Press",
+      3,
+      8,
+      12,
+      "bench-press"
+     ],
+     [
+      "Lat Pulldown",
+      3,
+      8,
+      12,
+      "lat-pulldown"
+     ],
+     [
+      "Dumbbell Shoulder Press",
+      3,
+      10,
+      15,
+      "dumbbell-shoulder-press"
+     ]
+    ]
+   },
+   {
+    "name": "Hams B",
+    "items": [
+     [
+      "Dumbbell Romanian Deadlift",
+      3,
+      8,
+      12,
+      "romanian-deadlift"
+     ],
+     [
+      "Seated Leg Curl",
+      3,
+      8,
+      12,
+      "seated-leg-curl"
+     ],
+     [
+      "Kettlebell Swing",
+      3,
+      10,
+      15,
+      "kettlebell-swing"
+     ],
+     [
+      "Glute Bridge",
+      3,
+      10,
+      15,
+      "glute-bridge"
+     ]
+    ]
+   },
+   {
+    "name": "Upper B",
+    "items": [
+     [
+      "Barbell Bent-Over Row",
+      3,
+      8,
+      12,
+      "barbell-row"
+     ],
+     [
+      "Incline Dumbbell Press",
+      3,
+      8,
+      12,
+      "incline-dumbbell-press"
+     ],
+     [
+      "Dumbbell Biceps Curl",
+      3,
+      10,
+      15,
+      "dumbbell-curl"
+     ],
+     [
+      "Plank",
+      3,
+      30,
+      60,
+      "plank"
+     ]
+    ]
+   }
+  ]
  }
 ];
