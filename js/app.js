@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v237';
+  const APP_VERSION = 'v238';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -195,6 +195,19 @@
     const ph = el('div', 'demo-anim ph' + (extra ? ' ' + extra : ''));
     return ph;
   }
+  /* The warm-up is the app's own card — it has no photo in the library, so it
+     gets a drawn mark instead of the empty box every other placeholder is. */
+  function warmThumb(extra) {
+    const d = el('div', 'demo-anim warm-thumb' + (extra ? ' ' + extra : ''));
+    d.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"'
+      + ' stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
+      + '<path d="M12 3c.5 3.4-1.6 5-2.9 6.6C7.8 11.2 7 12.9 7 14.5 7 17.6 9.2 20 12 20s5-2.4 5-5.5'
+      + 'C17 10.7 13.7 8.6 12 3z"/>'
+      + '<path d="M12 20c-1.5 0-2.6-1.2-2.6-2.7 0-1.6 1.4-2.4 2.6-4.3 1.2 1.9 2.6 2.7 2.6 4.3'
+      + 'C14.6 18.8 13.5 20 12 20z" fill="currentColor" stroke="none" opacity=".9"/></svg>';
+    return d;
+  }
+
   function animFor(ex, extra) {
     if (ex && ex.demo) return demoEl(ex.demo, extra, false);
     const ph = el('div', 'demo-anim ph' + (extra ? ' ' + extra : ''));
@@ -1070,9 +1083,10 @@
 
     // header — always visible; tap to focus this exercise
     const hd = el('div', 'exx-head');
-    const th = el('div', 'exx-thumb');
-    th.appendChild(thumbFor(ex));
-    th.onclick = e => { e.stopPropagation(); if (ex) openDetail(ex.id, 'workout'); };
+    const th = el('div', 'exx-thumb' + (cur.warmup ? ' is-warm' : ''));
+    th.appendChild(cur.warmup ? warmThumb() : thumbFor(ex));
+    /* the warm-up's own page has nothing on it — its practices are the links */
+    if (!cur.warmup) th.onclick = e => { e.stopPropagation(); if (ex) openDetail(ex.id, 'workout'); };
     hd.appendChild(th);
     const col = el('div', 'exx-col');
     col.appendChild(el('div', 'exx-name', cur.name));
