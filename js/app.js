@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v242';
+  const APP_VERSION = 'v244';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5474,10 +5474,12 @@
       name: plan.name, weeks: plan.weeks, deload: !!plan.deload,
       days: plan.days.map(d => ({
         name: d.name,
-        items: d.items.map(([name, sets, lo, hi]) => {
+        items: d.items.map(([name, sets, lo, hi, thumb]) => {
           const rec = (window.EXERCISE_LIBRARY || []).find(x => x.name === name)
             || { name, group: 'Other', notes: '' };
-          return { name, rec, sets, repLo: lo, repHi: hi };
+          /* the checked photo rides along, so the installed block has
+             pictures everywhere the app shows one */
+          return { name, rec: { ...rec, demo: thumb }, sets, repLo: lo, repHi: hi };
         })
       }))
     };
@@ -5506,10 +5508,19 @@
     root.appendChild(chips);
 
     const list = forMe.filter(p => readySplit === 'All' || p.split === readySplit);
-    root.appendChild(el('div', 'micro', `${list.length} block${list.length === 1 ? '' : 's'}`));
 
-    const wrap = el('div', 'ex-index');
+    /* the first thing that decides whether a block fits a life is how many
+       days it asks for, so that is the first division of the list */
+    const byDays = new Map();
     list.forEach(p => {
+      const k = p.days.length;
+      if (!byDays.has(k)) byDays.set(k, []);
+      byDays.get(k).push(p);
+    });
+    const wrap = el('div', 'ex-index');
+    [...byDays.keys()].sort((a, b) => a - b).forEach(dk => {
+      wrap.appendChild(el('div', 'month-label rdy-days', `${dk} days a week`));
+      byDays.get(dk).forEach(p => {
       const r = el('div', 'exi-row rdy-row' + (readyOpen === p.id ? ' open' : ''));
       const bars = el('div', 'hard-bars');
       for (let i = 1; i <= 3; i++) bars.appendChild(el('i', i <= p.level ? 'on' : ''));
@@ -5535,12 +5546,29 @@
           h.appendChild(el('div', 'blk-day-name', d.name));
           h.appendChild(el('div', 'blk-day-meta num', d.items.length + ''));
           pv.appendChild(h);
-          d.items.forEach(([name, sets, lo, hi]) => {
-            const row = el('div', 'ai-row');
-            const left = el('div', 'ai-row-l');
-            left.appendChild(el('div', 'ai-row-n', name));
-            row.appendChild(left);
-            row.appendChild(el('div', 'ai-row-m num', `${sets} × ${fmtRange(lo, hi)}`));
+          /* each movement with its own picture, and a way through to the
+             moving demonstration — the same row the Plan tab uses */
+          d.items.forEach(([name, sets, lo, hi, thumb]) => {
+            /* the fifth field is a photo folder checked at build time, so a
+               preset can never point at a picture that is not there */
+            const rec = (window.EXERCISE_LIBRARY || []).find(x => x.name === name)
+              || { name, group: 'Other', notes: '' };
+            const row = el('div', 'pv-row');
+            const th = el('div', 'pv-thumb');
+            th.appendChild(thumbFor({ demo: thumb }));
+            row.appendChild(th);
+            const c = el('div');
+            c.appendChild(el('div', 'pv-name', name));
+            const meta = el('div', 'pv-meta num', `${sets} × ${fmtRange(lo, hi)}`);
+            if (rec) addHardship(meta, rec);
+            c.appendChild(meta);
+            row.appendChild(c);
+            row.appendChild(el('div', 'pv-go', '›'));
+            row.onclick = async e => {
+              e.stopPropagation();
+              const ex2 = await ensureExercise({ ...rec, demo: thumb });
+              openDetail(ex2.id, 'library');
+            };
             pv.appendChild(row);
           });
         });
@@ -5560,6 +5588,7 @@
         pv.appendChild(go);
       }
       wrap.appendChild(pv);
+      });
     });
     root.appendChild(wrap);
   }
