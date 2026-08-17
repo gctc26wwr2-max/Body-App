@@ -1885,3 +1885,7 @@ body { font-size: 14px; }
   color: var(--lime); border: 1px solid var(--lime-border);
 }
 
+
+/* the warm-up's drawn tile, in place of a photograph */
+.warm-mark { width: 100%; height: 100%; display: block; }
+.warm-mark svg { display: block; }

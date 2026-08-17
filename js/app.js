@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v239';
+  const APP_VERSION = 'v240';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -195,6 +195,34 @@
     const ph = el('div', 'demo-anim ph' + (extra ? ' ' + extra : ''));
     return ph;
   }
+  /* The warm-up is the app's own card and has no photograph of a movement to
+     show, so it gets a drawn one: a sun coming up over the horizon, filling
+     the tile the way a picture would. Rays are struck in clay, the disc is
+     lit from the top, and the ground line grounds it — small enough to read
+     at 52 pixels, and the only mark of its kind in the app. */
+  function warmMark(extra) {
+    const d = el('div', 'demo-anim warm-mark' + (extra ? ' ' + extra : ''));
+    d.innerHTML = '<svg viewBox="0 0 52 52" width="100%" height="100%" aria-hidden="true">'
+      + '<defs>'
+      + '<radialGradient id="wmSky" cx="50%" cy="74%" r="72%">'
+      + '<stop offset="0" stop-color="#3A2115"/><stop offset="1" stop-color="#140E0B"/>'
+      + '</radialGradient>'
+      + '<linearGradient id="wmSun" x1="0" y1="0" x2="0" y2="1">'
+      + '<stop offset="0" stop-color="#E9A06C"/><stop offset="1" stop-color="#CE6B3D"/>'
+      + '</linearGradient>'
+      + '</defs>'
+      + '<rect width="52" height="52" fill="url(#wmSky)"/>'
+      + '<g stroke="#CE6B3D" stroke-width="1.8" stroke-linecap="round" opacity=".85">'
+      + '<path d="M26 8v4.4"/><path d="M13.6 13.6l3.1 3.1"/><path d="M38.4 13.6l-3.1 3.1"/>'
+      + '<path d="M7.5 26h4.4"/><path d="M40.1 26h4.4"/>'
+      + '</g>'
+      + '<path d="M15 34a11 11 0 0 1 22 0z" fill="url(#wmSun)"/>'
+      + '<path d="M6 34h40" stroke="#8A5233" stroke-width="2" stroke-linecap="round"/>'
+      + '<path d="M11 40h12M27 40h14" stroke="#5C3A27" stroke-width="1.7" stroke-linecap="round"/>'
+      + '</svg>';
+    return d;
+  }
+
   function animFor(ex, extra) {
     if (ex && ex.demo) return demoEl(ex.demo, extra, false);
     const ph = el('div', 'demo-anim ph' + (extra ? ' ' + extra : ''));
@@ -1082,7 +1110,7 @@
     // header — always visible; tap to focus this exercise
     const hd = el('div', 'exx-head');
     const th = el('div', 'exx-thumb');
-    th.appendChild(cur.warmup ? thumbFor({ demo: cur.demo }) : thumbFor(ex));
+    th.appendChild(cur.warmup ? warmMark() : thumbFor(ex));
     /* the warm-up's own page has nothing on it — its practices are the links */
     if (!cur.warmup) th.onclick = e => { e.stopPropagation(); if (ex) openDetail(ex.id, 'workout'); };
     hd.appendChild(th);
