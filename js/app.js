@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v230';
+  const APP_VERSION = 'v231';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -806,6 +806,9 @@
     renderWorkout();
   }
 
+  /* "300-300" is not a range */
+  const fmtRange = (lo, hi, dash) => lo === hi ? String(lo) : lo + (dash || '–') + hi;
+
   async function startWorkout(plan, dayIndex) {
     if (plan.pausedAt) await resumePlan(plan);   // training again ends the break
     const day = plan.days[dayIndex];
@@ -818,6 +821,19 @@
     const sessions = await DB.all('sessions');
     const exList = [];
     const deload = isDeloadWeek(plan, wk);
+    /* the switch in Settings: five easy timed minutes before the first move.
+       Session-only — the block itself is untouched. */
+    if (getProfile().warmup) {
+      const wex = await ensureExercise({
+        name: 'Warm-Up', group: 'Cardio',
+        notes: 'Easy 300 seconds — bike, row or jacks, then loosen what today trains.'
+      });
+      exList.push({
+        exerciseId: wex.id, name: wex.name, timed: true, perSide: false,
+        repLo: 300, repHi: 300, rest: 60, deload: false, warmup: true,
+        sets: [{ kg: 0, reps: 300, targetLo: 300, targetHi: 300, done: false }]
+      });
+    }
     for (const item of day.items) {
       const ex = exercises.find(e => e.id === item.exerciseId);
       if (!ex) continue;
@@ -1018,7 +1034,7 @@
     const col = el('div', 'exx-col');
     col.appendChild(el('div', 'exx-name', cur.name));
     const exMeta = el('div', 'exx-meta',
-      `${(ex && ex.group) ? ex.group + ' · ' : ''}${cur.sets.length} × ${cur.repLo}–${cur.repHi}${cur.timed ? (cur.perSide ? ' s / side' : ' s') : ''}`);
+      `${(ex && ex.group) ? ex.group + ' · ' : ''}${cur.sets.length} × ${fmtRange(cur.repLo, cur.repHi)}${cur.timed ? (cur.perSide ? ' s / side' : ' s') : ''}`);
     addHardship(exMeta, ex || { name: cur.name });
     col.appendChild(exMeta);
     hd.appendChild(col);
@@ -1140,8 +1156,8 @@
        weight's place and its own scale, and the play button gets room. */
     const gh = el('div', 'set-grid-head' + (cur.timed ? ' timed' : ''));
     (cur.timed
-      ? ['#', `Sec · ${cur.repLo}–${cur.repHi}`, 'Hold', 'Log']
-      : ['#', 'Kg', `Reps · ${cur.repLo}–${cur.repHi}`, 'Log'])
+      ? ['#', `Sec · ${fmtRange(cur.repLo, cur.repHi)}`, 'Hold', 'Log']
+      : ['#', 'Kg', `Reps · ${fmtRange(cur.repLo, cur.repHi)}`, 'Log'])
       .forEach(t => gh.appendChild(el('span', null, t)));
     card.appendChild(gh);
 
@@ -2069,7 +2085,7 @@
     const top = el('div', 'ks-top');
     const big = el('div', 'ks-val num', fmtClock(set.reps));
     top.appendChild(big);
-    top.appendChild(el('div', 'ks-delta', `target ${cur.repLo}–${cur.repHi} s`
+    top.appendChild(el('div', 'ks-delta', `target ${fmtRange(cur.repLo, cur.repHi)} s`
       + (cur.perSide ? ' / side' : '')));
     box.appendChild(top);
 
@@ -2124,7 +2140,7 @@
     const big = el('div', 'ks-val num', String(set.reps));
     big.appendChild(el('small', null, ' reps'));
     top.appendChild(big);
-    top.appendChild(el('div', 'ks-delta', `Target ${cur.repLo}–${cur.repHi}`));
+    top.appendChild(el('div', 'ks-delta', `Target ${fmtRange(cur.repLo, cur.repHi)}`));
     box.appendChild(top);
 
     const wrap = el('div', 'vs-ruler');
@@ -3162,12 +3178,14 @@
     kit: '<path d="M2 12h20"/><rect x="5" y="7.5" width="2.4" height="9" rx="1"/>'
       + '<rect x="16.6" y="7.5" width="2.4" height="9" rx="1"/>',
     aim: '<circle cx="12" cy="12" r="7.4"/><circle cx="12" cy="12" r="2.6"/>'
-      + '<path d="M12 2.2v2.6M12 19.2v2.6M2.2 12h2.6M19.2 12h2.6"/>'
+      + '<path d="M12 2.2v2.6M12 19.2v2.6M2.2 12h2.6M19.2 12h2.6"/>',
+    flame: '<path d="M12 3c.5 3.4-1.6 5-2.9 6.6C7.8 11.2 7 12.9 7 14.5 7 17.6 9.2 20 12 20s5-2.4 5-5.5C17 10.7 13.7 8.6 12 3z"/>'
   };
 
   const PREF_GROUPS = [
     { title: 'Preferences', rows: [
       ['timer', 'Rest between sets', 'rest'],
+      ['flame', 'Warm-up', 'warm'],
       ['bell', 'Alert sound', 'sound'],
       ['kit', 'Equipment', 'kit'],
       ['aim', 'Muscle focus', 'focus'],
@@ -3228,7 +3246,7 @@
     root.appendChild(head);
 
     root.appendChild(el('div', 'coach-note',
-      'Rest, alert sound, equipment and units work. The rest are placeholders.'));
+      'The top rows work. The rest are placeholders.'));
 
     PREF_GROUPS.forEach(g => {
       root.appendChild(el('div', 'month-label', g.title));
@@ -3254,6 +3272,11 @@
           r.appendChild(el('span', 'pref-val num', `${own.size} of ${total}`));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'kit' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'kit' ? null : 'kit'; renderPrefs(); };
+        } else if (live === 'warm') {
+          const sw = el('button', 'inj-sw sm' + (pDraft.warmup ? ' on' : ''));
+          sw.appendChild(el('i', 'inj-knob'));
+          r.appendChild(sw);
+          r.onclick = () => { pDraft.warmup = !pDraft.warmup; haptic(); renderPrefs(); };
         } else if (live === 'focus') {
           const lbl2 = focusLabels(dFocus());
           r.appendChild(el('span', 'pref-val',
