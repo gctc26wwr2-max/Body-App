@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v246';
+  const APP_VERSION = 'v247';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5520,7 +5520,10 @@
         row.appendChild(th);
         const c = el('div');
         c.appendChild(el('div', 'pv-name', name));
-        const meta = el('div', 'pv-meta num', `${sets} × ${fmtRange(lo, hi)}`);
+        /* written out — "3 × 8–12" means nothing until someone has trained */
+        const timed = /second/i.test(rec.notes || '');
+        const meta = el('div', 'pv-meta num',
+          `${sets} set${sets === 1 ? '' : 's'} · ${fmtRange(lo, hi)} ${timed ? 's' : 'reps'}`);
         if (rec) addHardship(meta, rec);
         c.appendChild(meta);
         row.appendChild(c);

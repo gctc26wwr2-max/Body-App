@@ -100,8 +100,8 @@ window.READY_PLANS = [
      [
       "Dead Bug",
       2,
-      30,
-      45,
+      12,
+      20,
       "dead-bug"
      ]
     ]
@@ -192,8 +192,8 @@ window.READY_PLANS = [
      [
       "Dead Bug",
       2,
-      30,
-      45,
+      12,
+      20,
       "dead-bug"
      ]
     ]
@@ -844,8 +844,8 @@ window.READY_PLANS = [
      [
       "Dead Bug",
       3,
-      30,
-      60,
+      12,
+      20,
       "dead-bug"
      ]
     ]
@@ -1374,8 +1374,8 @@ window.READY_PLANS = [
      [
       "Dead Bug",
       2,
-      30,
-      45,
+      12,
+      20,
       "dead-bug"
      ]
     ]
@@ -3256,8 +3256,8 @@ window.READY_PLANS = [
      [
       "Dead Bug",
       2,
-      30,
-      45,
+      12,
+      20,
       "dead-bug"
      ]
     ]
@@ -4267,8 +4267,8 @@ window.READY_PLANS = [
      [
       "Dead Bug",
       2,
-      30,
-      45,
+      12,
+      20,
       "dead-bug"
      ]
     ]
@@ -4307,8 +4307,8 @@ window.READY_PLANS = [
      [
       "Mountain Climber",
       2,
-      30,
-      45,
+      12,
+      20,
       "mountain-climbers"
      ]
     ]
@@ -4538,8 +4538,8 @@ window.READY_PLANS = [
      [
       "Dead Bug",
       2,
-      30,
-      45,
+      12,
+      20,
       "dead-bug"
      ]
     ]
@@ -4720,8 +4720,8 @@ window.READY_PLANS = [
      [
       "Mountain Climber",
       3,
-      30,
-      60,
+      12,
+      20,
       "mountain-climbers"
      ]
     ]
