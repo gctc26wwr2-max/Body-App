@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v245';
+  const APP_VERSION = 'v246';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5463,7 +5463,7 @@
     'Body part': 'One area per day',
     'Home': 'No gym needed'
   };
-  let readyWho = null, readySplit = 'All', readyOpen = null;
+  let readyWho = null, readySplit = 'All';
 
   function readyKitGap(plan) {
     const lib = window.EXERCISE_LIBRARY || [];
@@ -5495,15 +5495,80 @@
     return createPlanFromImport(block);
   }
 
+  function openReadySheet(p) {
+    $('#sheet-ready-title').textContent = p.name;
+    const body = $('#sheet-ready-body');
+    body.innerHTML = '';
+    const total = p.days.reduce((n, d) => n + d.items.length, 0);
+    body.appendChild(el('div', 'rdy-sheet-sub',
+      `${READY_LVL[p.level]} · ${p.days.length} days a week · ${p.weeks} weeks · ${total} exercises`));
+    body.appendChild(el('div', 'rdy-note', p.note));
+    const gap = readyKitGap(p);
+    if (gap.length) body.appendChild(el('div', 'rdy-gap',
+      `Needs kit you have switched off: ${gap.join(', ')}`));
+    p.days.forEach(d => {
+      const h = el('div', 'blk-day');
+      h.appendChild(el('div', 'blk-day-name', d.name));
+      h.appendChild(el('div', 'blk-day-meta num', d.items.length + ''));
+      body.appendChild(h);
+      d.items.forEach(([name, sets, lo, hi, thumb]) => {
+        const rec = (window.EXERCISE_LIBRARY || []).find(x => x.name === name)
+          || { name, group: 'Other', notes: '' };
+        const row = el('div', 'pv-row');
+        const th = el('div', 'pv-thumb');
+        th.appendChild(thumbFor({ demo: thumb }));
+        row.appendChild(th);
+        const c = el('div');
+        c.appendChild(el('div', 'pv-name', name));
+        const meta = el('div', 'pv-meta num', `${sets} × ${fmtRange(lo, hi)}`);
+        if (rec) addHardship(meta, rec);
+        c.appendChild(meta);
+        row.appendChild(c);
+        row.appendChild(el('div', 'pv-go', '›'));
+        /* the movement's page is a whole view, so the sheet steps aside and
+           comes back when you do */
+        row.onclick = async () => {
+          const ex2 = await ensureExercise({ ...rec, demo: thumb });
+          closeSheets();
+          readyReopen = p.id;
+          openDetail(ex2.id, 'library');
+        };
+        body.appendChild(row);
+      });
+    });
+    const go = el('button', 'btn-cta big');
+    go.style.cssText = 'width:100%;margin-top:14px';
+    go.textContent = 'Use this block';
+    go.onclick = async () => {
+      go.disabled = true;
+      const made = await installReady(p);
+      if (!made) { go.disabled = false; return; }
+      plans = await DB.all('plans');
+      haptic();
+      dismissSheet();
+      masterTab = 'new';
+      renderLibrary();
+    };
+    body.appendChild(go);
+    openSheet('#sheet-ready');
+    $('#sheet-ready').scrollTop = 0;
+  }
+  let readyReopen = null;
+
   function renderMasterReady(root) {
     const all = window.READY_PLANS || [];
+    if (readyReopen) {
+      const back = all.find(x => x.id === readyReopen);
+      readyReopen = null;
+      if (back) setTimeout(() => openReadySheet(back), 60);
+    }
     if (!all.length) { root.appendChild(el('div', 'coach-note', 'No ready blocks in this build.')); return; }
     if (readyWho == null) readyWho = getProfile().sex || 'all';
 
     /* who they were written for, then how the week is split */
     root.appendChild(segToggle(
       [['all', 'Anyone'], ['female', 'Women'], ['male', 'Men']], readyWho,
-      k => { readyWho = k; readyOpen = null; renderLibrary(); }, 'you-seg'));
+      k => { readyWho = k; renderLibrary(); }, 'you-seg'));
 
     const forMe = all.filter(p => readyWho === 'all' ? true : (p.who === 'all' || p.who === readyWho));
     const splits = ['All', ...new Set(forMe.map(p => p.split))];
@@ -5511,15 +5576,15 @@
     const chips = el('div', 'fp-chips rdy-chips');
     splits.forEach(sp => {
       const b = el('button', sp === readySplit ? 'on' : '', sp);
-      b.onclick = () => { readySplit = sp; readyOpen = null; renderLibrary(); };
+      b.onclick = () => { readySplit = sp; renderLibrary(); };
       chips.appendChild(b);
     });
     root.appendChild(chips);
     if (SPLIT_PLAIN[readySplit]) root.appendChild(el('div', 'ab-hint', SPLIT_PLAIN[readySplit]));
 
-    /* one block's row and its opened preview */
+    /* one block's row — tapping it lifts the block into a sheet */
     const mkRow = (p, wrap) => {
-      const r = el('div', 'exi-row rdy-row' + (readyOpen === p.id ? ' open' : ''));
+      const r = el('div', 'exi-row rdy-row');
       const bars = el('div', 'hard-bars');
       for (let i = 1; i <= 3; i++) bars.appendChild(el('i', i <= p.level ? 'on' : ''));
       r.appendChild(bars);
@@ -5529,60 +5594,9 @@
         `${READY_LVL[p.level]} · ${p.weeks} weeks · ${total} exercises`
         + (p.who !== 'all' ? ` · for ${p.who === 'female' ? 'women' : 'men'}` : '')));
       r.appendChild(nm);
-      r.appendChild(el('div', 'exi-go', '▾'));
+      r.appendChild(el('div', 'exi-go', '›'));
+      r.onclick = () => { haptic(); openReadySheet(p); };
       wrap.appendChild(r);
-
-      const pv = el('div', 'blk-preview');
-      pv.hidden = readyOpen !== p.id;
-      r.onclick = () => { readyOpen = readyOpen === p.id ? null : p.id; renderLibrary(); };
-      if (readyOpen === p.id) {
-        pv.appendChild(el('div', 'rdy-note', p.note));
-        const gap = readyKitGap(p);
-        if (gap.length) pv.appendChild(el('div', 'rdy-gap',
-          `Needs kit you have switched off: ${gap.join(', ')}`));
-        p.days.forEach(d => {
-          const h = el('div', 'blk-day');
-          h.appendChild(el('div', 'blk-day-name', d.name));
-          h.appendChild(el('div', 'blk-day-meta num', d.items.length + ''));
-          pv.appendChild(h);
-          d.items.forEach(([name, sets, lo, hi, thumb]) => {
-            const rec = (window.EXERCISE_LIBRARY || []).find(x => x.name === name)
-              || { name, group: 'Other', notes: '' };
-            const row = el('div', 'pv-row');
-            const th = el('div', 'pv-thumb');
-            th.appendChild(thumbFor({ demo: thumb }));
-            row.appendChild(th);
-            const c = el('div');
-            c.appendChild(el('div', 'pv-name', name));
-            const meta = el('div', 'pv-meta num', `${sets} × ${fmtRange(lo, hi)}`);
-            if (rec) addHardship(meta, rec);
-            c.appendChild(meta);
-            row.appendChild(c);
-            row.appendChild(el('div', 'pv-go', '›'));
-            row.onclick = async e => {
-              e.stopPropagation();
-              const ex2 = await ensureExercise({ ...rec, demo: thumb });
-              openDetail(ex2.id, 'library');
-            };
-            pv.appendChild(row);
-          });
-        });
-        const go = el('button', 'btn-cta big');
-        go.style.cssText = 'width:100%;margin-top:14px';
-        go.textContent = 'Use this block';
-        go.onclick = async e => {
-          e.stopPropagation();
-          go.disabled = true;
-          const made = await installReady(p);
-          if (!made) { go.disabled = false; return; }
-          plans = await DB.all('plans');
-          haptic();
-          masterTab = 'new';
-          renderLibrary();
-        };
-        pv.appendChild(go);
-      }
-      wrap.appendChild(pv);
     };
 
     /* Most people do not want to weigh thirty blocks — they want one picked

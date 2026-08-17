@@ -1909,3 +1909,6 @@ body { font-size: 14px; }
 .rdy-days { margin-top: 6px; }
 .blk-preview .pv-row { cursor: pointer; }
 .rdy-pick .rdy-row { border: 1px solid var(--lime-border); border-radius: 14px; padding: 10px 12px; }
+#sheet-ready-body { padding-bottom: 8px; }
+.rdy-sheet-sub { font-size: 12.5px; font-weight: 700; color: var(--t5); margin: -6px 0 10px; }
+#sheet-ready .rdy-note { margin-bottom: 12px; }
