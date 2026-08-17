@@ -1889,3 +1889,12 @@ body { font-size: 14px; }
 /* the warm-up's drawn tile, in place of a photograph */
 .warm-mark { width: 100%; height: 100%; display: block; }
 .warm-mark svg { display: block; }
+
+/* one-tap ordering for a day in the block editor */
+.day-order {
+  align-self: flex-start; height: 32px; padding: 0 14px; margin: -2px 0 8px;
+  border-radius: 11px; border: 1px solid var(--hair); background: none;
+  color: var(--t3); font-size: 12px; font-weight: 700;
+}
+.day-order.on { border-color: var(--lime-border); color: var(--lime); background: rgba(206,107,61,.1); }
+.day-order:disabled { opacity: .4; }
