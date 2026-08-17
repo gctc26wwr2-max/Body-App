@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v231';
+  const APP_VERSION = 'v232';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -821,19 +821,6 @@
     const sessions = await DB.all('sessions');
     const exList = [];
     const deload = isDeloadWeek(plan, wk);
-    /* the switch in Settings: five easy timed minutes before the first move.
-       Session-only — the block itself is untouched. */
-    if (getProfile().warmup) {
-      const wex = await ensureExercise({
-        name: 'Warm-Up', group: 'Cardio',
-        notes: 'Easy 300 seconds — bike, row or jacks, then loosen what today trains.'
-      });
-      exList.push({
-        exerciseId: wex.id, name: wex.name, timed: true, perSide: false,
-        repLo: 300, repHi: 300, rest: 60, deload: false, warmup: true,
-        sets: [{ kg: 0, reps: 300, targetLo: 300, targetHi: 300, done: false }]
-      });
-    }
     for (const item of day.items) {
       const ex = exercises.find(e => e.id === item.exerciseId);
       if (!ex) continue;
@@ -860,6 +847,41 @@
           const reps = (prev && prev.reps) || lo;
           return { kg, reps, targetLo: lo, targetHi: hi, done: false };
         })
+      });
+    }
+    /* The switch in Settings. Two halves: five easy timed minutes first,
+       and two lighter W sets rolled into the first lift so the working weight
+       is not the first thing your joints see. Session-only — the block is
+       untouched. */
+    if (getProfile().warmup) {
+      const first = exList[0];
+      let ramp = false;
+      if (first && !first.timed) {
+        const base = first.sets[0] ? first.sets[0].kg : 0;
+        if (base > 0) {
+          /* targets are 1—hi so a deliberately light set never reads as a miss */
+          first.sets.unshift(
+            { kg: wRound(base * 0.5), reps: 8, targetLo: 1, targetHi: first.repHi, done: false, warm: true },
+            { kg: wRound(base * 0.75), reps: 5, targetLo: 1, targetHi: first.repHi, done: false, warm: true }
+          );
+          ramp = true;
+        }
+      }
+      const g1 = first ? ((exercises.find(e => e.id === first.exerciseId) || {}).group || '') : '';
+      const lower = /leg/i.test(g1);
+      const wex = await ensureExercise({
+        name: 'Warm-Up', group: 'Cardio',
+        notes: 'Easy 300 seconds — raise the pulse, loosen what today trains.'
+      });
+      exList.unshift({
+        exerciseId: wex.id, name: wex.name, timed: true, perSide: false,
+        repLo: 300, repHi: 300, rest: 60, deload: false, warmup: true,
+        steps: [
+          `2 min easy — ${lower ? 'bike or brisk walk' : 'bike, row or jumping jacks'}`,
+          lower ? '10 hip circles each way · 15 bodyweight squats' : '10 arm circles each way · 15 band pull-aparts',
+          ramp ? `Finish with the two W sets on ${first.name}` : 'Finish with a light first set of your first lift'
+        ],
+        sets: [{ kg: 0, reps: 300, targetLo: 300, targetHi: 300, done: false }]
       });
     }
     live.set({
@@ -1082,11 +1104,13 @@
     }
 
     // --- expanded (active exercise) ---
-    const watch = el('div', 'ex-watch');
-    watch.appendChild(svgIcon(PLAY, 10));
-    watch.appendChild(document.createTextNode(' Watch the movement'));
-    watch.onclick = () => { if (ex) openDetail(ex.id, 'workout'); };
-    card.appendChild(watch);
+    if (!cur.warmup) {          // the warm-up's steps are its instructions
+      const watch = el('div', 'ex-watch');
+      watch.appendChild(svgIcon(PLAY, 10));
+      watch.appendChild(document.createTextNode(' Watch the movement'));
+      watch.onclick = () => { if (ex) openDetail(ex.id, 'workout'); };
+      card.appendChild(watch);
+    }
 
     /* One way out of an exercise you cannot do today. Taking it out for good
        is a different decision and lives on the exercise's own page. */
@@ -1151,6 +1175,18 @@
       }
     };
 
+    /* a warm-up is instructions first, a clock second */
+    if (cur.warmup && cur.steps) {
+      const ws = el('div', 'warm-list');
+      cur.steps.forEach((t, i) => {
+        const row = el('div', 'warm-step');
+        row.appendChild(el('i', null, String(i + 1)));
+        row.appendChild(el('span', null, t));
+        ws.appendChild(row);
+      });
+      card.appendChild(ws);
+    }
+
     /* column headers — the rep range lives here, never inline in a row.
        A held exercise has no weight worth a column, so the seconds take the
        weight's place and its own scale, and the play button gets room. */
@@ -1165,7 +1201,9 @@
     cur.sets.forEach((set, si) => {
       const r = el('div', 'w-set' + (set.done ? ' logged' : ''));
       const inner = el('div', 'w-set-row' + (cur.timed ? ' timed' : ''));
-      inner.appendChild(el('div', 'sn num', String(si + 1)));
+      const wBefore = cur.sets.filter((x, j) => j < si && x.warm).length;
+      inner.appendChild(el('div', 'sn num' + (set.warm ? ' warm' : ''),
+        set.warm ? 'W' + (si + 1) : String(si + 1 - wBefore)));
 
       /* the first value cell: seconds on a held exercise, weight on every
          other — same tap target, same scale sliding open underneath */

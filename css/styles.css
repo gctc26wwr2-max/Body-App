@@ -1837,3 +1837,14 @@ body { font-size: 14px; }
   background: rgba(206,107,61,.14); border-color: var(--lime-border); color: var(--lime);
 }
 .ai-step .micro { margin-top: 2px; }
+
+/* ---------- warm-up: what to actually do ---------- */
+.warm-list { display: flex; flex-direction: column; gap: 7px; margin: 2px 0 4px; }
+.warm-step { display: flex; align-items: baseline; gap: 9px; font-size: 12.5px; color: var(--t3); line-height: 1.4; }
+.warm-step i {
+  flex: 0 0 auto; font-style: normal; width: 17px; height: 17px; border-radius: 9px;
+  font-size: 10px; font-weight: 800; line-height: 17px; text-align: center;
+  color: var(--lime); border: 1px solid var(--lime-border);
+}
+/* ramp sets on the first lift */
+.sn.warm { color: var(--lime); font-size: 10.5px; letter-spacing: .03em; }
