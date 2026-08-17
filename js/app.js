@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v244';
+  const APP_VERSION = 'v245';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5454,6 +5454,15 @@
      or replace it.
      ============================================================ */
   const READY_LVL = ['', 'Easy', 'Moderate', 'Hard'];
+  /* the splits in words a first-timer has — jargon explains itself once */
+  const SPLIT_PLAIN = {
+    'Full body': 'Everything, every visit',
+    'Upper / Lower': 'Top half one day, legs the next',
+    'Push / Pull / Legs': 'A pushing day, a pulling day, a leg day',
+    'Push / Pull': 'A pushing day, then a pulling day',
+    'Body part': 'One area per day',
+    'Home': 'No gym needed'
+  };
   let readyWho = null, readySplit = 'All', readyOpen = null;
 
   function readyKitGap(plan) {
@@ -5506,21 +5515,10 @@
       chips.appendChild(b);
     });
     root.appendChild(chips);
+    if (SPLIT_PLAIN[readySplit]) root.appendChild(el('div', 'ab-hint', SPLIT_PLAIN[readySplit]));
 
-    const list = forMe.filter(p => readySplit === 'All' || p.split === readySplit);
-
-    /* the first thing that decides whether a block fits a life is how many
-       days it asks for, so that is the first division of the list */
-    const byDays = new Map();
-    list.forEach(p => {
-      const k = p.days.length;
-      if (!byDays.has(k)) byDays.set(k, []);
-      byDays.get(k).push(p);
-    });
-    const wrap = el('div', 'ex-index');
-    [...byDays.keys()].sort((a, b) => a - b).forEach(dk => {
-      wrap.appendChild(el('div', 'month-label rdy-days', `${dk} days a week`));
-      byDays.get(dk).forEach(p => {
+    /* one block's row and its opened preview */
+    const mkRow = (p, wrap) => {
       const r = el('div', 'exi-row rdy-row' + (readyOpen === p.id ? ' open' : ''));
       const bars = el('div', 'hard-bars');
       for (let i = 1; i <= 3; i++) bars.appendChild(el('i', i <= p.level ? 'on' : ''));
@@ -5528,7 +5526,8 @@
       const nm = el('div', 'exi-name', p.name);
       const total = p.days.reduce((n, d) => n + d.items.length, 0);
       nm.appendChild(el('span', 'exi-sub',
-        `${p.split} · ${p.days.length}/wk · ${p.weeks}w · ${READY_LVL[p.level]} · ${total} exercises`));
+        `${READY_LVL[p.level]} · ${p.weeks} weeks · ${total} exercises`
+        + (p.who !== 'all' ? ` · for ${p.who === 'female' ? 'women' : 'men'}` : '')));
       r.appendChild(nm);
       r.appendChild(el('div', 'exi-go', '▾'));
       wrap.appendChild(r);
@@ -5546,11 +5545,7 @@
           h.appendChild(el('div', 'blk-day-name', d.name));
           h.appendChild(el('div', 'blk-day-meta num', d.items.length + ''));
           pv.appendChild(h);
-          /* each movement with its own picture, and a way through to the
-             moving demonstration — the same row the Plan tab uses */
           d.items.forEach(([name, sets, lo, hi, thumb]) => {
-            /* the fifth field is a photo folder checked at build time, so a
-               preset can never point at a picture that is not there */
             const rec = (window.EXERCISE_LIBRARY || []).find(x => x.name === name)
               || { name, group: 'Other', notes: '' };
             const row = el('div', 'pv-row');
@@ -5588,7 +5583,44 @@
         pv.appendChild(go);
       }
       wrap.appendChild(pv);
-      });
+    };
+
+    /* Most people do not want to weigh thirty blocks — they want one picked
+       for them. Choose from what they told About you: experience sets the
+       effort, sex the audience, and three days a week is the honest default
+       for anyone who has not said otherwise. */
+    if (readySplit === 'All') {
+      const pr2 = getProfile();
+      const wantLvl = { new: 1, mid: 2, exp: 3 }[pr2.level] || 1;
+      const best = [...forMe].sort((a, b) =>
+        (Math.abs(a.level - wantLvl) * 2 + Math.abs(a.days.length - 3))
+        - (Math.abs(b.level - wantLvl) * 2 + Math.abs(b.days.length - 3))
+        || (b.who !== 'all') - (a.who !== 'all'))[0];
+      if (best) {
+        root.appendChild(el('div', 'month-label rdy-days', 'A good place to start'));
+        root.appendChild(el('div', 'ab-hint', pr2.level
+          ? 'Picked from your answers in About you. The rest are below.'
+          : 'Answer About you (the heart on Profile) and this pick gets smarter.'));
+        const sw = el('div', 'ex-index rdy-pick');
+        mkRow(best, sw);
+        root.appendChild(sw);
+      }
+    }
+
+    const list = forMe.filter(p => readySplit === 'All' || p.split === readySplit);
+
+    /* the first thing that decides whether a block fits a life is how many
+       days it asks for, so that is the first division of the list */
+    const byDays = new Map();
+    list.forEach(p => {
+      const k = p.days.length;
+      if (!byDays.has(k)) byDays.set(k, []);
+      byDays.get(k).push(p);
+    });
+    const wrap = el('div', 'ex-index');
+    [...byDays.keys()].sort((a, b) => a - b).forEach(dk => {
+      wrap.appendChild(el('div', 'month-label rdy-days', `${dk} days a week`));
+      byDays.get(dk).forEach(p => mkRow(p, wrap));
     });
     root.appendChild(wrap);
   }

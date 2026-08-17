@@ -1908,3 +1908,4 @@ body { font-size: 14px; }
 .blk-preview .ai-row { padding: 7px 0; }
 .rdy-days { margin-top: 6px; }
 .blk-preview .pv-row { cursor: pointer; }
+.rdy-pick .rdy-row { border: 1px solid var(--lime-border); border-radius: 14px; padding: 10px 12px; }
