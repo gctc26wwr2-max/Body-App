@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v233';
+  const APP_VERSION = 'v234';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -95,6 +95,10 @@
   function applySuggestion(sets, nextKg) {
     sets.forEach(s => { if (!s.done) s.kg = nextKg; });
   }
+  /* a step is text and tappable practices; this is it as plain words */
+  const stepText = parts => [].concat(parts)
+    .map(x => (typeof x === 'string' ? x : x.name)).join('');
+
   function repTone(set) {
     // colour code vs the target range (e.g. 8-10): under / in / above
     if (set.reps < set.targetLo) return 'below';
@@ -1471,6 +1475,20 @@
     const phaseEl = $('#hold-pop-phase');
     const barEl = $('#hold-pop-bar').firstElementChild;
     $('#hold-pop-name').textContent = exRef.name;
+    /* five minutes is long enough to forget what the card told you, so the
+       list runs under the clock as well */
+    const stepBox = $('#hold-pop-steps');
+    if (stepBox) {
+      stepBox.innerHTML = '';
+      const list = exRef.warmup && exRef.steps ? exRef.steps.slice(0, 2) : null;
+      stepBox.hidden = !list;
+      if (list) list.forEach((parts, i) => {
+        const row = el('div', 'hp-step');
+        row.appendChild(el('i', null, String(i + 1)));
+        row.appendChild(el('span', null, stepText(parts)));
+        stepBox.appendChild(row);
+      });
+    }
     pop.hidden = false;
     $('#hold-pop-stop').onclick = () => { cancelHold(); renderWorkout(); };
     pop.onclick = e => { if (e.target === pop) { cancelHold(); renderWorkout(); } };
