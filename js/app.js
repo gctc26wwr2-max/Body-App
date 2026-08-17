@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v240';
+  const APP_VERSION = 'v241';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -4290,6 +4290,39 @@
       + encodeURIComponent('how to ' + ex.name + ' exercise form'), '_blank');
   }
 
+  /* ---- ordering a day ----
+     Form is the first thing fatigue takes, so the movements that ask most of
+     it go first: the big compound patterns, then the single-joint work, then
+     core, then conditioning. Inside a tier the more technical lift leads, and
+     if two are level the heavier one does — the taxonomy the library already
+     carries does all of it, no extra tagging. */
+  const PATTERN_TIER = {
+    olympic: 0,
+    squat: 1, hinge: 1, lunge: 1,
+    horizontal_push: 2, vertical_push: 2, horizontal_pull: 2, vertical_pull: 2,
+    carry: 3, rotation: 3,
+    isolation_upper: 4, isolation_lower: 4,
+    anti_extension: 5, anti_rotation: 5, anti_lateral_flexion: 5,
+    conditioning: 6
+  };
+  function orderRank(it) {
+    const lib = LIB_BY_ID[contentIdFor(it)];
+    const tier = lib && PATTERN_TIER[lib.pattern];
+    const skill = (hardshipOf(it) || {}).n || (lib && lib.skill) || 2;
+    return {
+      tier: tier == null ? 3 : tier,          // unknown sits with the carries
+      skill: -skill,                          // more technical first
+      kg: -(it.kg || 0)                       // then the heavier one
+    };
+  }
+  function sortDayHardestFirst(items) {
+    return items
+      .map((it, i) => ({ it, i, r: orderRank(it) }))
+      .sort((a, b) => a.r.tier - b.r.tier || a.r.skill - b.r.skill
+        || a.r.kg - b.r.kg || a.i - b.i)     // a tie keeps the order you had
+      .map(x => x.it);
+  }
+
   function pmExerciseList() {
     const names = new Map();
     (window.EXERCISE_LIBRARY || []).forEach(i => names.set(i.name, i));
@@ -4619,6 +4652,22 @@
       dayHead.appendChild(el('div', 'day-mins' + (budget && mins > budget ? ' over' : ''),
         budget ? `~${mins} of ${budget} min` : `~${mins} min`));
       root.appendChild(dayHead);
+      /* one tap for the order most programs use; the drag handles stay the
+         override, and a second tap puts your own order back */
+      if (day.items.length > 1) {
+        const sorted = sortDayHardestFirst(day.items);
+        const same = sorted.every((x, i) => x === day.items[i]);
+        const ob = el('button', 'day-order' + (day.wasOrder ? ' on' : ''));
+        ob.textContent = day.wasOrder ? 'Undo order' : 'Hardest first';
+        ob.disabled = same && !day.wasOrder;
+        ob.onclick = () => {
+          if (day.wasOrder) { day.items = day.wasOrder; day.wasOrder = null; }
+          else { day.wasOrder = day.items.slice(); day.items = sorted; }
+          haptic();
+          renderPlanMaker();
+        };
+        root.appendChild(ob);
+      }
       const idx = el('div', 'ex-index');
       day.items.forEach((it, i) => {
         const r = el('div', 'exi-row' + (it.stuck ? ' stuck' : ''));
@@ -4639,6 +4688,7 @@
          be changeable without deleting and re-adding */
       dragReorder(idx, '.exi-row', (from, to) => {
         day.items.splice(to, 0, day.items.splice(from, 1)[0]);
+        day.wasOrder = null;          // you have moved it by hand; that is the order now
         renderPlanMaker();
       });
       root.appendChild(idx);
