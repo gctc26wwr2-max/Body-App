@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v255';
+  const APP_VERSION = 'v256';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -4939,7 +4939,9 @@
     'Jump Rope': 'rounds', 'Boxing': 'rounds', 'Sprints': 'sprint'
   };
   const progsFor = act => CARDIO_PROG_SETS[PROG_SET_OF[act]] || [P_QUICK, P_FAT, P_STEADY, P_INT, P_LONG];
-  let cardioProg = localStorage.getItem('cardioProg') || 'Manual';
+  /* always opens on None — the time is the user's to set, and a program is
+     something you reach for, not something that follows you around */
+  let cardioProg = 'None';
 
   function cardioKcal(met, mins, kg, effort) {
     return Math.round(met * mulOf(effort) * 3.5 * (kg || 80) / 200 * mins);
@@ -5138,10 +5140,10 @@
        panel and its options belong to the activity — a pool has no incline
        button, a rope has no pace. Manual means the time is all yours. */
     const progs = progsFor(actName);
-    const progLabels = ['Manual', ...progs.map(x => x.label)];
-    const shownProg = running ? (lc.prog || 'Manual') : cardioProg;
+    const progLabels = ['None', ...progs.map(x => x.label)];
+    const shownProg = running ? (lc.prog || 'None') : cardioProg;
     let pi = progLabels.indexOf(shownProg);
-    if (pi < 0) { pi = 0; if (!running) cardioProg = 'Manual'; }
+    if (pi < 0) { pi = 0; if (!running) cardioProg = 'None'; }
     const progNote = el('div', 'ab-hint cd-prognote');
     const paintNote = () => {
       const pr3 = progs.find(x => x.label === (running ? lc.prog : cardioProg));
@@ -5154,9 +5156,8 @@
     c1.appendChild(pickerWheel(list.map(t => t.name), ai, i => {
       cardioActName = list[i].name;
       localStorage.setItem('cardioAct', cardioActName);
-      /* a new activity brings its own panel — start it on Manual */
-      cardioProg = 'Manual';
-      localStorage.setItem('cardioProg', 'Manual');
+      /* a new activity brings its own panel — back to None */
+      cardioProg = 'None';
       upd();
       clearTimeout(renderCardio._t);
       renderCardio._t = setTimeout(renderCardio, 350);   // after the wheel settles
@@ -5167,7 +5168,6 @@
     cp.appendChild(el('div', 'micro', 'Program'));
     cp.appendChild(pickerWheel(progLabels, pi, i => {
       cardioProg = progLabels[i];
-      localStorage.setItem('cardioProg', cardioProg);
       const pr3 = progs.find(x => x.label === cardioProg);
       if (pr3) {
         cardioMins = pr3.mins;
@@ -5188,8 +5188,7 @@
         const pr4 = progs.find(x => x.label === cardioProg);
         if (pr4 && pr4.mins !== cardioMins) {
           /* the time is yours now — the wheel says so */
-          cardioProg = 'Manual';
-          localStorage.setItem('cardioProg', 'Manual');
+          cardioProg = 'None';
           cp.classList.add('off');
           paintNote();
         }
@@ -5212,7 +5211,7 @@
       start.onclick = () => {
         liveCardio.set({
           act: cardioActName, env: cardioEnv, mins: cardioMins,
-          prog: cardioProg !== 'Manual' ? cardioProg : null,
+          prog: cardioProg !== 'None' ? cardioProg : null,
           startedAt: Date.now(), acc: 0
         });
         cardioAlerted = false;
