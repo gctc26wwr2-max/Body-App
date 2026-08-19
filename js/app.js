@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v254';
+  const APP_VERSION = 'v255';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -828,6 +828,17 @@
       ? `Your rest is holding at ${fmtClock(lw.restLeft)}. Nothing logs until you start again.`
       : 'Nothing logs until you start again.';
     $('#pause-pop-go').onclick = () => resumeWorkout();
+    const quitBtn = $('#pause-pop-quit');
+    if (quitBtn) quitBtn.onclick = async () => {
+      if (!await appConfirm({
+        title: 'Discard session?', body: 'Logged sets will not be saved.',
+        ok: 'Discard', cancel: 'Keep training', warn: true
+      })) return;
+      live.set(null);
+      stopRest();
+      closePausePop();
+      show('today'); renderTab();
+    };
     /* one button, like the hold timer. Tapping off the card puts the popup
        away without starting anything — the session stays paused and the
        header is right there if you want to leave or finish. */
@@ -1009,13 +1020,6 @@
     bank.appendChild(el('div', 'l', 'Sets banked'));
     head.appendChild(bank);
 
-    /* what it has cost so far, ticking with the clock */
-    const burn = el('div', 'w-banked w-burn');
-    const burnV = el('div', 'v num', '0');
-    burn.appendChild(burnV);
-    burn.appendChild(el('div', 'l', 'kcal'));
-    head.appendChild(burn);
-
     const btns = el('div', 'w-btns');
     const fin = el('button', 'w-chip fin');
     fin.innerHTML = '<svg viewBox="0 0 14 14" width="15" height="15"><path d="M2 7.5 L5.5 11 L12 3.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -1031,17 +1035,7 @@
       pause.title = 'Pause the session';
       pause.onclick = () => pauseWorkout();
     }
-    const quit = el('button', 'w-chip', '✕');
-    quit.onclick = async () => {
-      if (!await appConfirm({
-        title: 'Discard session?', body: 'Logged sets will not be saved.',
-        ok: 'Discard', cancel: 'Keep training', warn: true
-      })) return;
-      live.set(null);
-      stopRest();
-      show('today'); renderTab();
-    };
-    btns.append(fin, pause, quit);
+    btns.append(fin, pause);
     head.appendChild(btns);
 
     // one 4pt bar per exercise
@@ -1058,10 +1052,7 @@
     root.appendChild(head);
     clearInterval(elapsedInt);
     elapsedInt = null;
-    const tickClock = () => {
-      clock.textContent = fmtClock(wElapsed(lw));
-      burnV.textContent = String(liftKcal(wElapsed(lw) / 60, lastBodyKg));
-    };
+    const tickClock = () => { clock.textContent = fmtClock(wElapsed(lw)); };
     tickClock();
     // a paused clock does not tick — that is the whole point of the button
     if (!paused) elapsedInt = setInterval(tickClock, 1000);

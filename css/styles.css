@@ -1295,7 +1295,9 @@ body { font-size: 14px; }
 
 /* themed confirm dialog */
 .modal-back {
-  position: fixed; top: 0; left: 0; right: 0; height: var(--winH); z-index: 95;
+  /* above every overlay — a question must never open underneath the thing
+     that asked it (the pause screen sits at 200) */
+  position: fixed; top: 0; left: 0; right: 0; height: var(--winH); z-index: 260;
   background: rgba(0,0,0,.66); display: flex; align-items: center; justify-content: center;
   padding: 24px;
 }
@@ -1928,3 +1930,10 @@ body { font-size: 14px; }
 .hp-demo { display: flex; justify-content: center; padding: 4px 0 2px; }
 .hp-demo .demo-anim { width: 132px; aspect-ratio: 1; border-radius: 14px; overflow: hidden; }
 .hp-play { width: 16px; height: 16px; border-radius: 8px; justify-self: start; }
+
+/* leaving lives inside the pause — quiet, under the one real button */
+#pause-pop-quit {
+  margin-top: 4px; padding: 10px; border: none; background: none;
+  color: var(--t6); font-size: 12.5px; font-weight: 700;
+  text-decoration: underline; text-underline-offset: 3px;
+}
