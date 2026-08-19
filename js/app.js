@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v251';
+  const APP_VERSION = 'v252';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2331,15 +2331,7 @@
     wrap.appendChild(el('i', 'vs-ind'));
     const strip = el('div', 'vs-strip');
     wrap.appendChild(strip);
-    /* two jumps flank the ruler — most corrections are a couple of reps,
-       and ±2 gets there faster than dragging */
-    const mid = el('div', 'rep-mid');
-    const minus = el('button', 'rep-jump', '−2');
-    minus.onclick = () => setVal(set.reps - 2, true);
-    const plus = el('button', 'rep-jump', '+2');
-    plus.onclick = () => setVal(set.reps + 2, true);
-    mid.append(minus, wrap, plus);
-    box.appendChild(mid);
+    box.appendChild(wrap);
 
     const idxOf = v => Math.round(v - (base - SPAN));
     const offFor = v => -(idxOf(v) * TICK + TICK / 2);
