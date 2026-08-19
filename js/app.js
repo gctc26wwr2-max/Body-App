@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v250';
+  const APP_VERSION = 'v251';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2331,7 +2331,15 @@
     wrap.appendChild(el('i', 'vs-ind'));
     const strip = el('div', 'vs-strip');
     wrap.appendChild(strip);
-    box.appendChild(wrap);
+    /* two jumps flank the ruler — most corrections are a couple of reps,
+       and ±2 gets there faster than dragging */
+    const mid = el('div', 'rep-mid');
+    const minus = el('button', 'rep-jump', '−2');
+    minus.onclick = () => setVal(set.reps - 2, true);
+    const plus = el('button', 'rep-jump', '+2');
+    plus.onclick = () => setVal(set.reps + 2, true);
+    mid.append(minus, wrap, plus);
+    box.appendChild(mid);
 
     const idxOf = v => Math.round(v - (base - SPAN));
     const offFor = v => -(idxOf(v) * TICK + TICK / 2);
@@ -2626,22 +2634,18 @@
       const passed = lw.exercises.filter(e => e.passed);
       const missed = lw.exercises.filter(e => !e.passed && !e.sets.some(s => s.done));
       const partial = lw.exercises.filter(e => !e.passed && e.sets.some(s => s.done) && !e.sets.every(s => s.done));
-      let opts = { title: 'Finished?', body: 'The session will be saved.', ok: 'Save session', cancel: 'Keep training' };
-      if (passed.length && !missed.length && !partial.length) {
-        opts.body = 'Passed: ' + passed.map(e => e.name).join(', ')
-          + '\n\nThe block is unchanged — they are back next week.';
-      }
+      /* a clean finish saves on the first tap — the question only appears
+         when finishing would silently drop something */
       if (missed.length || partial.length) {
         const parts = [];
         if (missed.length) parts.push('Not logged: ' + missed.map(e => e.name).join(', '));
         if (partial.length) parts.push('Sets left open: ' + partial.map(e => e.name).join(', '));
         if (passed.length) parts.push('Passed: ' + passed.map(e => e.name).join(', '));
-        opts = {
+        if (!await appConfirm({
           title: 'Finish anyway?', body: parts.join('\n') + '\n\nUnlogged sets will not be saved.',
           ok: 'Finish anyway', cancel: 'Keep training', warn: true
-        };
+        })) return;
       }
-      if (!await appConfirm(opts)) return;
     }
 
     const sessionsAll = await DB.all('sessions');
@@ -2767,7 +2771,9 @@
     root.appendChild(feelAsk);
     root.appendChild(holder);
 
-    const save = el('button', 'btn-cta', 'Save session');
+    /* everything is already banked by the time this screen exists — the
+       button only leaves, so it must not claim to save anything */
+    const save = el('button', 'btn-cta', 'Done');
     save.onclick = () => { show('today'); renderTab(); };
     root.appendChild(save);
   }
