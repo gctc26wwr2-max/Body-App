@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v252';
+  const APP_VERSION = 'v253';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -69,6 +69,31 @@
   const wBump = () => (wUnit() === 'lb' ? 5 / LB_PER_KG : 2.5);
   /* nearest weight you could actually load, in the increment this user works
      in — a deload of 61.4kg helps nobody */
+  /* How much one notch is worth depends on what you are holding: dumbbells
+     go up a pair at a time, a stack goes up a pin, a bar goes up a pair of
+     plates — and every gym's rack is different, so Settings can re-pin each
+     one. Stored in kg; shown in whatever unit you use. */
+  const JUMP_KINDS = [
+    { key: 'db', label: 'Dumbbells & kettlebells', opts: [0.5, 1, 2, 2.5], def: 2 },
+    { key: 'mach', label: 'Machines & cables', opts: [1, 2.5, 5], def: 2.5 },
+    { key: 'bar', label: 'Barbell', opts: [1.25, 2.5, 5], def: 2.5 }
+  ];
+  const jumpKind = ex => {
+    const ks = equipOf(ex);
+    if (ks.includes('barbell')) return 'bar';
+    if (ks.some(k => k === 'machine' || k === 'cable' || k.startsWith('m-'))) return 'mach';
+    return 'db';
+  };
+  const jumpKg = ex => {
+    const kind = jumpKind(ex);
+    const j = +((getProfile().jumps || {})[kind]);
+    return j > 0 ? j : JUMP_KINDS.find(k => k.key === kind).def;
+  };
+  /* the same jump in the unit on screen — lb racks move in their own steps */
+  const jumpW = ex => (wUnit() === 'lb'
+    ? ({ 0.5: 1, 1: 2.5, 1.25: 2.5, 2: 5, 2.5: 5, 5: 10 }[jumpKg(ex)] || 5)
+    : jumpKg(ex));
+
   const wRound = kg => {
     const step = wBump();
     return kg > 0 ? Math.max(step, Math.round(kg / step) * step) : 0;
@@ -84,11 +109,11 @@
   /* ---------------- pure logic (design spec) ---------------- */
   const est1RM = (kg, reps) => reps > 0 ? kg * (1 + reps / 30) : 0;   // Epley
 
-  function suggestion(sets) {
+  function suggestion(sets, ex) {
     const logged = sets.filter(s => s.done);
     if (!logged.length) return { kind: 'idle' };
     const last = logged[logged.length - 1];
-    const step = wBump();     // 2.5 kg, or the 5 lb equivalent
+    const step = ex ? jumpKg(ex) : wBump();   // the jump the kit in hand allows
     if (last.reps >= last.targetHi) return { kind: 'increase', step, nextKg: +(last.kg + step).toFixed(3), last };
     return { kind: 'hold', kg: last.kg, last };
   }
@@ -1356,7 +1381,7 @@
     });
 
     // progression strip
-    const sug = suggestion(cur.sets);
+    const sug = suggestion(cur.sets, cur);
     if (sug.kind === 'increase') {
       const s = el('div', 'suggest up');
       const t = el('div');
@@ -1391,7 +1416,7 @@
       t.appendChild(el('div', 's-title', 'Progression'));
       t.appendChild(el('div', 's-body', cur.timed
         ? `Tap ▸ on a set to run the hold timer — reach ${cur.repHi} s to progress.`
-        : `Hit ${cur.repHi} reps on a set to earn +${fmtW(wBump())}.`));
+        : `Hit ${cur.repHi} reps on a set to earn +${fmtW(jumpKg(cur))}.`));
       s.appendChild(t);
       card.appendChild(s);
     }
@@ -2234,7 +2259,7 @@
       deltaEl.textContent = setDelta(cur, si);
     };
     const ruler = rulerScale({
-      value: +toW(set.kg).toFixed(1), step: wStep(), tickW: 30, span: 14, min: 0,
+      value: +toW(set.kg).toFixed(1), step: jumpW(cur), tickW: 30, span: 14, min: 0,
       labelEvery: 2, majorEvery: 2, onChange: commit
     });
     box.appendChild(ruler.el);
@@ -3361,6 +3386,7 @@
       + '<rect x="16.6" y="7.5" width="2.4" height="9" rx="1"/>',
     aim: '<circle cx="12" cy="12" r="7.4"/><circle cx="12" cy="12" r="2.6"/>'
       + '<path d="M12 2.2v2.6M12 19.2v2.6M2.2 12h2.6M19.2 12h2.6"/>',
+    plates: '<path d="M3 12h18"/><path d="M6.5 8v8M10 6v12M14 6v12M17.5 8v8"/>',
     flame: '<path d="M12 3c.5 3.4-1.6 5-2.9 6.6C7.8 11.2 7 12.9 7 14.5 7 17.6 9.2 20 12 20s5-2.4 5-5.5C17 10.7 13.7 8.6 12 3z"/>'
   };
 
@@ -3371,6 +3397,7 @@
       ['bell', 'Alert sound', 'sound'],
       ['kit', 'Equipment', 'kit'],
       ['aim', 'Muscle focus', 'focus'],
+      ['plates', 'Weight jumps', 'jumps'],
       ['theme', 'Theme'], ['units', 'Units', 'units']
     ] },
     { title: 'Apple', rows: [
@@ -3454,6 +3481,12 @@
           r.appendChild(el('span', 'pref-val num', `${own.size} of ${total}`));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'kit' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'kit' ? null : 'kit'; renderPrefs(); };
+        } else if (live === 'jumps') {
+          const dj = () => JUMP_KINDS.map(k =>
+            fmtKg(toW((pDraft.jumps || {})[k.key] > 0 ? +pDraft.jumps[k.key] : k.def))).join(' · ');
+          r.appendChild(el('span', 'pref-val num', dj()));
+          r.appendChild(el('span', 'pref-go' + (prefOpen === 'jumps' ? ' open' : ''), '›'));
+          r.onclick = () => { prefOpen = prefOpen === 'jumps' ? null : 'jumps'; renderPrefs(); };
         } else if (live === 'warm') {
           const sw = el('button', 'inj-sw sm' + (pDraft.warmup ? ' on' : ''));
           sw.appendChild(el('i', 'inj-knob'));
@@ -3500,6 +3533,26 @@
           panel.appendChild(el('div', 'ab-hint', off
             ? `${off} exercises need kit you have switched off`
             : 'Everything in the catalogue is available'));
+          list.appendChild(panel);
+        }
+        if (live === 'jumps' && prefOpen === 'jumps') {
+          const panel = el('div', 'pref-panel');
+          panel.appendChild(el('div', 'ab-hint',
+            'How much one notch adds on the weight scale — set it to what your gym racks.'));
+          JUMP_KINDS.forEach(k => {
+            panel.appendChild(el('div', 'micro', k.label));
+            const cur3 = (pDraft.jumps || {})[k.key] > 0 ? +pDraft.jumps[k.key] : k.def;
+            panel.appendChild(segToggle(
+              k.opts.map(o => [String(o), fmtKg(toW(o)) + ' ' + wUnit()]),
+              String(cur3),
+              v => {
+                pDraft.jumps = { ...(pDraft.jumps || {}) };
+                pDraft.jumps[k.key] = +v;
+                const val = r.querySelector('.pref-val');
+                if (val) val.textContent = JUMP_KINDS.map(x =>
+                  fmtKg(toW((pDraft.jumps || {})[x.key] > 0 ? +pDraft.jumps[x.key] : x.def))).join(' · ');
+              }, 'you-seg'));
+          });
           list.appendChild(panel);
         }
         if (live === 'focus' && prefOpen === 'focus') {
