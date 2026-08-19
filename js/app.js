@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v249';
+  const APP_VERSION = 'v250';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2154,10 +2154,27 @@
       strip.style.transition = 'none';
       wrap.setPointerCapture(e.pointerId);
     });
+    /* the strip is finite but the drag must not be: nearing either end it
+       rebases around the value under the needle and rebuilds, shifting its
+       own offset by the same amount so the motion never stutters */
+    const idxAt = x => (-x - opts.tickW / 2) / opts.tickW;
     wrap.addEventListener('pointermove', e => {
       if (sx === null) return;
       const dx = e.clientX - sx;
-      strip.style.transform = `translateX(${so + dx}px)`;
+      let x = so + dx;
+      const idx = idxAt(x);
+      if (idx < 3 || idx > 2 * opts.span - 3) {
+        const vNow = st.base + (idx - opts.span) * opts.step;
+        const bNew = Math.max(opts.min ?? 0, +(Math.round(vNow / opts.step) * opts.step).toFixed(3));
+        if (bNew !== st.base) {
+          so += (bNew - st.base) / opts.step * opts.tickW;
+          st.base = bNew;
+          build();
+          strip.style.transition = 'none';
+          x = so + dx;
+        }
+      }
+      strip.style.transform = `translateX(${x}px)`;
       const n = Math.round(dx / opts.tickW);
       if (n !== lastN) { lastN = n; haptic(); }
     });
@@ -2179,7 +2196,9 @@
       }
       suppress = true;
       setTimeout(() => { suppress = false; }, 350);
-      setVal(st.val - Math.round(dx / opts.tickW) * opts.step, true);
+      /* read the value off the needle's final position — the start point is
+         meaningless once the strip has rebased mid-drag */
+      setVal(st.base + (Math.round(idxAt(so + dx)) - opts.span) * opts.step, true);
     };
     wrap.addEventListener('pointerup', endDrag);
     wrap.addEventListener('pointercancel', () => { if (sx !== null) { sx = null; slide(false); } });
@@ -4826,6 +4845,16 @@
   let cardioEnv = localStorage.getItem('cardioEnv') || 'indoor';
   let cardioActName = localStorage.getItem('cardioAct') || 'Run';
   let cardioMins = 20, cardioInt = null, cardioAlerted = false;
+  /* the programs a cardio machine's panel offers, minus the machine */
+  const CARDIO_PROGS = [
+    { key: 'quick', label: 'Quick', mins: 10, note: 'Easy pace — just move.' },
+    { key: 'fatburn', label: 'Fat burn', mins: 25, note: 'Steady, you can still talk.' },
+    { key: 'cardio', label: 'Cardio', mins: 30, note: 'Moderate — slightly breathless.' },
+    { key: 'hiit', label: 'Intervals', mins: 20, note: '1 min hard, 2 min easy, repeat.' },
+    { key: 'hill', label: 'Hill', mins: 25, note: 'Raise the incline or resistance every 5 min.' },
+    { key: 'endure', label: 'Endurance', mins: 45, note: 'Long and even — settle in.' }
+  ];
+  let cardioProg = localStorage.getItem('cardioProg') || null;
 
   function cardioKcal(met, mins, kg, effort) {
     return Math.round(met * mulOf(effort) * 3.5 * (kg || 80) / 200 * mins);
@@ -5014,6 +5043,27 @@
       },
       'defer'));
 
+    /* the panel's programs: one tap sets the clock and says what to do.
+       Turning the minute wheel yourself puts you back on manual. */
+    const progOf = k => CARDIO_PROGS.find(x => x.key === k) || null;
+    const progChips = el('div', 'fp-chips cd-progs' + (running ? ' locked' : ''));
+    CARDIO_PROGS.forEach(pr3 => {
+      const b = el('button', pr3.key === cardioProg ? 'on' : '',
+        `${pr3.label} ${pr3.mins}′`);
+      b.disabled = running;
+      b.onclick = () => {
+        cardioProg = cardioProg === pr3.key ? null : pr3.key;
+        if (cardioProg) cardioMins = pr3.mins;
+        localStorage.setItem('cardioProg', cardioProg || '');
+        haptic();
+        renderCardio();
+      };
+      progChips.appendChild(b);
+    });
+    root.appendChild(progChips);
+    const runProg = running ? progOf(lc.prog) : progOf(cardioProg);
+    if (runProg) root.appendChild(el('div', 'ab-hint cd-prognote', runProg.note));
+
     const kcalEl = el('div', 'cd-kcal num');
     const upd = () => {
       kcalEl.textContent = `~${cardioKcal(metOf(cardioActName, cardioEnv), cardioMins, kg)} kcal`;
@@ -5032,7 +5082,18 @@
     c2.appendChild(el('div', 'micro', 'Minutes'));
     // minute marks like a watch bezel: long at the quarter hours
     c2.appendChild(pickerWheel(minsList.map(String), minsList.indexOf(shownMins),
-      i => { cardioMins = minsList[i]; upd(); }, null,
+      i => {
+        cardioMins = minsList[i];
+        const pr4 = CARDIO_PROGS.find(x => x.key === cardioProg);
+        if (pr4 && pr4.mins !== cardioMins) {
+          cardioProg = null;
+          localStorage.setItem('cardioProg', '');
+          progChips.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+          const note = $('#view-cardio .cd-prognote');
+          if (note) note.remove();
+        }
+        upd();
+      }, null,
       i => (minsList[i] % 15 === 0 ? 'w20' : (minsList[i] % 10 === 0 ? 'w15' : 'w11'))));
     wheels.appendChild(c2);
     root.appendChild(wheels);
@@ -5048,7 +5109,7 @@
       start.onclick = () => {
         liveCardio.set({
           act: cardioActName, env: cardioEnv, mins: cardioMins,
-          startedAt: Date.now(), acc: 0
+          prog: cardioProg, startedAt: Date.now(), acc: 0
         });
         cardioAlerted = false;
         renderCardio();

@@ -1912,3 +1912,8 @@ body { font-size: 14px; }
 #sheet-ready-body { padding-bottom: 8px; }
 .rdy-sheet-sub { font-size: 12.5px; font-weight: 700; color: var(--t5); margin: -6px 0 10px; }
 #sheet-ready .rdy-note { margin-bottom: 12px; }
+
+/* cardio programs — the machine panel's buttons */
+.cd-progs { margin: 12px 0 2px; }
+.cd-progs.locked { opacity: .45; pointer-events: none; }
+.cd-prognote { margin: 6px 0 0; }
