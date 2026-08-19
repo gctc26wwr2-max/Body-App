@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v253';
+  const APP_VERSION = 'v254';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1548,9 +1548,27 @@
       stepBox.innerHTML = '';
       const list = exRef.warmup && exRef.steps ? exRef.steps.slice(0, 3) : null;
       stepBox.hidden = !list;
+      let demoBox = null;
       if (list) list.forEach((st, i) => {
         const row = el('div', 'hp-step');
-        row.appendChild(el('i', null, String(i + 1)));
+        const rec2 = st.id && exercises.find(e => e.id === st.id);
+        /* a play button where there is a demonstration — it opens right here
+           under the clock, because the clock must not stop for it */
+        if (rec2 && rec2.demo) {
+          const b = el('button', 'warm-play hp-play');
+          b.appendChild(svgIcon(PLAY, 8));
+          b.onclick = () => {
+            const already = demoBox && demoBox.dataset.slug === rec2.demo;
+            if (demoBox) { demoBox.remove(); demoBox = null; }
+            if (already) return;
+            demoBox = el('div', 'hp-demo');
+            demoBox.dataset.slug = rec2.demo;
+            demoBox.appendChild(animFor(rec2));
+            row.after(demoBox);
+            haptic();
+          };
+          row.appendChild(b);
+        } else row.appendChild(el('i', null, String(i + 1)));
         row.appendChild(el('span', null, st.name));
         row.appendChild(el('span', 'hp-note', st.note || ''));
         stepBox.appendChild(row);
@@ -4896,16 +4914,41 @@
   let cardioEnv = localStorage.getItem('cardioEnv') || 'indoor';
   let cardioActName = localStorage.getItem('cardioAct') || 'Run';
   let cardioMins = 20, cardioInt = null, cardioAlerted = false;
-  /* the programs a cardio machine's panel offers, minus the machine */
-  const CARDIO_PROGS = [
-    { key: 'quick', label: 'Quick', mins: 10, note: 'Easy pace — just move.' },
-    { key: 'fatburn', label: 'Fat burn', mins: 25, note: 'Steady, you can still talk.' },
-    { key: 'cardio', label: 'Cardio', mins: 30, note: 'Moderate — slightly breathless.' },
-    { key: 'hiit', label: 'Intervals', mins: 20, note: '1 min hard, 2 min easy, repeat.' },
-    { key: 'hill', label: 'Hill', mins: 25, note: 'Raise the incline or resistance every 5 min.' },
-    { key: 'endure', label: 'Endurance', mins: 45, note: 'Long and even — settle in.' }
-  ];
-  let cardioProg = localStorage.getItem('cardioProg') || null;
+  /* The programs a machine's panel offers, minus the machine — and each
+     activity carries its own set, because a pool has no incline button and a
+     rope has no pace. Manual is always first: pick a time and go. */
+  const P_QUICK = { label: 'Quick', mins: 10, note: 'Easy pace — just move.' };
+  const P_FAT = { label: 'Fat burn', mins: 25, note: 'Steady, you can still talk.' };
+  const P_STEADY = { label: 'Steady', mins: 30, note: 'Moderate — slightly breathless.' };
+  const P_INT = { label: 'Intervals', mins: 20, note: '1 min hard, 2 min easy, repeat.' };
+  const P_LONG = { label: 'Long', mins: 45, note: 'Long and even — settle in.' };
+  const CARDIO_PROG_SETS = {
+    run: [P_QUICK, P_STEADY, P_INT,
+      { label: 'Hill', mins: 25, note: 'Find a hill or raise the incline.' }, P_LONG],
+    machine: [P_QUICK, P_FAT, P_INT,
+      { label: 'Hill', mins: 25, note: 'Raise the incline or resistance every 5 min.' }, P_LONG],
+    walk: [P_QUICK, { label: 'Brisk', mins: 25, note: 'On the edge of breathless.' },
+      { label: 'Hill', mins: 30, note: 'Hills or incline — do not speed up, climb.' },
+      { label: 'Long', mins: 60, note: 'Long and even — settle in.' }],
+    row: [P_QUICK, { label: 'Steady', mins: 20, note: 'Hold one honest pace.' },
+      { label: 'Intervals', mins: 15, note: '1 min hard, 1 min light, repeat.' },
+      { label: 'Long', mins: 30, note: 'Long and even — settle in.' }],
+    swim: [{ label: 'Easy', mins: 20, note: 'Lengths at a talking pace, rest as needed.' },
+      { label: 'Intervals', mins: 20, note: 'One length hard, one easy, repeat.' },
+      { label: 'Long', mins: 30, note: 'Continuous, steady, count the lengths.' }],
+    rounds: [{ label: 'Rounds', mins: 15, note: '3 min on, 1 min off, repeat.' },
+      { label: 'Short', mins: 10, note: '30 s on, 30 s off, repeat.' }],
+    sprint: [{ label: 'Intervals', mins: 15, note: '30 s all-out, 90 s walk, repeat.' },
+      { label: 'Pyramid', mins: 20, note: 'Sprints of 20, 30, 40, 30, 20 s — walk between.' }]
+  };
+  const PROG_SET_OF = {
+    'Run': 'run', 'Trail Run': 'run', 'Walk': 'walk', 'Hiking': 'walk',
+    'Cycling': 'machine', 'Elliptical': 'machine', 'Stair Climber': 'machine',
+    'Stairs': 'machine', 'Rowing': 'row', 'Swimming': 'swim',
+    'Jump Rope': 'rounds', 'Boxing': 'rounds', 'Sprints': 'sprint'
+  };
+  const progsFor = act => CARDIO_PROG_SETS[PROG_SET_OF[act]] || [P_QUICK, P_FAT, P_STEADY, P_INT, P_LONG];
+  let cardioProg = localStorage.getItem('cardioProg') || 'Manual';
 
   function cardioKcal(met, mins, kg, effort) {
     return Math.round(met * mulOf(effort) * 3.5 * (kg || 80) / 200 * mins);
@@ -5094,60 +5137,78 @@
       },
       'defer'));
 
-    /* the panel's programs: one tap sets the clock and says what to do.
-       Turning the minute wheel yourself puts you back on manual. */
-    const progOf = k => CARDIO_PROGS.find(x => x.key === k) || null;
-    const progChips = el('div', 'fp-chips cd-progs' + (running ? ' locked' : ''));
-    CARDIO_PROGS.forEach(pr3 => {
-      const b = el('button', pr3.key === cardioProg ? 'on' : '',
-        `${pr3.label} ${pr3.mins}′`);
-      b.disabled = running;
-      b.onclick = () => {
-        cardioProg = cardioProg === pr3.key ? null : pr3.key;
-        if (cardioProg) cardioMins = pr3.mins;
-        localStorage.setItem('cardioProg', cardioProg || '');
-        haptic();
-        renderCardio();
-      };
-      progChips.appendChild(b);
-    });
-    root.appendChild(progChips);
-    const runProg = running ? progOf(lc.prog) : progOf(cardioProg);
-    if (runProg) root.appendChild(el('div', 'ab-hint cd-prognote', runProg.note));
-
     const kcalEl = el('div', 'cd-kcal num');
     const upd = () => {
       kcalEl.textContent = `~${cardioKcal(metOf(cardioActName, cardioEnv), cardioMins, kg)} kcal`;
     };
 
     const wheels = el('div', 'cd-wheels' + (running ? ' locked' : ''));
+    /* three wheels: what, how, how long. The program wheel is the machine's
+       panel and its options belong to the activity — a pool has no incline
+       button, a rope has no pace. Manual means the time is all yours. */
+    const progs = progsFor(actName);
+    const progLabels = ['Manual', ...progs.map(x => x.label)];
+    const shownProg = running ? (lc.prog || 'Manual') : cardioProg;
+    let pi = progLabels.indexOf(shownProg);
+    if (pi < 0) { pi = 0; if (!running) cardioProg = 'Manual'; }
+    const progNote = el('div', 'ab-hint cd-prognote');
+    const paintNote = () => {
+      const pr3 = progs.find(x => x.label === (running ? lc.prog : cardioProg));
+      progNote.textContent = pr3 ? pr3.note : '';
+      progNote.hidden = !pr3;
+    };
+
     const c1 = el('div', 'cd-col');
     c1.appendChild(el('div', 'micro', 'Activity'));
     c1.appendChild(pickerWheel(list.map(t => t.name), ai, i => {
       cardioActName = list[i].name;
       localStorage.setItem('cardioAct', cardioActName);
+      /* a new activity brings its own panel — start it on Manual */
+      cardioProg = 'Manual';
+      localStorage.setItem('cardioProg', 'Manual');
       upd();
+      clearTimeout(renderCardio._t);
+      renderCardio._t = setTimeout(renderCardio, 350);   // after the wheel settles
     }, 'wide', i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15'))));
     wheels.appendChild(c1);
+
+    const cp = el('div', 'cd-col cd-prog');
+    cp.appendChild(el('div', 'micro', 'Program'));
+    cp.appendChild(pickerWheel(progLabels, pi, i => {
+      cardioProg = progLabels[i];
+      localStorage.setItem('cardioProg', cardioProg);
+      const pr3 = progs.find(x => x.label === cardioProg);
+      if (pr3) {
+        cardioMins = pr3.mins;
+        clearTimeout(renderCardio._t);
+        renderCardio._t = setTimeout(renderCardio, 350);   // move the minute wheel to it
+      }
+      paintNote();
+      upd();
+    }));
+    wheels.appendChild(cp);
+
     const c2 = el('div', 'cd-col');
     c2.appendChild(el('div', 'micro', 'Minutes'));
     // minute marks like a watch bezel: long at the quarter hours
     c2.appendChild(pickerWheel(minsList.map(String), minsList.indexOf(shownMins),
       i => {
         cardioMins = minsList[i];
-        const pr4 = CARDIO_PROGS.find(x => x.key === cardioProg);
+        const pr4 = progs.find(x => x.label === cardioProg);
         if (pr4 && pr4.mins !== cardioMins) {
-          cardioProg = null;
-          localStorage.setItem('cardioProg', '');
-          progChips.querySelectorAll('button').forEach(x => x.classList.remove('on'));
-          const note = $('#view-cardio .cd-prognote');
-          if (note) note.remove();
+          /* the time is yours now — the wheel says so */
+          cardioProg = 'Manual';
+          localStorage.setItem('cardioProg', 'Manual');
+          cp.classList.add('off');
+          paintNote();
         }
         upd();
       }, null,
       i => (minsList[i] % 15 === 0 ? 'w20' : (minsList[i] % 10 === 0 ? 'w15' : 'w11'))));
     wheels.appendChild(c2);
     root.appendChild(wheels);
+    paintNote();
+    root.appendChild(progNote);
 
     if (!running) {
       upd();
@@ -5160,7 +5221,8 @@
       start.onclick = () => {
         liveCardio.set({
           act: cardioActName, env: cardioEnv, mins: cardioMins,
-          prog: cardioProg, startedAt: Date.now(), acc: 0
+          prog: cardioProg !== 'Manual' ? cardioProg : null,
+          startedAt: Date.now(), acc: 0
         });
         cardioAlerted = false;
         renderCardio();
