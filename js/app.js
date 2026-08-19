@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v248';
+  const APP_VERSION = 'v249';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1547,7 +1547,31 @@
       haptic();
       paintHeld();
     };
-    $('#hold-pop-stop').onclick = () => { cancelHold(); renderWorkout(); };
+    /* Stopping halfway is still work done — the seconds you held are written
+       into the set and banked, not thrown away. Under five seconds counts as
+       a false start and records nothing; the backdrop stays a pure escape. */
+    let lastWorked = 0;              // the most recent finished work phase
+    $('#hold-pop-stop').onclick = () => {
+      const ph = phases[phase];
+      const leftS = holdHeldMs ? holdHeldMs / 1000 : Math.max(0, (holdEndTs - Date.now()) / 1000);
+      const worked = Math.round(ph.lead ? lastWorked : ph.dur - leftS);
+      cancelHold();
+      if (worked >= 5) {
+        const fresh = live.get();
+        if (fresh) {
+          const set2 = fresh.exercises[exIdx].sets[si];
+          set2.reps = worked;
+          set2.done = true;
+          set2.doneAt = Date.now();
+          fresh.exIndex = exIdx;
+          fresh.advanceAfterRest = fresh.exercises[exIdx].sets.every(x => x.done)
+            && exIdx < fresh.exercises.length - 1;
+          live.set(fresh);
+          startRest(fresh.exercises[exIdx].rest);
+        }
+      }
+      renderWorkout();
+    };
     pop.onclick = e => { if (e.target === pop && !holdHeldMs) { cancelHold(); renderWorkout(); } };
 
     const paint = (left, ph) => {
@@ -1587,6 +1611,7 @@
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
       }
       if (phase < phases.length - 1) {
+        if (!ph.lead) lastWorked = ph.dur;   // a side finished in full
         phase++;
         holdEndTs = Date.now() + phases[phase].dur * 1000;
         paint(phases[phase].dur, phases[phase]);
