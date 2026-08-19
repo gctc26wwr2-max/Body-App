@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v256';
+  const APP_VERSION = 'v257';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1006,6 +1006,10 @@
     liveRow.appendChild(el('i', 'live-dot' + (paused ? ' idle' : '')));
     liveRow.appendChild(document.createTextNode(
       (paused ? ' Paused · ' : ' Live · ') + lw.dayName));
+    /* the burn rides on the status line — visible the whole session without
+       being another block in the header */
+    const burnEl = el('span', 'w-kcal num');
+    liveRow.appendChild(burnEl);
     hl.appendChild(liveRow);
     const clock = el('div', 'w-clock num', '0:00');
     hl.appendChild(clock);
@@ -1052,7 +1056,11 @@
     root.appendChild(head);
     clearInterval(elapsedInt);
     elapsedInt = null;
-    const tickClock = () => { clock.textContent = fmtClock(wElapsed(lw)); };
+    const tickClock = () => {
+      clock.textContent = fmtClock(wElapsed(lw));
+      const kc = liftKcal(wElapsed(lw) / 60, lastBodyKg);
+      burnEl.textContent = kc > 0 ? ` · ${kc} kcal` : '';
+    };
     tickClock();
     // a paused clock does not tick — that is the whole point of the button
     if (!paused) elapsedInt = setInterval(tickClock, 1000);
