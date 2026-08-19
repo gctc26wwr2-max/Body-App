@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v257';
+  const APP_VERSION = 'v258';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5091,6 +5091,15 @@
     });
 
     mark(); slide(false);
+    /* turned by code, not a thumb: animate to the index without firing
+       onChange, so the manual-override logic upstream stays quiet */
+    wrap.spinTo = i => {
+      i = clampI(i);
+      if (i === val) return;
+      val = i;
+      mark();
+      slide(true);
+    };
     return wrap;
   }
 
@@ -5179,8 +5188,10 @@
       const pr3 = progs.find(x => x.label === cardioProg);
       if (pr3) {
         cardioMins = pr3.mins;
-        clearTimeout(renderCardio._t);
-        renderCardio._t = setTimeout(renderCardio, 350);   // move the minute wheel to it
+        /* the minutes wheel turns with the choice, in front of you —
+           a silent jump after a beat read as nothing happening */
+        minsW.spinTo(minsList.indexOf(pr3.mins));
+        cp.classList.remove('off');
       }
       paintNote();
       upd();
@@ -5190,7 +5201,7 @@
     const c2 = el('div', 'cd-col');
     c2.appendChild(el('div', 'micro', 'Minutes'));
     // minute marks like a watch bezel: long at the quarter hours
-    c2.appendChild(pickerWheel(minsList.map(String), minsList.indexOf(shownMins),
+    const minsW = pickerWheel(minsList.map(String), minsList.indexOf(shownMins),
       i => {
         cardioMins = minsList[i];
         const pr4 = progs.find(x => x.label === cardioProg);
@@ -5202,7 +5213,8 @@
         }
         upd();
       }, null,
-      i => (minsList[i] % 15 === 0 ? 'w20' : (minsList[i] % 10 === 0 ? 'w15' : 'w11'))));
+      i => (minsList[i] % 15 === 0 ? 'w20' : (minsList[i] % 10 === 0 ? 'w15' : 'w11')));
+    c2.appendChild(minsW);
     wheels.appendChild(c2);
     root.appendChild(wheels);
     paintNote();
