@@ -1949,3 +1949,4 @@ body { font-size: 14px; }
 /* the readout is a field too — say so, quietly */
 .ks-val.tappable { border-bottom: 1px dashed var(--hair-7); padding-bottom: 1px; }
 .ks-typebtn { color: var(--lime); border-color: var(--lime-border); font-size: 12px; font-weight: 800; }
+.ks-done { margin-left: auto; color: var(--t3); }
