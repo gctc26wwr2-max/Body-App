@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v260';
+  const APP_VERSION = 'v261';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1313,7 +1313,11 @@
       valCell.onclick = () => {
         if (set.done) return;
         const key = ei + ':' + si;
-        lw.scaleOpenAt = lw.scaleOpenAt === key ? null : key;
+        /* the first tap opens the scale; a second tap on the same number is
+           someone asking to type it, not to put the scale away — closing is
+           the Done button's job */
+        if (lw.scaleOpenAt === key) lw.typeAt = key;
+        else { lw.scaleOpenAt = key; lw.typeAt = null; }
         lw.repScaleAt = null;
         live.set(lw);
         renderWorkout();
@@ -2332,7 +2336,11 @@
     const typeBtn = el('button', 'ks-adj ks-typebtn', 'Type');
     typeBtn.title = 'Type the weight';
     typeBtn.onclick = openType;
-    ctr.append(typeBtn, undo, reset);
+    const doneBtn = el('button', 'ks-adj ks-done', 'Done');
+    doneBtn.title = 'Close the scale';
+    doneBtn.onclick = () => { lw.scaleOpenAt = null; lw.typeAt = null; live.set(lw); renderWorkout(); };
+    ctr.append(typeBtn, undo, reset, doneBtn);
+    if (lw.typeAt === ei + ':' + si) { lw.typeAt = null; live.set(lw); setTimeout(openType, 0); }
     const plates = el('div', 'ks-plates');
     wPlates().forEach(p => {
       const b = el('button', 'num', '+' + p);
@@ -2387,6 +2395,10 @@
     typeBtn.title = 'Type the seconds';
     typeBtn.onclick = openType;
     ctr.appendChild(typeBtn);
+    const doneBtn = el('button', 'ks-adj ks-done', 'Done');
+    doneBtn.title = 'Close the scale';
+    doneBtn.onclick = () => { lw.scaleOpenAt = null; lw.typeAt = null; live.set(lw); renderWorkout(); };
+    if (lw.typeAt === ei + ':' + si) { lw.typeAt = null; live.set(lw); setTimeout(openType, 0); }
     const undo = el('button', 'ks-adj ks-reset num', '↺ ' + fmtClock(openedWith));
     undo.title = 'Back to ' + fmtClock(openedWith);
     undo.onclick = () => ruler.setVal(openedWith);
@@ -2404,6 +2416,7 @@
         quick.appendChild(b);
       });
     ctr.appendChild(quick);
+    ctr.appendChild(doneBtn);
     box.appendChild(ctr);
     return box;
   }
