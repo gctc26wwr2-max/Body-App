@@ -1946,3 +1946,6 @@ body { font-size: 14px; }
   -moz-appearance: textfield;
 }
 .ks-type::-webkit-outer-spin-button, .ks-type::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+/* the readout is a field too — say so, quietly */
+.ks-val.tappable { border-bottom: 1px dashed var(--hair-7); padding-bottom: 1px; }
+.ks-typebtn { color: var(--lime); border-color: var(--lime-border); font-size: 12px; font-weight: 800; }

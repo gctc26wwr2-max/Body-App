@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v259';
+  const APP_VERSION = 'v260';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2252,6 +2252,36 @@
 
   /* The weight scale — expands inside the set row. The ruler runs in whatever
      unit you picked (0.5 kg or 1 lb per notch); kilos are what get stored. */
+  /* Turn a big readout into a field. The wheel is for nudging; typing is for
+     arriving. Shared by the weight scale and the seconds scale so both behave
+     the same way. `unit` is the suffix shown, `fmt` renders the value back
+     when the field closes, `apply` receives the number. */
+  function typeInto(big, opts) {
+    if (big.querySelector('input')) { big.querySelector('input').focus(); return; }
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.inputMode = 'decimal';
+    inp.step = 'any';
+    inp.min = String(opts.min ?? 0);
+    inp.className = 'ks-type num';
+    inp.value = String(opts.value);
+    big.textContent = '';
+    big.appendChild(inp);
+    if (opts.unit) big.appendChild(el('small', null, ' ' + opts.unit));
+    inp.focus();
+    inp.select();
+    const close = () => {
+      const v = parseFloat(inp.value);
+      big.textContent = opts.fmt();
+      if (isFinite(v) && v >= (opts.min ?? 0) && v < (opts.max ?? 2000)) opts.apply(v);
+    };
+    inp.onblur = close;
+    inp.onkeydown = e2 => {
+      if (e2.key === 'Enter') { e2.preventDefault(); inp.onblur = null; close(); }
+      if (e2.key === 'Escape') { e2.preventDefault(); inp.onblur = null; big.textContent = opts.fmt(); }
+    };
+  }
+
   function weightScale(lw, cur, ei, si, updateVals) {
     const set = cur.sets[si];
     const box = el('div', 'kg-scale');
@@ -2263,35 +2293,15 @@
     top.appendChild(deltaEl);
     box.appendChild(top);
 
-    /* the big number is also a way in: tap it and type the weight, for the
-       jump the ruler would take twelve drags to make */
-    big.title = 'Tap to type it';
-    big.onclick = () => {
-      if (big.querySelector('input')) return;
-      const inp = document.createElement('input');
-      inp.type = 'number';
-      inp.inputMode = 'decimal';
-      inp.step = 'any';
-      inp.min = '0';
-      inp.className = 'ks-type num';
-      inp.value = fmtKg(toW(set.kg));
-      big.textContent = '';
-      big.appendChild(inp);
-      big.appendChild(el('small', null, ' ' + wUnit()));
-      inp.focus();
-      inp.select();
-      const done = () => {
-        const v = parseFloat(inp.value);
-        big.textContent = '';
-        big.appendChild(document.createTextNode(fmtWn(set.kg)));
-        if (isFinite(v) && v >= 0 && v < 2000) ruler.setVal(+v.toFixed(2));
-        else big.firstChild.nodeValue = fmtWn(set.kg);
-      };
-      inp.onblur = done;
-      inp.onkeydown = e2 => {
-        if (e2.key === 'Enter') { e2.preventDefault(); inp.onblur = null; done(); }
-      };
-    };
+    /* the number is a field as well as a readout — but nothing about a
+       number says "tap me", so the controls row carries a button too */
+    big.classList.add('tappable');
+    const openType = () => typeInto(big, {
+      value: fmtKg(toW(set.kg)), unit: wUnit(), min: 0,
+      fmt: () => fmtWn(set.kg),
+      apply: v => ruler.setVal(+v.toFixed(2))
+    });
+    big.onclick = openType;
 
     const commit = shown => {
       const v = fromW(shown);
@@ -2319,7 +2329,10 @@
     const reset = el('button', 'ks-adj ks-reset num', '0');
     reset.title = 'Reset to 0';
     reset.onclick = () => ruler.setVal(0);
-    ctr.append(undo, reset);
+    const typeBtn = el('button', 'ks-adj ks-typebtn', 'Type');
+    typeBtn.title = 'Type the weight';
+    typeBtn.onclick = openType;
+    ctr.append(typeBtn, undo, reset);
     const plates = el('div', 'ks-plates');
     wPlates().forEach(p => {
       const b = el('button', 'num', '+' + p);
@@ -2339,11 +2352,18 @@
     const box = el('div', 'kg-scale');
 
     const top = el('div', 'ks-top');
-    const big = el('div', 'ks-val num', fmtClock(set.reps));
+    const big = el('div', 'ks-val num tappable', fmtClock(set.reps));
     top.appendChild(big);
     top.appendChild(el('div', 'ks-delta', `target ${fmtRange(cur.repLo, cur.repHi)} s`
       + (cur.perSide ? ' / side' : '')));
     box.appendChild(top);
+    /* seconds are typed as seconds, however the clock shows them */
+    const openType = () => typeInto(big, {
+      value: set.reps, unit: 's', min: 5, max: 3600,
+      fmt: () => fmtClock(set.reps),
+      apply: v => ruler.setVal(Math.round(v))
+    });
+    big.onclick = openType;
 
     const commit = v => {
       set.reps = Math.max(5, Math.round(v));
@@ -2363,6 +2383,10 @@
 
     const ctr = el('div', 'ks-controls');
     const openedWith = set.reps;
+    const typeBtn = el('button', 'ks-adj ks-typebtn', 'Type');
+    typeBtn.title = 'Type the seconds';
+    typeBtn.onclick = openType;
+    ctr.appendChild(typeBtn);
     const undo = el('button', 'ks-adj ks-reset num', '↺ ' + fmtClock(openedWith));
     undo.title = 'Back to ' + fmtClock(openedWith);
     undo.onclick = () => ruler.setVal(openedWith);
