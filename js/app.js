@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v268';
+  const APP_VERSION = 'v269';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5290,7 +5290,7 @@
     }, 118));
 
     const progVal = el('div', 'cd-row-val', shownProg);
-    const progRow = row('Program', progVal, optionRail(progLabels, pi, i => {
+    const progRail = optionRail(progLabels, pi, i => {
       cardioProg = progLabels[i];
       progVal.textContent = cardioProg;
       const pr3 = progs.find(x => x.label === cardioProg);
@@ -5302,7 +5302,8 @@
       }
       paintNote();
       upd();
-    }, 104));
+    }, 104);
+    const progRow = row('Program', progVal, progRail);
 
     const minsVal = el('div', 'cd-row-val', shownMins + ' min');
     const minsRail = optionRail(minsList.map(String), minsList.indexOf(shownMins), i => {
@@ -5312,6 +5313,7 @@
       if (pr4 && pr4.mins !== cardioMins) {
         cardioProg = 'None';         // the time is yours now
         progVal.textContent = 'None';
+        progRail.spinTo(0);          // and the rail says so too
         progRow.classList.add('off');
         paintNote();
       }
