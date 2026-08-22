@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v265';
+  const APP_VERSION = 'v266';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2153,14 +2153,20 @@
         const v = +(st.base + d * opts.step).toFixed(3);
         const ok = v >= (opts.min ?? 0);
         const stepsFromZero = Math.round(v / opts.step);
-        const t = el('button', 'ks-tick');
+        const t = el('button', 'ks-tick' + (ok ? '' : ' void'));
         t.style.width = opts.tickW + 'px';
         t.dataset.v = v;
-        t.appendChild(el('i', stepsFromZero % majorEvery === 0 ? 'h20' : (stepsFromZero % 2 ? 'h11' : 'h15')));
-        const showLbl = ok && stepsFromZero % lblEvery === 0;
-        t.dataset.lbl = ok ? (showLbl ? fmt(v) : '') : '—';
-        t.appendChild(el('span', 'num', t.dataset.lbl));
-        if (ok) t.onclick = () => { if (suppress) return; setVal(v, true); };
+        /* below the floor there is no weight to show — the strip keeps its
+           spacing but draws nothing, rather than a row of dashes */
+        if (ok) {
+          t.appendChild(el('i', stepsFromZero % majorEvery === 0 ? 'h20' : (stepsFromZero % 2 ? 'h11' : 'h15')));
+          t.dataset.lbl = stepsFromZero % lblEvery === 0 ? fmt(v) : '';
+          t.appendChild(el('span', 'num', t.dataset.lbl));
+          t.onclick = () => { if (suppress) return; setVal(v, true); };
+        } else {
+          t.dataset.lbl = '';
+          t.appendChild(el('span', 'num', ''));
+        }
         strip.appendChild(t);
       }
       mark();
@@ -2464,10 +2470,11 @@
       for (let d = -SPAN; d <= SPAN; d++) {
         const v = base + d;
         const ok = v >= 0;
-        const t = el('button', 'vs-tick');
+        const t = el('button', 'vs-tick' + (ok ? '' : ' void'));
         t.dataset.v = v;
         const slot = el('span', 'vs-slot');
-        slot.appendChild(el('i', v % 5 === 0 ? 'w20' : (v % 2 ? 'w11' : 'w15')));
+        // nothing below zero: no mark, no number, just the spacing
+        if (ok) slot.appendChild(el('i', v % 5 === 0 ? 'w20' : (v % 2 ? 'w11' : 'w15')));
         t.appendChild(slot);
         t.appendChild(el('span', 'num', ok ? String(v) : ''));
         if (ok) t.onclick = () => { if (!suppress) setVal(v, true); };
