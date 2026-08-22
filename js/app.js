@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v266';
+  const APP_VERSION = 'v267';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1854,7 +1854,7 @@
         lw.advanceAfterRest = false;
         // step over anything you passed on the way to the next one
         const next = lw.exercises.findIndex((e, i) => i > lw.exIndex && !e.passed);
-        if (next >= 0) lw.exIndex = next;
+        if (next >= 0) { lw.exIndex = next; scrollToEx = true; }
       }
       lw.restEndsAt = null;
       live.set(lw);
@@ -1876,7 +1876,11 @@
       lw.restEndsAt = null;
       if (lw.advanceAfterRest) {
         lw.advanceAfterRest = false;
-        if (lw.exIndex < lw.exercises.length - 1) lw.exIndex++;
+        /* the rest that ends an exercise hands over to the next one you are
+           actually going to do — anything passed is stepped over — and the
+           card opens on screen rather than waiting to be found */
+        const next = lw.exercises.findIndex((e, i) => i > lw.exIndex && !e.passed);
+        if (next >= 0) { lw.exIndex = next; scrollToEx = true; }
       }
       live.set(lw);
       clearInterval(restInt); restInt = null;
