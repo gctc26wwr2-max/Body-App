@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v261';
+  const APP_VERSION = 'v262';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2260,6 +2260,15 @@
      arriving. Shared by the weight scale and the seconds scale so both behave
      the same way. `unit` is the suffix shown, `fmt` renders the value back
      when the field closes, `apply` receives the number. */
+  const PENCIL = 'M8.4 1.1 L10.9 3.6 L4.2 10.3 L1.2 10.9 L1.8 7.9 Z';
+  /* the readout, with a pencil beside it so it reads as a field */
+  function paintReadout(big, text) {
+    big.textContent = '';
+    big.appendChild(document.createTextNode(text));
+    const pen = svgIcon(PENCIL, 10);
+    pen.classList.add('ks-pen');
+    big.appendChild(pen);
+  }
   function typeInto(big, opts) {
     if (big.querySelector('input')) { big.querySelector('input').focus(); return; }
     const inp = document.createElement('input');
@@ -2269,6 +2278,11 @@
     inp.min = String(opts.min ?? 0);
     inp.className = 'ks-type num';
     inp.value = String(opts.value);
+    /* the field is exactly as wide as the number in it, so the digits stay
+       where the readout had them instead of drifting inside a fixed box */
+    const fit = () => { inp.style.width = Math.max(2, String(inp.value || '').length + 0.5) + 'ch'; };
+    fit();
+    inp.oninput = fit;
     big.textContent = '';
     big.appendChild(inp);
     if (opts.unit) big.appendChild(el('small', null, ' ' + opts.unit));
@@ -2276,13 +2290,13 @@
     inp.select();
     const close = () => {
       const v = parseFloat(inp.value);
-      big.textContent = opts.fmt();
+      paintReadout(big, opts.fmt());
       if (isFinite(v) && v >= (opts.min ?? 0) && v < (opts.max ?? 2000)) opts.apply(v);
     };
     inp.onblur = close;
     inp.onkeydown = e2 => {
       if (e2.key === 'Enter') { e2.preventDefault(); inp.onblur = null; close(); }
-      if (e2.key === 'Escape') { e2.preventDefault(); inp.onblur = null; big.textContent = opts.fmt(); }
+      if (e2.key === 'Escape') { e2.preventDefault(); inp.onblur = null; paintReadout(big, opts.fmt()); }
     };
   }
 
@@ -2300,6 +2314,7 @@
     /* the number is a field as well as a readout — but nothing about a
        number says "tap me", so the controls row carries a button too */
     big.classList.add('tappable');
+    paintReadout(big, fmtWn(set.kg));
     const openType = () => typeInto(big, {
       value: fmtKg(toW(set.kg)), unit: wUnit(), min: 0,
       fmt: () => fmtWn(set.kg),
@@ -2318,6 +2333,7 @@
       updateVals();
       big.firstChild.nodeValue = fmtKg(shown);
       deltaEl.textContent = setDelta(cur, si);
+      if (!big.querySelector('.ks-pen')) paintReadout(big, fmtKg(shown));
     };
     const ruler = rulerScale({
       value: +toW(set.kg).toFixed(1), step: jumpW(cur), tickW: 30, span: 14, min: 0,
@@ -2339,7 +2355,7 @@
     const doneBtn = el('button', 'ks-adj ks-done', 'Done');
     doneBtn.title = 'Close the scale';
     doneBtn.onclick = () => { lw.scaleOpenAt = null; lw.typeAt = null; live.set(lw); renderWorkout(); };
-    ctr.append(typeBtn, undo, reset, doneBtn);
+    ctr.append(typeBtn, undo, reset);
     if (lw.typeAt === ei + ':' + si) { lw.typeAt = null; live.set(lw); setTimeout(openType, 0); }
     const plates = el('div', 'ks-plates');
     wPlates().forEach(p => {
@@ -2348,6 +2364,7 @@
       plates.appendChild(b);
     });
     ctr.appendChild(plates);
+    ctr.appendChild(doneBtn);       // last, where a finish belongs
     box.appendChild(ctr);
     return box;
   }
@@ -2365,6 +2382,7 @@
     top.appendChild(el('div', 'ks-delta', `target ${fmtRange(cur.repLo, cur.repHi)} s`
       + (cur.perSide ? ' / side' : '')));
     box.appendChild(top);
+    paintReadout(big, fmtClock(set.reps));
     /* seconds are typed as seconds, however the clock shows them */
     const openType = () => typeInto(big, {
       value: set.reps, unit: 's', min: 5, max: 3600,
@@ -2381,7 +2399,7 @@
       }
       live.set(lw);
       updateVals();
-      big.textContent = fmtClock(set.reps);
+      paintReadout(big, fmtClock(set.reps));
     };
     const ruler = rulerScale({
       value: set.reps, step: 5, tickW: 30, span: 14, min: 5,
