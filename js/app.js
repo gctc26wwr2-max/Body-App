@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v270';
+  const APP_VERSION = 'v271';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5922,6 +5922,29 @@
   }
   let readyReopen = null;
 
+  /* Four of the block's own movements, dealt into a square. The cover is
+     made of the exercises it actually contains, so no two blocks look the
+     same and a picture does the work a line of grey type was doing. */
+  function readyCover(p, n) {
+    const seen = [];
+    p.days.forEach(d => d.items.forEach(it => {
+      if (it[4] && !seen.includes(it[4])) seen.push(it[4]);
+    }));
+    const take = Math.min(n, seen.length);
+    const cover = el('div', 'rdy-cover n' + (take || 1));
+    for (let i = 0; i < take; i++) {
+      // spread the pick across the whole block, not the first four rows
+      cover.appendChild(demoEl(seen[Math.floor(i * seen.length / take)], 'rdy-tile', true));
+    }
+    if (!take) cover.appendChild(el('div', 'demo-anim ph'));
+    cover.appendChild(el('i', 'rdy-veil'));
+    return cover;
+  }
+
+  /* a block's name carries its own subtitle after the dash — the card puts
+     the two on separate lines rather than truncating a long single one */
+  const readyName = p => p.name.split(' — ');
+
   function renderMasterReady(root) {
     const all = window.READY_PLANS || [];
     if (readyReopen) {
@@ -5949,21 +5972,23 @@
     root.appendChild(chips);
     if (SPLIT_PLAIN[readySplit]) root.appendChild(el('div', 'ab-hint', SPLIT_PLAIN[readySplit]));
 
-    /* one block's row — tapping it lifts the block into a sheet */
-    const mkRow = (p, wrap) => {
-      const r = el('div', 'exi-row rdy-row');
-      const bars = el('div', 'hard-bars');
-      for (let i = 1; i <= 3; i++) bars.appendChild(el('i', i <= p.level ? 'on' : ''));
-      r.appendChild(bars);
-      const nm = el('div', 'exi-name', p.name);
-      const total = p.days.reduce((n, d) => n + d.items.length, 0);
-      nm.appendChild(el('span', 'exi-sub',
-        `${READY_LVL[p.level]} · ${p.weeks} weeks · ${total} exercises`
-        + (p.who !== 'all' ? ` · for ${p.who === 'female' ? 'women' : 'men'}` : '')));
-      r.appendChild(nm);
-      r.appendChild(el('div', 'exi-go', '›'));
-      r.onclick = () => { haptic(); openReadySheet(p); };
-      wrap.appendChild(r);
+    const totalOf = p => p.days.reduce((n, d) => n + d.items.length, 0);
+
+    /* one block, as a card you can see: cover, name, and the two numbers
+       that decide whether it fits — how long it runs and how much is in it */
+    const mkCard = p => {
+      const c = el('button', 'rdy-card');
+      c.appendChild(readyCover(p, 4));
+      c.appendChild(el('span', 'rdy-lvl l' + p.level, READY_LVL[p.level]));
+      const b = el('div', 'rdy-card-b');
+      const nm = readyName(p);
+      const t = el('div', 'rdy-card-t', nm[0]);
+      if (nm[1]) t.appendChild(el('small', '', nm[1]));
+      b.appendChild(t);
+      b.appendChild(el('div', 'rdy-card-m', `${p.weeks} wk · ${totalOf(p)} moves`));
+      c.appendChild(b);
+      c.onclick = () => { haptic(); openReadySheet(p); };
+      return c;
     };
 
     /* Most people do not want to weigh thirty blocks — they want one picked
@@ -5982,34 +6007,50 @@
         - (Math.abs(b.level - wantLvl) * 2 + Math.abs(b.days.length - 3))
         || (b.who !== 'all') - (a.who !== 'all'))[0];
       if (best) {
-        root.appendChild(el('div', 'month-label rdy-days', 'A good place to start'));
-        root.appendChild(el('div', 'ab-hint', focusPlan
-          ? `Your muscle focus is ${focusLabels([focus])[0].toLowerCase()} — this block trains it twice a week.`
+        root.appendChild(el('div', 'month-label rdy-days', 'Start here'));
+        const h = el('button', 'rdy-hero');
+        h.appendChild(readyCover(best, 3));
+        h.appendChild(el('span', 'rdy-lvl l' + best.level, READY_LVL[best.level]));
+        const hb = el('div', 'rdy-hero-b');
+        const hn = readyName(best);
+        const ht = el('div', 'rdy-hero-t', hn[0]);
+        if (hn[1]) ht.appendChild(el('small', '', hn[1]));
+        hb.appendChild(ht);
+        hb.appendChild(el('div', 'rdy-card-m',
+          `${best.days.length} days · ${best.weeks} wk · ${totalOf(best)} moves`));
+        hb.appendChild(el('div', 'rdy-why', focusPlan
+          ? `Trains your ${focusLabels([focus])[0].toLowerCase()} twice a week.`
           : pr2.level
-            ? 'Picked from your answers in About you. The rest are below.'
-            : 'Answer About you (the heart on Profile) and this pick gets smarter.'));
-        const sw = el('div', 'ex-index rdy-pick');
-        mkRow(best, sw);
-        root.appendChild(sw);
+            ? 'Picked from your answers in About you.'
+            : 'Answer About you and this pick gets smarter.'));
+        h.appendChild(hb);
+        h.onclick = () => { haptic(); openReadySheet(best); };
+        root.appendChild(h);
       }
     }
 
     const list = forMe.filter(p => readySplit === 'All' || p.split === readySplit);
 
-    /* the first thing that decides whether a block fits a life is how many
-       days it asks for, so that is the first division of the list */
+    /* The first thing that decides whether a block fits a life is how many
+       days it asks for, so that is the first division. Each group is a shelf
+       you push sideways: thirty-eight blocks stacked vertically was a
+       scroll with no end to it. */
     const byDays = new Map();
     list.forEach(p => {
       const k = p.days.length;
       if (!byDays.has(k)) byDays.set(k, []);
       byDays.get(k).push(p);
     });
-    const wrap = el('div', 'ex-index');
     [...byDays.keys()].sort((a, b) => a - b).forEach(dk => {
-      wrap.appendChild(el('div', 'month-label rdy-days', `${dk} days a week`));
-      byDays.get(dk).forEach(p => mkRow(p, wrap));
+      const group = byDays.get(dk).sort((a, b) => a.level - b.level);
+      const hd = el('div', 'rdy-shelf-h');
+      hd.appendChild(el('div', 'month-label', `${dk} days a week`));
+      hd.appendChild(el('div', 'rdy-count', String(group.length)));
+      root.appendChild(hd);
+      const shelf = el('div', 'rdy-shelf');
+      group.forEach(p => shelf.appendChild(mkCard(p)));
+      root.appendChild(shelf);
     });
-    root.appendChild(wrap);
   }
 
   /* ============================================================
