@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v271';
+  const APP_VERSION = 'v272';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5038,6 +5038,7 @@
     { name: 'Hiking', indoor: null, outdoor: 6.0 },
     { name: 'Football', indoor: 7.0, outdoor: 7.0 },
     { name: 'Tennis', indoor: 7.3, outdoor: 7.3 },
+    { name: 'Padel', indoor: 7.0, outdoor: 7.0 },
     { name: 'Skipping Drills', indoor: 10.0, outdoor: 10.0 }
   ];
   /* effort isn't asked for — the MET rates already assume a normal,
@@ -5086,13 +5087,18 @@
     rounds: [{ label: 'Rounds', mins: 15, note: '3 min on, 1 min off, repeat.' },
       { label: 'Short', mins: 10, note: '30 s on, 30 s off, repeat.' }],
     sprint: [{ label: 'Intervals', mins: 15, note: '30 s all-out, 90 s walk, repeat.' },
-      { label: 'Pyramid', mins: 20, note: 'Sprints of 20, 30, 40, 30, 20 s — walk between.' }]
+      { label: 'Pyramid', mins: 20, note: 'Sprints of 20, 30, 40, 30, 20 s — walk between.' }],
+    court: [{ label: 'Drills', mins: 20, note: 'Rallying and feeding, nobody keeping score.' },
+      { label: 'One set', mins: 30, note: 'Play a set, then stop.' },
+      { label: 'Match', mins: 60, note: 'A full match, changeovers and all.' },
+      { label: 'Long', mins: 90, note: 'Two or three sets — pace yourself.' }]
   };
   const PROG_SET_OF = {
     'Run': 'run', 'Trail Run': 'run', 'Walk': 'walk', 'Hiking': 'walk',
     'Cycling': 'machine', 'Elliptical': 'machine', 'Stair Climber': 'machine',
     'Stairs': 'machine', 'Rowing': 'row', 'Swimming': 'swim',
-    'Jump Rope': 'rounds', 'Boxing': 'rounds', 'Sprints': 'sprint'
+    'Jump Rope': 'rounds', 'Boxing': 'rounds', 'Sprints': 'sprint',
+    'Padel': 'court', 'Tennis': 'court', 'Football': 'court'
   };
   const progsFor = act => CARDIO_PROG_SETS[PROG_SET_OF[act]] || [P_QUICK, P_FAT, P_STEADY, P_INT, P_LONG];
   /* always opens on None — the time is the user's to set, and a program is
