@@ -1957,7 +1957,8 @@ body { font-size: 14px; }
 #num-pop-val {
   font-family: var(--cond); font-size: 46px; line-height: 1; font-weight: 800;
   letter-spacing: -.03em; color: var(--t1); font-variant-numeric: tabular-nums;
-  border-bottom: 1px solid var(--hair); padding-bottom: 14px;
+  /* centred over its own clay rule — the number is the subject of this card */
+  text-align: center; border-bottom: 2px solid var(--lime); padding-bottom: 14px;
 }
 #num-pop-val small { font-size: 17px; font-weight: 700; color: var(--t5); margin-left: 4px; }
 #num-pop-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -1986,7 +1987,6 @@ body { font-size: 14px; }
   color: var(--lime);
 }
 .ks-pen svg { display: block; }
-.ks-typebtn { color: var(--lime); border-color: var(--lime-border); font-size: 12px; font-weight: 800; }
-.ks-done { color: var(--t3); border-color: var(--hair); }
-/* the controls are a scrolling strip — a row of chips must never be clipped */
+
+/* a row of chips must never be clipped off the screen edge */
 .ks-controls { flex-wrap: wrap; row-gap: 8px; }
