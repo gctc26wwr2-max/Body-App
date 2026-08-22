@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v267';
+  const APP_VERSION = 'v268';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -3202,6 +3202,13 @@
     wrap.addEventListener('pointercancel', () => { if (sx !== null) { sx = null; slide(false); } });
 
     mark(); slide(false);
+    /* turned by code rather than a thumb — no onChange, so a control that
+       drives another does not look like the user touched it */
+    wrap.spinTo = i => {
+      i = Math.max(0, Math.min(labels.length - 1, i));
+      if (i === val) return;
+      val = i; mark(); slide(true);
+    };
     return wrap;
   }
 
@@ -5244,10 +5251,10 @@
       kcalEl.textContent = `~${cardioKcal(metOf(cardioActName, cardioEnv), cardioMins, kg)} kcal`;
     };
 
-    const wheels = el('div', 'cd-wheels' + (running ? ' locked' : ''));
-    /* three wheels: what, how, how long. The program wheel is the machine's
-       panel and its options belong to the activity — a pool has no incline
-       button, a rope has no pace. Manual means the time is all yours. */
+    /* Three rails stacked, not three wheels side by side: at this width a
+       column is barely wide enough for "Cycling", and the minutes were being
+       clipped to "1." Each control gets the full width and its own line. */
+    const stack = el('div', 'cd-stack' + (running ? ' locked' : ''));
     const progs = progsFor(actName);
     const progLabels = ['None', ...progs.map(x => x.label)];
     const shownProg = running ? (lc.prog || 'None') : cardioProg;
@@ -5260,55 +5267,59 @@
       progNote.hidden = !pr3;
     };
 
-    const c1 = el('div', 'cd-col');
-    c1.appendChild(el('div', 'micro', 'Activity'));
-    c1.appendChild(pickerWheel(list.map(t => t.name), ai, i => {
+    const row = (label, valueEl, rail) => {
+      const r = el('div', 'cd-row');
+      const h = el('div', 'cd-row-head');
+      h.appendChild(el('div', 'micro', label));
+      h.appendChild(valueEl);
+      r.appendChild(h);
+      r.appendChild(rail);
+      stack.appendChild(r);
+      return r;
+    };
+
+    const actVal = el('div', 'cd-row-val', actName);
+    row('Activity', actVal, optionRail(list.map(t => t.name), ai, i => {
       cardioActName = list[i].name;
+      actVal.textContent = cardioActName;
       localStorage.setItem('cardioAct', cardioActName);
-      /* a new activity brings its own panel — back to None */
-      cardioProg = 'None';
+      cardioProg = 'None';           // a new activity brings its own panel
       upd();
       clearTimeout(renderCardio._t);
-      renderCardio._t = setTimeout(renderCardio, 350);   // after the wheel settles
-    }, 'wide', i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15'))));
-    wheels.appendChild(c1);
+      renderCardio._t = setTimeout(renderCardio, 380);
+    }, 118));
 
-    const cp = el('div', 'cd-col cd-prog');
-    cp.appendChild(el('div', 'micro', 'Program'));
-    cp.appendChild(pickerWheel(progLabels, pi, i => {
+    const progVal = el('div', 'cd-row-val', shownProg);
+    const progRow = row('Program', progVal, optionRail(progLabels, pi, i => {
       cardioProg = progLabels[i];
+      progVal.textContent = cardioProg;
       const pr3 = progs.find(x => x.label === cardioProg);
       if (pr3) {
         cardioMins = pr3.mins;
-        /* the minutes wheel turns with the choice, in front of you —
-           a silent jump after a beat read as nothing happening */
-        minsW.spinTo(minsList.indexOf(pr3.mins));
-        cp.classList.remove('off');
+        minsVal.textContent = pr3.mins + ' min';
+        minsRail.spinTo(minsList.indexOf(pr3.mins));   // in front of you
+        progRow.classList.remove('off');
       }
       paintNote();
       upd();
-    }));
-    wheels.appendChild(cp);
+    }, 104));
 
-    const c2 = el('div', 'cd-col');
-    c2.appendChild(el('div', 'micro', 'Minutes'));
-    // minute marks like a watch bezel: long at the quarter hours
-    const minsW = pickerWheel(minsList.map(String), minsList.indexOf(shownMins),
-      i => {
-        cardioMins = minsList[i];
-        const pr4 = progs.find(x => x.label === cardioProg);
-        if (pr4 && pr4.mins !== cardioMins) {
-          /* the time is yours now — the wheel says so */
-          cardioProg = 'None';
-          cp.classList.add('off');
-          paintNote();
-        }
-        upd();
-      }, null,
-      i => (minsList[i] % 15 === 0 ? 'w20' : (minsList[i] % 10 === 0 ? 'w15' : 'w11')));
-    c2.appendChild(minsW);
-    wheels.appendChild(c2);
-    root.appendChild(wheels);
+    const minsVal = el('div', 'cd-row-val', shownMins + ' min');
+    const minsRail = optionRail(minsList.map(String), minsList.indexOf(shownMins), i => {
+      cardioMins = minsList[i];
+      minsVal.textContent = cardioMins + ' min';
+      const pr4 = progs.find(x => x.label === cardioProg);
+      if (pr4 && pr4.mins !== cardioMins) {
+        cardioProg = 'None';         // the time is yours now
+        progVal.textContent = 'None';
+        progRow.classList.add('off');
+        paintNote();
+      }
+      upd();
+    }, 62);
+    row('Minutes', minsVal, minsRail);
+
+    root.appendChild(stack);
     paintNote();
     root.appendChild(progNote);
 
