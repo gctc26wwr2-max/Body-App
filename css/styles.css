@@ -1941,12 +1941,16 @@ body { font-size: 14px; }
 
 /* type the weight straight into the big number */
 .ks-type {
-  width: 5ch; background: none; border: none; border-bottom: 2px solid var(--lime);
-  color: var(--t1); font: inherit; text-align: right; padding: 0; outline: none;
+  background: none; border: none; border-bottom: 2px solid var(--lime);
+  color: var(--t1); font: inherit; text-align: left; padding: 0; outline: none;
   -moz-appearance: textfield;
 }
 .ks-type::-webkit-outer-spin-button, .ks-type::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 /* the readout is a field too — say so, quietly */
-.ks-val.tappable { border-bottom: 1px dashed var(--hair-7); padding-bottom: 1px; }
+/* the readout is a field too: a pencil says so, no dashed line needed */
+.ks-val.tappable { display: inline-flex; align-items: center; gap: 7px; }
+.ks-pen { color: var(--lime); opacity: .85; flex: 0 0 auto; }
 .ks-typebtn { color: var(--lime); border-color: var(--lime-border); font-size: 12px; font-weight: 800; }
-.ks-done { margin-left: auto; color: var(--t3); }
+.ks-done { color: var(--t3); border-color: var(--hair); }
+/* the controls are a scrolling strip — a row of chips must never be clipped */
+.ks-controls { flex-wrap: wrap; row-gap: 8px; }
