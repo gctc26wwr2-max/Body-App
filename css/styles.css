@@ -1915,16 +1915,18 @@ body { font-size: 14px; }
 .rdy-sheet-sub { font-size: 12.5px; font-weight: 700; color: var(--t5); margin: -6px 0 10px; }
 #sheet-ready .rdy-note { margin-bottom: 12px; }
 
-/* cardio programs — the machine's panel as a wheel of its own */
-.cd-prog { flex: 0 0 122px; }
-.cd-wheels .cd-col:last-child { flex: 0 0 78px; }
-/* slim ticks — the width belongs to the program's name */
-.cd-prog .pw-item { padding: 0 6px 0 8px; gap: 8px; }
-.cd-prog .pw-slot { width: 14px; }
-.cd-prog .pw-item i { width: 9px !important; }
-.cd-prog .pw-item.sel i { width: 13px !important; }
-.cd-prog.off { opacity: .5; }
-.cd-prognote { margin: 8px 0 0; text-align: center; }
+/* cardio: three full-width rails, one per line — a third of a phone is not
+   enough for "Cycling", let alone a two-digit minute */
+.cd-stack { display: flex; flex-direction: column; gap: 14px; }
+.cd-stack.locked { opacity: .5; pointer-events: none; }
+.cd-row { display: flex; flex-direction: column; gap: 6px; }
+.cd-row.off .cd-row-val { color: var(--t6); }
+.cd-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.cd-row-val {
+  font-size: 15px; font-weight: 800; color: var(--t1);
+  letter-spacing: -.015em; font-variant-numeric: tabular-nums;
+}
+.cd-prognote { margin: 10px 0 0; text-align: center; }
 
 /* a demonstration playing inside the hold timer */
 .hp-demo { display: flex; justify-content: center; padding: 4px 0 2px; }
