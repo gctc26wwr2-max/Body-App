@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v263';
+  const APP_VERSION = 'v264';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2271,35 +2271,49 @@
     pen.appendChild(svgIcon(PENCIL, 13));
     big.appendChild(pen);
   }
-  function typeInto(big, opts) {
-    if (big.querySelector('input')) { big.querySelector('input').focus(); return; }
-    const inp = document.createElement('input');
-    inp.type = 'number';
-    inp.inputMode = 'decimal';
-    inp.step = 'any';
-    inp.min = String(opts.min ?? 0);
-    inp.className = 'ks-type num';
-    inp.value = String(opts.value);
-    /* the field is exactly as wide as the number in it, so the digits stay
-       where the readout had them instead of drifting inside a fixed box */
-    const fit = () => { inp.style.width = Math.max(2, String(inp.value || '').length + 0.5) + 'ch'; };
-    fit();
-    inp.oninput = fit;
-    big.textContent = '';
-    big.appendChild(inp);
-    if (opts.unit) big.appendChild(el('small', null, ' ' + opts.unit));
-    inp.focus();
-    inp.select();
-    const close = () => {
-      const v = parseFloat(inp.value);
-      paintReadout(big, opts.fmt());
-      if (isFinite(v) && v >= (opts.min ?? 0) && v < (opts.max ?? 2000)) opts.apply(v);
+  /* A number pad of the app's own. The system keyboard turned the readout
+     into a raw input with selection handles over it — cramped, and nothing
+     like the rest of the app. This is a popup with big keys: what you are
+     typing stays legible, and nothing beneath it moves. */
+  function openNumPad(opts) {
+    const pop = $('#num-pop');
+    if (!pop) return;
+    let buf = '';                       // empty means "still showing the old value"
+    const valEl = $('#num-pop-val');
+    const show = () => {
+      valEl.textContent = buf === '' ? String(opts.value) : buf;
+      if (opts.unit) valEl.appendChild(el('small', null, ' ' + opts.unit));
     };
-    inp.onblur = close;
-    inp.onkeydown = e2 => {
-      if (e2.key === 'Enter') { e2.preventDefault(); inp.onblur = null; close(); }
-      if (e2.key === 'Escape') { e2.preventDefault(); inp.onblur = null; paintReadout(big, opts.fmt()); }
+    $('#num-pop-tag').textContent = opts.title;
+    show();
+
+    const keys = $('#num-pop-keys');
+    keys.innerHTML = '';
+    const press = k => {
+      haptic();
+      if (k === '⌫') buf = buf.slice(0, -1);
+      else if (k === '.') { if (!buf.includes('.')) buf = (buf || '0') + '.'; }
+      else buf = (buf === '0' ? '' : buf) + k;
+      if (buf.replace('.', '').length > 5) buf = buf.slice(0, -1);
+      show();
     };
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', opts.decimals === false ? '' : '.', '0', '⌫']
+      .forEach(k => {
+        const b = el('button', 'np-key' + (k === '⌫' ? ' np-back' : ''), k);
+        if (!k) { b.disabled = true; b.className = 'np-key np-blank'; }
+        else b.onclick = () => press(k);
+        keys.appendChild(b);
+      });
+
+    const close = () => { pop.hidden = true; };
+    $('#num-pop-cancel').onclick = close;
+    pop.onclick = e2 => { if (e2.target === pop) close(); };
+    $('#num-pop-ok').onclick = () => {
+      const v = buf === '' ? +opts.value : parseFloat(buf);
+      close();
+      if (isFinite(v) && v >= (opts.min ?? 0) && v <= (opts.max ?? 2000)) opts.apply(v);
+    };
+    pop.hidden = false;
   }
 
   function weightScale(lw, cur, ei, si, updateVals) {
@@ -2317,9 +2331,8 @@
        number says "tap me", so the controls row carries a button too */
     big.classList.add('tappable');
     paintReadout(big, fmtWn(set.kg));
-    const openType = () => typeInto(big, {
-      value: fmtKg(toW(set.kg)), unit: wUnit(), min: 0,
-      fmt: () => fmtWn(set.kg),
+    const openType = () => openNumPad({
+      title: 'Weight', value: fmtKg(toW(set.kg)), unit: wUnit(), min: 0, max: 999,
       apply: v => ruler.setVal(+v.toFixed(2))
     });
     big.onclick = openType;
@@ -2386,9 +2399,8 @@
     box.appendChild(top);
     paintReadout(big, fmtClock(set.reps));
     /* seconds are typed as seconds, however the clock shows them */
-    const openType = () => typeInto(big, {
-      value: set.reps, unit: 's', min: 5, max: 3600,
-      fmt: () => fmtClock(set.reps),
+    const openType = () => openNumPad({
+      title: 'Hold', value: set.reps, unit: 's', min: 5, max: 3600, decimals: false,
       apply: v => ruler.setVal(Math.round(v))
     });
     big.onclick = openType;
