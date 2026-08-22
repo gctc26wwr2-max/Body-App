@@ -1947,9 +1947,15 @@ body { font-size: 14px; }
 }
 .ks-type::-webkit-outer-spin-button, .ks-type::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 /* the readout is a field too — say so, quietly */
-/* the readout is a field too: a pencil says so, no dashed line needed */
-.ks-val.tappable { display: inline-flex; align-items: center; gap: 7px; }
-.ks-pen { color: var(--lime); opacity: .85; flex: 0 0 auto; }
+/* the readout is a field too: the pencil is a chip you can see and hit */
+.ks-val.tappable { display: inline-flex; align-items: center; gap: 9px; }
+.ks-pen {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 9px; flex: 0 0 auto;
+  background: rgba(206,107,61,.16); border: 1px solid var(--lime-border);
+  color: var(--lime);
+}
+.ks-pen svg { display: block; }
 .ks-typebtn { color: var(--lime); border-color: var(--lime-border); font-size: 12px; font-weight: 800; }
 .ks-done { color: var(--t3); border-color: var(--hair); }
 /* the controls are a scrolling strip — a row of chips must never be clipped */

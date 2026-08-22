@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v262';
+  const APP_VERSION = 'v263';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2261,12 +2261,14 @@
      the same way. `unit` is the suffix shown, `fmt` renders the value back
      when the field closes, `apply` receives the number. */
   const PENCIL = 'M8.4 1.1 L10.9 3.6 L4.2 10.3 L1.2 10.9 L1.8 7.9 Z';
-  /* the readout, with a pencil beside it so it reads as a field */
+  /* The readout with its pencil. The pencil sits in a clay chip rather than
+     floating as a hairline glyph — at thumb size it is the thing people
+     reach for, so it has to look like a button. */
   function paintReadout(big, text) {
     big.textContent = '';
     big.appendChild(document.createTextNode(text));
-    const pen = svgIcon(PENCIL, 10);
-    pen.classList.add('ks-pen');
+    const pen = el('span', 'ks-pen');
+    pen.appendChild(svgIcon(PENCIL, 13));
     big.appendChild(pen);
   }
   function typeInto(big, opts) {
