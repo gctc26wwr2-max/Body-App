@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v269';
+  const APP_VERSION = 'v270';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -3158,32 +3158,73 @@
     });
     wrap.appendChild(strip);
 
+    const clampI = i => Math.max(0, Math.min(labels.length - 1, i));
     const offFor = i => -(i * TICK + TICK / 2);
+    const idxAt = off => Math.round(-(off + TICK / 2) / TICK);
     const mark = () => [...strip.children].forEach((t, i) => t.classList.toggle('sel', i === val));
+    const lit = i => [...strip.children].forEach((t, k) => t.classList.toggle('sel', k === i));
     const put = off => { strip.style.transform = `translateX(${off}px)`; };
     const slide = anim => {
       strip.style.transition = anim ? 'transform .2s ease-out' : 'none';
       put(offFor(val));
     };
+
+    let raf = 0;
+    /* let go and it keeps turning, the way a wheel does: the flick carries
+       it on past a few options and friction brings it down, ticking at
+       every notch it passes */
+    const coastTo = (target, fromOff) => {
+      cancelAnimationFrame(raf);
+      strip.style.transition = 'none';
+      target = clampI(target);
+      const to = offFor(target);
+      const dist = Math.abs(to - fromOff);
+      const dur = Math.max(240, Math.min(1500, dist * 2.6));
+      const t0 = performance.now();
+      let lastDetent = idxAt(fromOff);
+      const step = now => {
+        const p = Math.min(1, (now - t0) / dur);
+        const e = 1 - Math.pow(1 - p, 4);            // friction, long tail
+        const off = fromOff + (to - fromOff) * e;
+        put(off);
+        const d = idxAt(off);
+        if (d !== lastDetent) {                      // a click for every notch passed
+          lastDetent = d;
+          haptic();
+          lit(clampI(d));
+        }
+        if (p < 1) { raf = requestAnimationFrame(step); return; }
+        val = target;
+        mark();
+        onChange(val);
+      };
+      raf = requestAnimationFrame(step);
+    };
+
     const setVal = (i, anim) => {
-      i = Math.max(0, Math.min(labels.length - 1, i));
+      i = clampI(i);
       if (i !== val) haptic();
       val = i; mark(); slide(anim); onChange(val);
     };
 
-    let sx = null, so = 0, lastN = 0;
+    let sx = null, so = 0, lastN = 0, vx = 0, lastX = 0, lastT = 0;
     wrap.style.touchAction = 'none';
     wrap.addEventListener('pointerdown', e => {
+      cancelAnimationFrame(raf);
       sx = e.clientX; so = offFor(val); lastN = 0;
+      vx = 0; lastX = e.clientX; lastT = performance.now();
       strip.style.transition = 'none';
       wrap.setPointerCapture(e.pointerId);
     });
     wrap.addEventListener('pointermove', e => {
       if (sx === null) return;
       const dx = e.clientX - sx;
-      put(so + dx);
+      const off = so + dx;
+      put(off);
       const n = Math.round(dx / TICK);
-      if (n !== lastN) { lastN = n; haptic(); }
+      if (n !== lastN) { lastN = n; haptic(); lit(clampI(idxAt(off))); }
+      const now = performance.now(), dt = now - lastT;
+      if (dt > 0) { vx = (e.clientX - lastX) / dt; lastX = e.clientX; lastT = now; }
     });
     const end = e => {
       if (sx === null) return;
@@ -3191,22 +3232,30 @@
       sx = null;
       if (Math.abs(dx) < 5) {
         slide(false);
+        lit(val);
         const t = document.elementFromPoint(e.clientX, e.clientY);
         const item = t && t.closest ? t.closest('.or-item') : null;
         if (item) setVal(+item.dataset.i, true);
         return;
       }
-      setVal(val - Math.round(dx / TICK), true);
+      // carry the flick forward: how far it would drift before friction wins
+      const stale = performance.now() - lastT > 90;
+      const throwPx = stale ? 0 : vx * 210;
+      const fromOff = so + dx;
+      coastTo(idxAt(fromOff + throwPx), fromOff);
     };
     wrap.addEventListener('pointerup', end);
-    wrap.addEventListener('pointercancel', () => { if (sx !== null) { sx = null; slide(false); } });
+    wrap.addEventListener('pointercancel', () => {
+      if (sx !== null) { sx = null; slide(false); lit(val); }
+    });
 
     mark(); slide(false);
     /* turned by code rather than a thumb — no onChange, so a control that
        drives another does not look like the user touched it */
     wrap.spinTo = i => {
-      i = Math.max(0, Math.min(labels.length - 1, i));
+      i = clampI(i);
       if (i === val) return;
+      cancelAnimationFrame(raf);
       val = i; mark(); slide(true);
     };
     return wrap;
