@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v258';
+  const APP_VERSION = 'v259';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2262,6 +2262,36 @@
     const deltaEl = el('div', 'ks-delta', setDelta(cur, si));
     top.appendChild(deltaEl);
     box.appendChild(top);
+
+    /* the big number is also a way in: tap it and type the weight, for the
+       jump the ruler would take twelve drags to make */
+    big.title = 'Tap to type it';
+    big.onclick = () => {
+      if (big.querySelector('input')) return;
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.inputMode = 'decimal';
+      inp.step = 'any';
+      inp.min = '0';
+      inp.className = 'ks-type num';
+      inp.value = fmtKg(toW(set.kg));
+      big.textContent = '';
+      big.appendChild(inp);
+      big.appendChild(el('small', null, ' ' + wUnit()));
+      inp.focus();
+      inp.select();
+      const done = () => {
+        const v = parseFloat(inp.value);
+        big.textContent = '';
+        big.appendChild(document.createTextNode(fmtWn(set.kg)));
+        if (isFinite(v) && v >= 0 && v < 2000) ruler.setVal(+v.toFixed(2));
+        else big.firstChild.nodeValue = fmtWn(set.kg);
+      };
+      inp.onblur = done;
+      inp.onkeydown = e2 => {
+        if (e2.key === 'Enter') { e2.preventDefault(); inp.onblur = null; done(); }
+      };
+    };
 
     const commit = shown => {
       const v = fromW(shown);
