@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v274';
+  const APP_VERSION = 'v275';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -110,7 +110,9 @@
   const est1RM = (kg, reps) => reps > 0 ? kg * (1 + reps / 30) : 0;   // Epley
 
   function suggestion(sets, ex) {
-    const logged = sets.filter(s => s.done);
+    // warm ramp sets are deliberately light — they neither earn an
+    // increase nor set the weight the working sets should hold
+    const logged = sets.filter(s => s.done && !s.warm);
     if (!logged.length) return { kind: 'idle' };
     const last = logged[logged.length - 1];
     const step = ex ? jumpKg(ex) : wBump();   // the jump the kit in hand allows
@@ -118,7 +120,7 @@
     return { kind: 'hold', kg: last.kg, last };
   }
   function applySuggestion(sets, nextKg) {
-    sets.forEach(s => { if (!s.done) s.kg = nextKg; });
+    sets.forEach(s => { if (!s.done && !s.warm) s.kg = nextKg; });
   }
   function repTone(set) {
     // colour code vs the target range (e.g. 8-10): under / in / above
@@ -2382,9 +2384,11 @@
     const commit = shown => {
       const v = fromW(shown);
       set.kg = v;
-      // the new weight carries forward to the remaining unlogged sets
+      /* the new weight carries forward to the remaining unlogged sets —
+         but only its own kind. A lighter W set is deliberately light, and
+         must never drag the working weight down with it. */
       for (let j = si + 1; j < cur.sets.length; j++) {
-        if (!cur.sets[j].done) cur.sets[j].kg = v;
+        if (!cur.sets[j].done && !cur.sets[j].warm === !set.warm) cur.sets[j].kg = v;
       }
       live.set(lw);
       updateVals();
