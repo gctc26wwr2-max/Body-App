@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v273';
+  const APP_VERSION = 'v274';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -938,7 +938,9 @@
       const lib = window.EXERCISE_LIBRARY || [];
       const pick = names => names.find(n => {
         const r = lib.find(x => x.name === n);
-        return r && equipOK(r);
+        /* a step must be demonstrable — no photograph, no place in the
+           warm-up, however good the movement */
+        return r && r.demo && equipOK(r);
       });
       const link = async name => {
         const r = lib.find(x => x.name === name);
@@ -947,20 +949,47 @@
       };
       /* every practice here is one the catalogue has photographs of, so the
          list demonstrates itself and the card can wear the first one's
-         picture like any other exercise */
-      const pulse = pick(['Jump Rope', 'Elliptical', 'Battle Ropes', 'Air Bike']);
-      const loosen = lower
-        ? [pick(['Bodyweight Squat']), pick(['Glute Bridge', 'Walking Lunge'])]
-        : [pick(['Band Pull-Apart', 'Face Pull']), pick(['Bodyweight Squat', 'Plank'])];
+         picture like any other exercise.
+
+         The same two drills every session get skipped, so the routine is
+         dealt from a pool: lower days loosen hips and knees, upper days
+         shoulders and trunk, and the deal advances with every day you
+         bank — tomorrow warms up differently from today. Each slot is a
+         preference chain, so a missing machine falls back to the next
+         practice your kit allows rather than to nothing. */
+      const PULSE_POOL = [
+        ['Jump Rope', 'Elliptical', 'Air Bike'],
+        ['Battle Ropes', 'Elliptical', 'Jump Rope'],
+        ['Rowing Machine', 'Battle Ropes', 'Jump Rope'],
+        ['Incline Treadmill Walk', 'Stair Climber', 'Elliptical', 'Jump Rope']
+      ];
+      const WARM_LOWER = [
+        [['Bodyweight Squat'], ['Glute Bridge', 'Walking Lunge']],
+        [['Walking Lunge', 'Lunge', 'Bodyweight Squat'], ['Calf Raise', 'Glute Bridge']],
+        [['Step-Up', 'Split Squat', 'Bodyweight Squat'], ['Kettlebell Swing', 'Glute Bridge']],
+        [['Lunge', 'Walking Lunge', 'Bodyweight Squat'], ['Dead Bug', 'Plank']]
+      ];
+      const WARM_UPPER = [
+        [['Band Pull-Apart', 'Face Pull'], ['Bodyweight Squat', 'Plank']],
+        [['Face Pull', 'Band Pull-Apart'], ['Plank', 'Dead Bug']],
+        [['Cable External Rotation', 'Band Pull-Apart'], ['Mountain Climbers', 'Bodyweight Squat']],
+        [['Inverted Row', 'Band Pull-Apart'], ['Dead Bug', 'Side Plank']]
+      ];
+      const seed = ((plan.completed || []).length + dayIndex);
+      const pulse = pick(PULSE_POOL[seed % PULSE_POOL.length])
+        || pick(['Jump Rope', 'Elliptical', 'Battle Ropes', 'Air Bike']);
+      const duo = (lower ? WARM_LOWER : WARM_UPPER)[seed % 4];
+      let loosen = duo.map(chain => pick(chain)).filter(Boolean);
+      if (!loosen.length) loosen = [pick(['Bodyweight Squat', 'Plank'])].filter(Boolean);
       /* one practice per line: what to do on the left, how much on the right,
          so the column of play buttons and the column of counts both line up */
       /* a hold is counted in seconds, everything else in reps — the day it
          falls on has nothing to do with it */
-      const noteFor = n => /Plank|Hang|Hold/i.test(n) ? '30 s' : '15 reps';
+      const noteFor = n =>
+        /Plank|Hang|Hold|Dead Bug|Mountain Climbers|Battle Ropes/i.test(n) ? '30 s' : '15 reps';
       const steps = [
         pulse ? { ...(await link(pulse)), note: '2 min' } : { name: 'Brisk walk', note: '2 min' },
-        { ...(await link(loosen[0])), note: noteFor(loosen[0]) },
-        { ...(await link(loosen[1])), note: noteFor(loosen[1]) },
+        ...(await Promise.all(loosen.map(async n => ({ ...(await link(n)), note: noteFor(n) })))),
         ramp
           ? { name: 'Then the W sets', note: first.name }
           : { name: 'Then a light first set', note: first ? first.name : '' }
