@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v272';
+  const APP_VERSION = 'v273';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -2192,8 +2192,13 @@
       if (v !== st.val) haptic();
       st.val = v;
       opts.onChange(v);
-      // rebuild around the value when it drifts near the strip's edge
-      if (idxOf(v) < 2 || idxOf(v) > 2 * opts.span - 2) {
+      /* a typed number can fall between the ticks of the current grid; the
+         needle must never park on a neighbour while the readout says
+         otherwise, so the strip is rebuilt with the value as a tick of its
+         own. Also rebuild when the value drifts near the strip's edge. */
+      const k = (v - st.base) / opts.step;
+      const offGrid = Math.abs(k - Math.round(k)) > 1e-6;
+      if (offGrid || idxOf(v) < 2 || idxOf(v) > 2 * opts.span - 2) {
         st.base = v; build(); slide(false);
       } else { mark(); slide(anim); }
     };
