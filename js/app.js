@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v279';
+  const APP_VERSION = 'v280';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -89,10 +89,21 @@
     const j = +((getProfile().jumps || {})[kind]);
     return j > 0 ? j : JUMP_KINDS.find(k => k.key === kind).def;
   };
-  /* the same jump in the unit on screen — lb racks move in their own steps */
-  const jumpW = ex => (wUnit() === 'lb'
-    ? ({ 0.5: 1, 1: 2.5, 1.25: 2.5, 2: 5, 2.5: 5, 5: 10 }[jumpKg(ex)] || 5)
-    : jumpKg(ex));
+  /* the same jump in the unit on screen — lb racks move in their own steps,
+     so a stored metric jump maps to the real plate next to it, never to a
+     converted decimal */
+  const KG2LB_JUMP = { 0.5: 1, 1: 2.5, 1.25: 2.5, 2: 5, 2.5: 5, 5: 10 };
+  const jumpW = ex => (wUnit() === 'lb' ? (KG2LB_JUMP[jumpKg(ex)] || 5) : jumpKg(ex));
+  /* one on-screen jump expressed in kg — what progression actually adds, so
+     an lb lifter climbs in 5 lb, not in 2.5 kg dressed up as 5.51 */
+  const jumpBase = ex => (wUnit() === 'lb' ? (KG2LB_JUMP[jumpKg(ex)] || 5) / LB_PER_KG : jumpKg(ex));
+  const jumpLabel = kgv => (wUnit() === 'lb' ? fmtKg(KG2LB_JUMP[kgv] || 5) : fmtKg(kgv)) + ' ' + wUnit();
+  /* lb gyms rack lb options; stored value stays in kg so nothing else moves */
+  const JUMP_LB_OPTS = {
+    db: [[1, 0.5], [2.5, 1], [5, 2]],
+    mach: [[2.5, 1], [5, 2.5], [10, 5]],
+    bar: [[2.5, 1.25], [5, 2.5], [10, 5]]
+  };
 
   const wRound = kg => {
     const step = wBump();
@@ -115,7 +126,7 @@
     const logged = sets.filter(s => s.done && !s.warm);
     if (!logged.length) return { kind: 'idle' };
     const last = logged[logged.length - 1];
-    const step = ex ? jumpKg(ex) : wBump();   // the jump the kit in hand allows
+    const step = ex ? jumpBase(ex) : wBump();  // the jump the kit in hand allows, in the unit on screen
     if (last.reps >= last.targetHi) return { kind: 'increase', step, nextKg: +(last.kg + step).toFixed(3), last };
     return { kind: 'hold', kg: last.kg, last };
   }
@@ -133,10 +144,25 @@
     let side = (totalKg - barKg) / 2;
     if (side <= 0) return [];
     const out = [];
+    /* a hundredth of tolerance: unit round-trips leave float dust on the
+       side weight, and 89.999 must still load as two 45s */
     for (const p of plates) {
-      while (side >= p - 1e-9) { out.push(p); side -= p; }
+      while (side >= p - 0.01) { out.push(p); side -= p; }
     }
     return out;
+  }
+  /* the loading line in the gym's own iron: 20 kg bar and kg plates, or a
+     45 lb bar and lb plates — never a metric bar converted */
+  function plateLine(kg) {
+    if (wUnit() !== 'lb') return { bar: 20, list: plateMath(kg) };
+    const bar = 45;
+    let side = (toW(kg) - bar) / 2;
+    if (side <= 0) return { bar, list: [] };
+    const out = [];
+    for (const p of [45, 35, 25, 10, 5, 2.5]) {
+      while (side >= p - 0.01) { out.push(p); side -= p; }
+    }
+    return { bar, list: out };
   }
   const isBarbell = ex => /(^|\s)bar(bell)?\b/i.test((ex.name || '') + ' ' + (ex.notes || ''));
 
@@ -1257,11 +1283,11 @@
     // plate math
     if (ex && isBarbell(ex)) {
       const firstPendingSet = cur.sets.find(s => !s.done) || cur.sets[cur.sets.length - 1];
-      const plates = plateMath(firstPendingSet.kg);
-      if (plates.length) {
+      const pl = plateLine(firstPendingSet.kg);
+      if (pl.list.length) {
         const ps = el('div', 'plate-strip');
         ps.appendChild(el('span', 'bar', 'BAR'));
-        const pSpan = el('span', 'plates num', '20 + ' + plates.join(' + '));
+        const pSpan = el('span', 'plates num', pl.bar + ' + ' + pl.list.join(' + '));
         pSpan.id = 'plate-live-' + ei;
         ps.appendChild(pSpan);
         ps.appendChild(el('span', 'side', 'per side'));
@@ -1273,7 +1299,7 @@
     const updateVals = () => {
       cur.sets.forEach((s, i) => {
         const kv = $('#val-kg-' + ei + '-' + i);
-        if (kv) kv.textContent = String(s.kg);
+        if (kv) kv.textContent = fmtWn(s.kg);
         const sv = $('#val-sec-' + ei + '-' + i);
         if (sv) sv.textContent = fmtClock(s.reps);
         const rv = $('#val-reps-' + ei + '-' + i);
@@ -1286,8 +1312,8 @@
       const ps = $('#plate-live-' + ei);
       if (ps) {
         const fp = cur.sets.find(s => !s.done) || cur.sets[cur.sets.length - 1];
-        const plates = plateMath(fp.kg);
-        ps.textContent = plates.length ? '20 + ' + plates.join(' + ') : 'bar only';
+        const pl = plateLine(fp.kg);
+        ps.textContent = pl.list.length ? pl.bar + ' + ' + pl.list.join(' + ') : 'bar only';
       }
     };
 
@@ -1334,7 +1360,7 @@
          other — same tap target, same scale sliding open underneath */
       const valCell = el('button', 'kg-cell');
       const kvWrap = el('span', 'kv-wrap');
-      const kv = el('span', 'kv num', cur.timed ? fmtClock(set.reps) : String(set.kg));
+      const kv = el('span', 'kv num', cur.timed ? fmtClock(set.reps) : fmtWn(set.kg));
       kv.id = (cur.timed ? 'val-sec-' : 'val-kg-') + ei + '-' + si;
       kvWrap.appendChild(kv);
       kvWrap.appendChild(el('small', null, cur.timed ? 's' : wUnit()));
@@ -1448,7 +1474,7 @@
       t.appendChild(el('div', 's-title', 'Progression'));
       t.appendChild(el('div', 's-body', cur.timed
         ? `Tap ▸ on a set to run the hold timer — reach ${cur.repHi} s to progress.`
-        : `Hit ${cur.repHi} reps on a set to earn +${fmtW(jumpKg(cur))}.`));
+        : `Hit ${cur.repHi} reps on a set to earn +${jumpLabel(jumpKg(cur))}.`));
       s.appendChild(t);
       card.appendChild(s);
     }
@@ -3686,7 +3712,7 @@
           r.onclick = () => { prefOpen = prefOpen === 'kit' ? null : 'kit'; renderPrefs(); };
         } else if (live === 'jumps') {
           const dj = () => JUMP_KINDS.map(k =>
-            fmtKg(toW((pDraft.jumps || {})[k.key] > 0 ? +pDraft.jumps[k.key] : k.def))).join(' · ');
+            jumpLabel((pDraft.jumps || {})[k.key] > 0 ? +pDraft.jumps[k.key] : k.def).replace(' ' + wUnit(), '')).join(' · ');
           r.appendChild(el('span', 'pref-val num', dj()));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'jumps' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'jumps' ? null : 'jumps'; renderPrefs(); };
@@ -3745,15 +3771,18 @@
           JUMP_KINDS.forEach(k => {
             panel.appendChild(el('div', 'micro', k.label));
             const cur3 = (pDraft.jumps || {})[k.key] > 0 ? +pDraft.jumps[k.key] : k.def;
+            const opts = wUnit() === 'lb'
+              ? JUMP_LB_OPTS[k.key].map(([lb, kgv]) => [String(kgv), fmtKg(lb) + ' lb'])
+              : k.opts.map(o => [String(o), fmtKg(o) + ' kg']);
             panel.appendChild(segToggle(
-              k.opts.map(o => [String(o), fmtKg(toW(o)) + ' ' + wUnit()]),
+              opts,
               String(cur3),
               v => {
                 pDraft.jumps = { ...(pDraft.jumps || {}) };
                 pDraft.jumps[k.key] = +v;
                 const val = r.querySelector('.pref-val');
                 if (val) val.textContent = JUMP_KINDS.map(x =>
-                  fmtKg(toW((pDraft.jumps || {})[x.key] > 0 ? +pDraft.jumps[x.key] : x.def))).join(' · ');
+                  jumpLabel((pDraft.jumps || {})[x.key] > 0 ? +pDraft.jumps[x.key] : x.def).replace(' ' + wUnit(), '')).join(' · ');
               }, 'you-seg'));
           });
           list.appendChild(panel);
@@ -4430,7 +4459,7 @@
         const last = sorted[sorted.length - 1];
         const past = sorted.filter(x => last.ts - x.ts >= 25 * 86400000).pop() || sorted[0];
         grid.appendChild(tile('Body weight · ' + wUnit(), sorted.slice(-12).map(x => x.kg),
-          last.kg.toFixed(1), dTxt(last.kg, past.kg, '')));
+          toW(last.kg).toFixed(1), dTxt(toW(last.kg), toW(past.kg), '')));
       }
       root.appendChild(el('div', 'micro', 'Last 8 weeks'));
       root.appendChild(grid);
