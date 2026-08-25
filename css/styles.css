@@ -2044,3 +2044,22 @@ body { font-size: 14px; }
 
 /* a row of chips must never be clipped off the screen edge */
 .ks-controls { flex-wrap: wrap; row-gap: 8px; }
+
+/* ---- coach marks: one line, once, gone on the first touch ---- */
+.coach-tip {
+  position: fixed; z-index: 320; max-width: 250px; padding: 9px 13px;
+  background: var(--surface); border: 1px solid var(--lime-border); border-radius: 12px;
+  color: var(--t2); font-size: 12.5px; font-weight: 600; line-height: 1.4;
+  pointer-events: none; box-shadow: 0 10px 34px rgba(0, 0, 0, .55);
+  opacity: 0; transform: translateY(5px); transition: opacity .25s, transform .25s;
+}
+.coach-tip.in { opacity: 1; transform: none; }
+.coach-tip::after {
+  content: ''; position: absolute; left: 50%; bottom: -5px; width: 9px; height: 9px;
+  background: var(--surface); border-right: 1px solid var(--lime-border);
+  border-bottom: 1px solid var(--lime-border); transform: translateX(-50%) rotate(45deg);
+}
+.coach-tip.below::after { bottom: auto; top: -5px; transform: translateX(-50%) rotate(225deg); }
+
+.empty-state .es-sub { font-size: 12.5px; color: var(--t5); line-height: 1.5; margin: 8px 0 14px; }
+.empty-state .btn-ghost + .btn-ghost { margin-top: 8px; }
