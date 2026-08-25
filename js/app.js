@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v280';
+  const APP_VERSION = 'v281';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -116,6 +116,33 @@
     const inch = Math.round(cm / 2.54);
     return `${Math.floor(inch / 12)}'${inch % 12}"`;
   };
+
+  /* ---------------- coach marks ----------------
+     A control you built explains itself to you; to a stranger it is
+     somebody else's machine. One short line, anchored to the control,
+     shown once ever, gone on the first touch. Never a tutorial deck. */
+  const coachSeen = k => localStorage.getItem('coach.' + k) === '1';
+  function coachMark(anchor, text, key) {
+    if (!anchor || coachSeen(key)) return;
+    localStorage.setItem('coach.' + key, '1');
+    const tip = el('div', 'coach-tip');
+    tip.textContent = text;
+    document.body.appendChild(tip);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const r = anchor.getBoundingClientRect();
+      if (!r.width) { tip.remove(); return; }
+      tip.style.left = Math.max(10, Math.min(innerWidth - tip.offsetWidth - 10,
+        r.left + r.width / 2 - tip.offsetWidth / 2)) + 'px';
+      const above = r.top > tip.offsetHeight + 24;
+      tip.style.top = (above ? r.top - tip.offsetHeight - 10 : r.bottom + 10) + 'px';
+      tip.classList.toggle('below', !above);
+      tip.classList.add('in');
+    }));
+    const go = () => { tip.classList.remove('in'); setTimeout(() => tip.remove(), 300); };
+    setTimeout(go, 7000);
+    ['pointerdown', 'scroll'].forEach(ev =>
+      addEventListener(ev, go, { once: true, capture: true, passive: true }));
+  }
 
   /* ---------------- pure logic (design spec) ---------------- */
   const est1RM = (kg, reps) => reps > 0 ? kg * (1 + reps / 30) : 0;   // Epley
@@ -430,11 +457,16 @@
         rc.appendChild(cta);
         root.appendChild(rc);
       }
+      /* a stranger's first screen: three honest doors, not a blank page */
       const empty = el('div', 'empty-state');
-      empty.appendChild(el('p', null, 'Or build your own from scratch:'));
-      const cta = el('button', 'btn-ghost', 'Create a custom block');
-      cta.onclick = () => openPlanForm(null);
-      empty.appendChild(cta);
+      empty.appendChild(el('p', null, 'Or start another way:'));
+      const nReady = (window.READY_PLANS || []).length;
+      const b1 = el('button', 'btn-ghost', nReady ? `Browse ${nReady} ready programs` : 'Browse ready programs');
+      b1.onclick = () => { masterTab = 'ready'; show('library'); renderTab(); };
+      empty.appendChild(b1);
+      const b2 = el('button', 'btn-ghost', 'Build your own block');
+      b2.onclick = () => openPlanForm(null);
+      empty.appendChild(b2);
       root.appendChild(empty);
       return;
     }
@@ -1158,6 +1190,7 @@
       const foot = el('div', 'rest-dock' + (paused ? ' held' : ''));
       foot.appendChild(inlineRest(lw, restOn));
       root.appendChild(foot);
+      if (lw.restEndsAt) coachMark(foot, 'Rest runs itself. Skip it or take ±15 s.', 'rest');
     }
 
     if (scrollToEx) {
@@ -2428,6 +2461,8 @@
     });
     box.appendChild(ruler.el);
 
+    coachMark(ruler.el, 'Slide to set the weight. The pencil types it.', 'scale');
+
     const ctr = el('div', 'ks-controls');
     const openedWith = set.kg;   // for reverting a mistaken change
     const undo = el('button', 'ks-adj ks-reset num', '↺ ' + fmtWn(openedWith));
@@ -2529,6 +2564,7 @@
     const strip = el('div', 'vs-strip');
     wrap.appendChild(strip);
     box.appendChild(wrap);
+    coachMark(wrap, 'Slide to the reps you got, then tick the set.', 'reps');
 
     const idxOf = v => Math.round(v - (base - SPAN));
     const offFor = v => -(idxOf(v) * TICK + TICK / 2);
@@ -4395,7 +4431,12 @@
 
     if (!sessions.length) {
       const emp = el('div', 'empty-state');
-      emp.appendChild(el('p', null, 'Log workouts and your progress appears here.'));
+      emp.appendChild(el('p', null, 'Nothing to chart yet.'));
+      emp.appendChild(el('p', 'es-sub', 'Finish one session and this page fills itself: '
+        + 'volume, time and sets by week, personal records, and your body-weight trend.'));
+      const go = el('button', 'btn-ghost', 'Go to Today');
+      go.onclick = () => { show('today'); renderTab(); };
+      emp.appendChild(go);
       root.appendChild(emp);
       return;
     }
