@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v278';
+  const APP_VERSION = 'v279';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -4101,6 +4101,7 @@
     const plan = activePlan();
     const L = [];
     L.push(`RACKSIDE TRAINING REPORT — ${todayStr()}`);
+    L.push(`All weights in ${wUnit()}.`);
     if (plan) {
       const w = plan.startDate ? weekOf(plan) : 0;
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -4140,6 +4141,69 @@
       const best = Math.round(Math.max(...arr.flatMap(s2 => s2.sets.map(x => est1RM(x.weight || 0, x.reps)))));
       if (lastKg > 0) L.push(`- ${exName(id)}: ${fmtW(lastKg)} · est 1RM ${fmtW(best)}`);
     }
+    /* Where each lift is HEADED, not just where it stands. A stall, a climb
+       or reps falling short is exactly what should shape the next block, so
+       the reader does not have to mine the raw logs for it. */
+    {
+      const cut = Date.now() - 70 * 86400000;
+      const tl = [];
+      for (const [id, arr] of byEx) {
+        const recent = arr.filter(x => x.ts >= cut && !x.timed).sort((a, b) => a.ts - b.ts);
+        if (recent.length < 3) continue;
+        const tops = recent.map(x => Math.max(0, ...x.sets.map(t => t.weight || 0)));
+        const first = tops.find(t => t > 0), last = tops[tops.length - 1];
+        if (!first || !last) continue;
+        let run = 1;
+        for (let i = tops.length - 2; i >= 0 && tops[i] === last; i--) run++;
+        const pct = Math.round((last - first) / first * 100);
+        let v;
+        if (run >= 3) v = `stalled at ${fmtW(last)} for ${run} sessions`;
+        else if (pct >= 3) v = `${fmtWn(first)}→${fmtW(last)} over ${recent.length} sessions (+${pct}%)`;
+        else if (pct <= -3) v = `${fmtWn(first)}→${fmtW(last)} (${pct}%) — going backwards`;
+        else v = `holding around ${fmtW(last)}`;
+        const it = plan && (plan.days || []).flatMap(d => d.items).find(i => i.exerciseId === id);
+        if (it) {
+          const ls = recent[recent.length - 1].sets;
+          const atTop = ls.filter(t => t.reps >= it.repHi).length;
+          const under = ls.filter(t => t.reps < it.repLo).length;
+          if (atTop >= Math.ceil(ls.length / 2)) v += ' · hitting the top of the range — ready to go up';
+          else if (under >= Math.ceil(ls.length / 2)) v += ' · reps coming in under the range';
+        }
+        tl.push(`- ${exName(id)}: ${v}`);
+      }
+      if (tl.length) {
+        L.push('');
+        L.push('TRENDS (last 10 weeks):');
+        tl.forEach(x => L.push(x));
+      }
+    }
+    /* the movements that keep getting passed — prescribed on a banked day
+       but never logged. The politest possible way of saying "I hate this
+       one"; the next block should hear it. */
+    if (plan) {
+      const doneDays = (plan.completed || []).filter(c => c.date).slice(-10);
+      const counts = new Map();
+      for (const c of doneDays) {
+        const d = (plan.days || [])[c.day];
+        if (!d) continue;
+        for (const it of d.items) {
+          const r = counts.get(it.exerciseId) || { up: 0, did: 0 };
+          r.up++;
+          if (sessions.some(x => x.exerciseId === it.exerciseId && x.date === c.date)) r.did++;
+          counts.set(it.exerciseId, r);
+        }
+      }
+      const sk = [];
+      for (const [id, r] of counts) {
+        if (r.up >= 2 && r.up - r.did >= 2)
+          sk.push(`- ${exName(id)}: skipped ${r.up - r.did} of the last ${r.up} times it came up — give me a substitute`);
+      }
+      if (sk.length) {
+        L.push('');
+        L.push('OFTEN SKIPPED:');
+        sk.forEach(x => L.push(x));
+      }
+    }
     const bws = (await DB.all('bodyweight')).sort((a, b) => a.ts - b.ts);
     if (bws.length) {
       const lastB = bws[bws.length - 1];
@@ -4167,6 +4231,37 @@
       const bf = navyBodyFat(pr);
       if (bf) bits.push('~' + bf + '% body fat (tape estimate)');
       if (bits.length) { L.push(''); L.push('ABOUT ME: ' + bits.join(' · ')); }
+    }
+    /* what actually happens vs what the plan asks — the single most useful
+       number for sizing the next block */
+    {
+      const cut28 = Date.now() - 28 * 86400000;
+      const recentW = workouts.filter(w => w.ts >= cut28);
+      if (recentW.length) {
+        const perWk = +(recentW.length / 4).toFixed(1);
+        const avgMin = Math.round(recentW.reduce((a, w) => a + (w.duration || 0), 0) / recentW.length);
+        let line = `ATTENDANCE (last 4 weeks): ${recentW.length} sessions ≈ ${perWk}/week · typical session ${avgMin} min`;
+        const planned = plan && (plan.days || []).length;
+        if (planned && planned > perWk + 0.5)
+          line += ` — the plan asks for ${planned}; write for what I actually do, not for good intentions`;
+        L.push('');
+        L.push(line);
+      }
+      const lastPR = workouts.filter(w => w.prs && w.prs.length).sort((a, b) => b.ts - a.ts)[0];
+      if (workouts.length) {
+        L.push(lastPR
+          ? `LAST PR: ${lastPR.date} (${Math.round((Date.now() - lastPR.ts) / 86400000)} days ago)`
+          : 'LAST PR: none recorded yet');
+      }
+    }
+    /* the blocks already run, so the next one is not the last one again */
+    {
+      const past = plans.filter(p => p.finishedAt).sort((a, b) => b.finishedAt - a.finishedAt).slice(0, 6);
+      if (past.length) {
+        L.push('');
+        L.push('BLOCKS ALREADY RUN (do not just repeat them):');
+        past.forEach(p => L.push(`- ${p.name} · ${p.weeks || 4} wks · finished ${new Date(p.finishedAt).toISOString().slice(0, 10)}`));
+      }
     }
     const injOnNow = injEnabled() ? INJURIES.filter(i => getInjuries().has(i.key)) : [];
     if (injOnNow.length) {
@@ -6471,7 +6566,7 @@
       seeBox.value = t;
       const exN = (t.match(/EXERCISES I CAN PICK FROM \((\d+)/) || [])[1] || '0';
       const sess = (t.match(/SESSIONS \((\d+) total/) || [])[1] || '0';
-      what.textContent = `${sess} session${sess === '1' ? '' : 's'} · your numbers, kit, goal · ${exN} exercises`;
+      what.textContent = `${sess} session${sess === '1' ? '' : 's'} · trends, attendance, numbers, kit · ${exN} exercises`;
     });
 
     const DAYS = [2, 3, 4, 5, 6];
