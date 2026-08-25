@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v275';
+  const APP_VERSION = 'v276';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5108,37 +5108,88 @@
   const P_STEADY = { label: 'Steady', mins: 30, note: 'Moderate — slightly breathless.' };
   const P_INT = { label: 'Intervals', mins: 20, note: '1 min hard, 2 min easy, repeat.' };
   const P_LONG = { label: 'Long', mins: 45, note: 'Long and even — settle in.' };
-  const CARDIO_PROG_SETS = {
-    run: [P_QUICK, P_STEADY, P_INT,
-      { label: 'Hill', mins: 25, note: 'Find a hill or raise the incline.' }, P_LONG],
-    machine: [P_QUICK, P_FAT, P_INT,
-      { label: 'Hill', mins: 25, note: 'Raise the incline or resistance every 5 min.' }, P_LONG],
-    walk: [P_QUICK, { label: 'Brisk', mins: 25, note: 'On the edge of breathless.' },
-      { label: 'Hill', mins: 30, note: 'Hills or incline — do not speed up, climb.' },
-      { label: 'Long', mins: 60, note: 'Long and even — settle in.' }],
-    row: [P_QUICK, { label: 'Steady', mins: 20, note: 'Hold one honest pace.' },
+  /* One programme list per activity — a spin bike, a flight of stairs and a
+     padel court do not keep the same clock. Times are what each session
+     honestly takes, in the 5-minute steps the wheel offers. */
+  const CARDIO_PROGS = {
+    'Walk': [
+      { label: 'Quick', mins: 10, note: 'Round the block — just move.' },
+      { label: 'Brisk', mins: 25, note: 'On the edge of breathless.' },
+      { label: 'Hills', mins: 30, note: 'Do not speed up — climb.' },
+      { label: 'Long', mins: 60, note: 'An hour at one even pace.' }],
+    'Run': [
+      { label: 'Easy', mins: 20, note: 'You could hold a conversation.' },
+      { label: 'Tempo', mins: 25, note: 'Comfortably hard the whole way.' },
+      { label: 'Intervals', mins: 20, note: '1 min hard, 2 min easy, repeat.' },
+      { label: 'Hill', mins: 25, note: 'Find a hill or raise the incline.' },
+      { label: 'Long', mins: 60, note: 'Slow and far — settle in.' }],
+    'Trail Run': [
+      { label: 'Easy', mins: 30, note: 'Walk the climbs, run the rest.' },
+      { label: 'Hilly', mins: 45, note: 'Let the trail set the pace.' },
+      { label: 'Long', mins: 75, note: 'Far out and back — carry water.' }],
+    'Cycling': [
+      { label: 'Spin', mins: 20, note: 'Light gear, quick legs.' },
+      { label: 'Steady', mins: 40, note: 'One honest pace.' },
+      { label: 'Intervals', mins: 20, note: '1 min hard, 2 min easy, repeat.' },
+      { label: 'Hills', mins: 30, note: 'Climb seated, recover rolling.' },
+      { label: 'Long', mins: 90, note: 'Settle in and roll.' }],
+    'Rowing': [
+      { label: 'Quick', mins: 10, note: 'Easy pace — just move.' },
+      { label: 'Steady', mins: 20, note: 'Hold one honest split.' },
       { label: 'Intervals', mins: 15, note: '1 min hard, 1 min light, repeat.' },
       { label: 'Long', mins: 30, note: 'Long and even — settle in.' }],
-    swim: [{ label: 'Easy', mins: 20, note: 'Lengths at a talking pace, rest as needed.' },
+    'Swimming': [
+      { label: 'Easy', mins: 20, note: 'Lengths at a talking pace, rest as needed.' },
       { label: 'Intervals', mins: 20, note: 'One length hard, one easy, repeat.' },
       { label: 'Long', mins: 30, note: 'Continuous, steady, count the lengths.' }],
-    rounds: [{ label: 'Rounds', mins: 15, note: '3 min on, 1 min off, repeat.' },
-      { label: 'Short', mins: 10, note: '30 s on, 30 s off, repeat.' }],
-    sprint: [{ label: 'Intervals', mins: 15, note: '30 s all-out, 90 s walk, repeat.' },
+    'Elliptical': [
+      { label: 'Quick', mins: 10, note: 'Easy pace — just move.' },
+      { label: 'Fat burn', mins: 25, note: 'Steady — you can still talk.' },
+      { label: 'Intervals', mins: 20, note: '1 min hard, 2 min easy, repeat.' },
+      { label: 'Climb', mins: 25, note: 'Raise the resistance every 5 min.' },
+      { label: 'Long', mins: 40, note: 'Long and even — settle in.' }],
+    'Stair Climber': [
+      { label: 'Quick', mins: 10, note: 'Steady steps, hands off the rails.' },
+      { label: 'Steady', mins: 20, note: 'One pace, stand tall.' },
+      { label: 'Intervals', mins: 15, note: '1 min quick, 2 min easy, repeat.' },
+      { label: 'Long', mins: 30, note: 'Slow, tall, relentless.' }],
+    'Stairs': [
+      { label: 'Rounds', mins: 15, note: 'Up hard, walk down to recover.' },
+      { label: 'Steady', mins: 20, note: 'Even climbs, easy descents.' },
+      { label: 'Long', mins: 30, note: 'Keep every climb honest.' }],
+    'Jump Rope': [
+      { label: 'Short', mins: 10, note: '30 s on, 30 s off, repeat.' },
+      { label: 'Rounds', mins: 15, note: '3 min on, 1 min off, repeat.' },
+      { label: 'Endurance', mins: 20, note: 'Steady skipping — break only when you must.' }],
+    'Sprints': [
+      { label: 'Intervals', mins: 15, note: '30 s all-out, 90 s walk, repeat.' },
       { label: 'Pyramid', mins: 20, note: 'Sprints of 20, 30, 40, 30, 20 s — walk between.' }],
-    court: [{ label: 'Drills', mins: 20, note: 'Rallying and feeding, nobody keeping score.' },
+    'Boxing': [
+      { label: 'Short', mins: 10, note: '30 s on, 30 s off, repeat.' },
+      { label: 'Rounds', mins: 15, note: '3 min on, 1 min off — ring time.' },
+      { label: 'Bag work', mins: 20, note: 'Steady rounds on the bag.' }],
+    'Hiking': [
+      { label: 'Short', mins: 45, note: 'Out and back before lunch.' },
+      { label: 'Hills', mins: 60, note: 'Pick the climbing route.' },
+      { label: 'Long', mins: 120, note: 'Half a day — pack water.' }],
+    'Football': [
+      { label: 'Kickabout', mins: 30, note: 'Small sides, rolling subs.' },
+      { label: '5-a-side', mins: 50, note: 'Two halves, short break.' },
+      { label: 'Match', mins: 90, note: 'The full ninety.' }],
+    'Tennis': [
+      { label: 'Rally', mins: 20, note: 'Feeding and rallying, no score.' },
+      { label: 'One set', mins: 30, note: 'Play a set, then stop.' },
+      { label: 'Match', mins: 90, note: 'Best of three — pace yourself.' }],
+    'Padel': [
+      { label: 'Drills', mins: 20, note: 'Rallying and feeding, nobody keeping score.' },
       { label: 'One set', mins: 30, note: 'Play a set, then stop.' },
       { label: 'Match', mins: 60, note: 'A full match, changeovers and all.' },
-      { label: 'Long', mins: 90, note: 'Two or three sets — pace yourself.' }]
+      { label: 'Long', mins: 90, note: 'Two or three sets — pace yourself.' }],
+    'Skipping Drills': [
+      { label: 'Short', mins: 10, note: 'Fast feet, short bursts.' },
+      { label: 'Rounds', mins: 15, note: '3 min of patterns, 1 min off.' }]
   };
-  const PROG_SET_OF = {
-    'Run': 'run', 'Trail Run': 'run', 'Walk': 'walk', 'Hiking': 'walk',
-    'Cycling': 'machine', 'Elliptical': 'machine', 'Stair Climber': 'machine',
-    'Stairs': 'machine', 'Rowing': 'row', 'Swimming': 'swim',
-    'Jump Rope': 'rounds', 'Boxing': 'rounds', 'Sprints': 'sprint',
-    'Padel': 'court', 'Tennis': 'court', 'Football': 'court'
-  };
-  const progsFor = act => CARDIO_PROG_SETS[PROG_SET_OF[act]] || [P_QUICK, P_FAT, P_STEADY, P_INT, P_LONG];
+  const progsFor = act => CARDIO_PROGS[act] || [P_QUICK, P_FAT, P_STEADY, P_INT, P_LONG];
   /* always opens on None — the time is the user's to set, and a program is
      something you reach for, not something that follows you around */
   let cardioProg = 'None';
