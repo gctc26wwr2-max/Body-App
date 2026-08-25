@@ -7257,5 +7257,1238 @@ window.READY_PLANS = [
     ]
    }
   ]
+ },
+ {
+  "id": "fb-four",
+  "name": "Full Body — Four Days",
+  "who": "all",
+  "split": "Full body",
+  "level": 2,
+  "weeks": 5,
+  "deload": true,
+  "note": "Everything four times a week, lighter per day so it adds up, not piles up.",
+  "days": [
+   {
+    "name": "Day A",
+    "items": [
+     [
+      "Barbell Back Squat",
+      3,
+      8,
+      12,
+      "box-squat"
+     ],
+     [
+      "Barbell Bench Press",
+      3,
+      8,
+      12,
+      "bench-press"
+     ],
+     [
+      "Seated Cable Row",
+      3,
+      10,
+      15,
+      "seated-cable-row"
+     ],
+     [
+      "Dumbbell Lateral Raise",
+      3,
+      10,
+      15,
+      "lateral-raise"
+     ],
+     [
+      "Plank",
+      3,
+      30,
+      60,
+      "plank"
+     ]
+    ]
+   },
+   {
+    "name": "Day B",
+    "items": [
+     [
+      "Romanian Deadlift",
+      3,
+      8,
+      12,
+      "romanian-deadlift"
+     ],
+     [
+      "Lat Pulldown",
+      3,
+      8,
+      12,
+      "lat-pulldown"
+     ],
+     [
+      "Dumbbell Shoulder Press",
+      3,
+      10,
+      15,
+      "dumbbell-shoulder-press"
+     ],
+     [
+      "EZ-Bar Curl",
+      3,
+      10,
+      15,
+      "ez-bar-curl"
+     ]
+    ]
+   },
+   {
+    "name": "Day C",
+    "items": [
+     [
+      "Leg Press",
+      3,
+      8,
+      12,
+      "leg-press"
+     ],
+     [
+      "Incline Dumbbell Press",
+      3,
+      8,
+      12,
+      "incline-dumbbell-press"
+     ],
+     [
+      "Chest-Supported Row",
+      3,
+      10,
+      15,
+      "chest-supported-row"
+     ],
+     [
+      "Rope Triceps Pushdown",
+      3,
+      10,
+      15,
+      "rope-triceps-pushdown"
+     ],
+     [
+      "Dead Bug",
+      3,
+      12,
+      20,
+      "dead-bug"
+     ]
+    ]
+   },
+   {
+    "name": "Day D",
+    "items": [
+     [
+      "Barbell Hip Thrust",
+      3,
+      8,
+      12,
+      "hip-thrust"
+     ],
+     [
+      "Pull-Up",
+      3,
+      8,
+      12,
+      "pull-up"
+     ],
+     [
+      "Pec Deck / Machine Fly",
+      3,
+      10,
+      15,
+      "pec-deck-machine-fly"
+     ],
+     [
+      "Standing Calf Raise",
+      3,
+      10,
+      15,
+      "calf-raise"
+     ],
+     [
+      "Side Plank",
+      3,
+      30,
+      60,
+      "side-plank"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "ul-five",
+  "name": "Upper / Lower — Five Days",
+  "who": "all",
+  "split": "Upper / Lower",
+  "level": 3,
+  "weeks": 6,
+  "deload": true,
+  "note": "Three upper days, two lower. For a week that lives in the gym.",
+  "days": [
+   {
+    "name": "Upper A",
+    "items": [
+     [
+      "Barbell Bench Press",
+      4,
+      5,
+      8,
+      "bench-press"
+     ],
+     [
+      "Barbell Bent-Over Row",
+      4,
+      5,
+      8,
+      "barbell-row"
+     ],
+     [
+      "Barbell Overhead Press",
+      3,
+      8,
+      12,
+      "overhead-press"
+     ],
+     [
+      "Lat Pulldown",
+      3,
+      8,
+      12,
+      "lat-pulldown"
+     ],
+     [
+      "Plank",
+      3,
+      45,
+      60,
+      "plank"
+     ]
+    ]
+   },
+   {
+    "name": "Lower A",
+    "items": [
+     [
+      "Barbell Back Squat",
+      4,
+      5,
+      8,
+      "box-squat"
+     ],
+     [
+      "Romanian Deadlift",
+      4,
+      5,
+      8,
+      "romanian-deadlift"
+     ],
+     [
+      "Leg Press",
+      3,
+      8,
+      12,
+      "leg-press"
+     ],
+     [
+      "Standing Calf Raise",
+      3,
+      8,
+      12,
+      "calf-raise"
+     ]
+    ]
+   },
+   {
+    "name": "Upper B",
+    "items": [
+     [
+      "Incline Barbell Bench Press",
+      4,
+      5,
+      8,
+      "incline-barbell-bench-press"
+     ],
+     [
+      "T-Bar Row",
+      4,
+      5,
+      8,
+      "t-bar-row"
+     ],
+     [
+      "Dumbbell Lateral Raise",
+      3,
+      8,
+      12,
+      "lateral-raise"
+     ],
+     [
+      "EZ-Bar Curl",
+      3,
+      8,
+      12,
+      "ez-bar-curl"
+     ],
+     [
+      "Hanging Leg Raise",
+      3,
+      12,
+      20,
+      "hanging-leg-raise"
+     ]
+    ]
+   },
+   {
+    "name": "Lower B",
+    "items": [
+     [
+      "Conventional Deadlift",
+      4,
+      5,
+      8,
+      "deadlift"
+     ],
+     [
+      "Barbell Front Squat",
+      4,
+      5,
+      8,
+      "front-squat"
+     ],
+     [
+      "Lying Leg Curl",
+      3,
+      8,
+      12,
+      "leg-curl"
+     ],
+     [
+      "Seated Calf Raise",
+      3,
+      8,
+      12,
+      "seated-calf-raise"
+     ]
+    ]
+   },
+   {
+    "name": "Upper C",
+    "items": [
+     [
+      "Barbell Overhead Press",
+      4,
+      5,
+      8,
+      "overhead-press"
+     ],
+     [
+      "Pull-Up",
+      4,
+      5,
+      8,
+      "pull-up"
+     ],
+     [
+      "Pec Deck / Machine Fly",
+      3,
+      8,
+      12,
+      "pec-deck-machine-fly"
+     ],
+     [
+      "Rope Triceps Pushdown",
+      3,
+      8,
+      12,
+      "rope-triceps-pushdown"
+     ],
+     [
+      "Cable Crunch",
+      3,
+      12,
+      20,
+      "cable-crunch"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "ppl-four",
+  "name": "Push Pull Legs — Four Days",
+  "who": "all",
+  "split": "Push / Pull / Legs",
+  "level": 2,
+  "weeks": 5,
+  "deload": true,
+  "note": "The classic three, plus a full-body day to round the week out.",
+  "days": [
+   {
+    "name": "Push",
+    "items": [
+     [
+      "Barbell Bench Press",
+      3,
+      8,
+      12,
+      "bench-press"
+     ],
+     [
+      "Dumbbell Shoulder Press",
+      3,
+      8,
+      12,
+      "dumbbell-shoulder-press"
+     ],
+     [
+      "Incline Dumbbell Press",
+      3,
+      10,
+      15,
+      "incline-dumbbell-press"
+     ],
+     [
+      "Rope Triceps Pushdown",
+      3,
+      10,
+      15,
+      "rope-triceps-pushdown"
+     ]
+    ]
+   },
+   {
+    "name": "Pull",
+    "items": [
+     [
+      "Barbell Bent-Over Row",
+      3,
+      8,
+      12,
+      "barbell-row"
+     ],
+     [
+      "Lat Pulldown",
+      3,
+      8,
+      12,
+      "lat-pulldown"
+     ],
+     [
+      "Face Pull",
+      3,
+      10,
+      15,
+      "face-pull"
+     ],
+     [
+      "EZ-Bar Curl",
+      3,
+      10,
+      15,
+      "ez-bar-curl"
+     ]
+    ]
+   },
+   {
+    "name": "Legs",
+    "items": [
+     [
+      "Barbell Back Squat",
+      3,
+      8,
+      12,
+      "box-squat"
+     ],
+     [
+      "Romanian Deadlift",
+      3,
+      8,
+      12,
+      "romanian-deadlift"
+     ],
+     [
+      "Leg Press",
+      3,
+      10,
+      15,
+      "leg-press"
+     ],
+     [
+      "Standing Calf Raise",
+      3,
+      10,
+      15,
+      "calf-raise"
+     ],
+     [
+      "Plank",
+      3,
+      30,
+      60,
+      "plank"
+     ]
+    ]
+   },
+   {
+    "name": "Everything",
+    "items": [
+     [
+      "Goblet Squat",
+      3,
+      8,
+      12,
+      "goblet-squat"
+     ],
+     [
+      "Push-Up",
+      3,
+      8,
+      12,
+      "push-up"
+     ],
+     [
+      "Seated Cable Row",
+      3,
+      10,
+      15,
+      "seated-cable-row"
+     ],
+     [
+      "Dumbbell Lateral Raise",
+      3,
+      10,
+      15,
+      "lateral-raise"
+     ],
+     [
+      "Dead Bug",
+      3,
+      12,
+      20,
+      "dead-bug"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "ppl-lower",
+  "name": "Push Pull Legs — Lower Bias",
+  "who": "female",
+  "split": "Push / Pull / Legs",
+  "level": 2,
+  "weeks": 5,
+  "deload": true,
+  "note": "Legs twice a week; push and pull hold their ground.",
+  "days": [
+   {
+    "name": "Legs A",
+    "items": [
+     [
+      "Barbell Hip Thrust",
+      3,
+      8,
+      12,
+      "hip-thrust"
+     ],
+     [
+      "Barbell Back Squat",
+      3,
+      8,
+      12,
+      "box-squat"
+     ],
+     [
+      "Cable Pull-Through",
+      3,
+      10,
+      15,
+      "cable-pull-through"
+     ],
+     [
+      "Hip Abduction Machine",
+      3,
+      10,
+      15,
+      "hip-abduction-machine"
+     ],
+     [
+      "Plank",
+      3,
+      30,
+      60,
+      "plank"
+     ]
+    ]
+   },
+   {
+    "name": "Push",
+    "items": [
+     [
+      "Dumbbell Bench Press",
+      3,
+      8,
+      12,
+      "dumbbell-bench-press"
+     ],
+     [
+      "Dumbbell Shoulder Press",
+      3,
+      8,
+      12,
+      "dumbbell-shoulder-press"
+     ],
+     [
+      "Dumbbell Lateral Raise",
+      3,
+      10,
+      15,
+      "lateral-raise"
+     ],
+     [
+      "Rope Triceps Pushdown",
+      3,
+      10,
+      15,
+      "rope-triceps-pushdown"
+     ]
+    ]
+   },
+   {
+    "name": "Pull",
+    "items": [
+     [
+      "Lat Pulldown",
+      3,
+      8,
+      12,
+      "lat-pulldown"
+     ],
+     [
+      "Seated Cable Row",
+      3,
+      8,
+      12,
+      "seated-cable-row"
+     ],
+     [
+      "Face Pull",
+      3,
+      10,
+      15,
+      "face-pull"
+     ],
+     [
+      "EZ-Bar Curl",
+      3,
+      10,
+      15,
+      "ez-bar-curl"
+     ],
+     [
+      "Dead Bug",
+      3,
+      12,
+      20,
+      "dead-bug"
+     ]
+    ]
+   },
+   {
+    "name": "Legs B",
+    "items": [
+     [
+      "Romanian Deadlift",
+      3,
+      8,
+      12,
+      "romanian-deadlift"
+     ],
+     [
+      "Bulgarian Split Squat",
+      3,
+      8,
+      12,
+      "bulgarian-split-squat"
+     ],
+     [
+      "Walking Lunge",
+      3,
+      10,
+      15,
+      "walking-lunge"
+     ],
+     [
+      "Standing Calf Raise",
+      3,
+      10,
+      15,
+      "calf-raise"
+     ],
+     [
+      "Side Plank",
+      3,
+      30,
+      60,
+      "side-plank"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "ul-mass",
+  "name": "Upper / Lower — Mass",
+  "who": "male",
+  "split": "Upper / Lower",
+  "level": 3,
+  "weeks": 6,
+  "deload": true,
+  "note": "Four heavy days built around the big five, everything else earning its place.",
+  "days": [
+   {
+    "name": "Upper A",
+    "items": [
+     [
+      "Barbell Bench Press",
+      4,
+      5,
+      8,
+      "bench-press"
+     ],
+     [
+      "Barbell Bent-Over Row",
+      4,
+      5,
+      8,
+      "barbell-row"
+     ],
+     [
+      "Barbell Overhead Press",
+      3,
+      8,
+      12,
+      "overhead-press"
+     ],
+     [
+      "Barbell Shrug",
+      3,
+      8,
+      12,
+      "shrug"
+     ],
+     [
+      "EZ-Bar Curl",
+      3,
+      8,
+      12,
+      "ez-bar-curl"
+     ],
+     [
+      "Plank",
+      3,
+      45,
+      60,
+      "plank"
+     ]
+    ]
+   },
+   {
+    "name": "Lower A",
+    "items": [
+     [
+      "Barbell Back Squat",
+      4,
+      5,
+      8,
+      "box-squat"
+     ],
+     [
+      "Romanian Deadlift",
+      4,
+      5,
+      8,
+      "romanian-deadlift"
+     ],
+     [
+      "Leg Press",
+      3,
+      8,
+      12,
+      "leg-press"
+     ],
+     [
+      "Standing Calf Raise",
+      3,
+      8,
+      12,
+      "calf-raise"
+     ]
+    ]
+   },
+   {
+    "name": "Upper B",
+    "items": [
+     [
+      "Incline Barbell Bench Press",
+      4,
+      5,
+      8,
+      "incline-barbell-bench-press"
+     ],
+     [
+      "Pull-Up",
+      4,
+      5,
+      8,
+      "pull-up"
+     ],
+     [
+      "T-Bar Row",
+      3,
+      8,
+      12,
+      "t-bar-row"
+     ],
+     [
+      "Rope Triceps Pushdown",
+      3,
+      8,
+      12,
+      "rope-triceps-pushdown"
+     ],
+     [
+      "Preacher Curl",
+      3,
+      8,
+      12,
+      "preacher-curl"
+     ],
+     [
+      "Hanging Leg Raise",
+      3,
+      12,
+      20,
+      "hanging-leg-raise"
+     ]
+    ]
+   },
+   {
+    "name": "Lower B",
+    "items": [
+     [
+      "Conventional Deadlift",
+      4,
+      5,
+      8,
+      "deadlift"
+     ],
+     [
+      "Barbell Front Squat",
+      4,
+      5,
+      8,
+      "front-squat"
+     ],
+     [
+      "Lying Leg Curl",
+      3,
+      8,
+      12,
+      "leg-curl"
+     ],
+     [
+      "Seated Calf Raise",
+      3,
+      8,
+      12,
+      "seated-calf-raise"
+     ],
+     [
+      "Ab Wheel Rollout",
+      3,
+      12,
+      20,
+      "ab-wheel-rollout"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "cond-circuit",
+  "name": "Machine Circuit — Three Days",
+  "who": "all",
+  "split": "Full body",
+  "level": 1,
+  "weeks": 4,
+  "deload": true,
+  "note": "Around the machines in order, little rest, twice through. Cardio in disguise.",
+  "days": [
+   {
+    "name": "Circuit A",
+    "items": [
+     [
+      "Leg Press",
+      2,
+      10,
+      15,
+      "leg-press"
+     ],
+     [
+      "Chest Press Machine",
+      2,
+      10,
+      15,
+      "machine-chest-press"
+     ],
+     [
+      "Seated Row Machine",
+      2,
+      12,
+      15,
+      "seated-cable-row"
+     ],
+     [
+      "Shoulder Press Machine",
+      2,
+      12,
+      15,
+      "machine-shoulder-press"
+     ],
+     [
+      "Leg Extension",
+      2,
+      12,
+      15,
+      "leg-extension"
+     ],
+     [
+      "Lat Pulldown",
+      2,
+      12,
+      15,
+      "lat-pulldown"
+     ]
+    ]
+   },
+   {
+    "name": "Circuit B",
+    "items": [
+     [
+      "Hack Squat Machine",
+      2,
+      10,
+      15,
+      "hack-squat-machine"
+     ],
+     [
+      "Pec Deck / Machine Fly",
+      2,
+      10,
+      15,
+      "pec-deck-machine-fly"
+     ],
+     [
+      "Close-Grip Lat Pulldown",
+      2,
+      12,
+      15,
+      "close-grip-lat-pulldown"
+     ],
+     [
+      "Lateral Raise Machine",
+      2,
+      12,
+      15,
+      "lateral-raise"
+     ],
+     [
+      "Seated Leg Curl",
+      2,
+      12,
+      15,
+      "seated-leg-curl"
+     ],
+     [
+      "Biceps Curl Machine",
+      2,
+      12,
+      15,
+      "biceps-curl-machine"
+     ]
+    ]
+   },
+   {
+    "name": "Circuit C",
+    "items": [
+     [
+      "Hip Thrust Machine",
+      2,
+      10,
+      15,
+      "hip-thrust"
+     ],
+     [
+      "Assisted Dip Machine",
+      2,
+      10,
+      15,
+      "assisted-dip-machine"
+     ],
+     [
+      "Seated Row Machine",
+      2,
+      12,
+      15,
+      "seated-cable-row"
+     ],
+     [
+      "Triceps Extension Machine",
+      2,
+      12,
+      15,
+      "triceps-extension-machine"
+     ],
+     [
+      "Standing Calf Raise",
+      2,
+      12,
+      15,
+      "calf-raise"
+     ],
+     [
+      "Cable Crunch",
+      2,
+      12,
+      20,
+      "cable-crunch"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "fb-keep",
+  "name": "Easy Strength — Keep Moving",
+  "who": "all",
+  "split": "Full body",
+  "level": 1,
+  "weeks": 4,
+  "deload": true,
+  "note": "Three short, friendly days. The goal is showing up, and this makes it easy.",
+  "days": [
+   {
+    "name": "Day A",
+    "items": [
+     [
+      "Leg Press",
+      2,
+      10,
+      15,
+      "leg-press"
+     ],
+     [
+      "Chest Press Machine",
+      2,
+      10,
+      15,
+      "machine-chest-press"
+     ],
+     [
+      "Seated Row Machine",
+      2,
+      12,
+      15,
+      "seated-cable-row"
+     ],
+     [
+      "Plank",
+      2,
+      30,
+      45,
+      "plank"
+     ]
+    ]
+   },
+   {
+    "name": "Day B",
+    "items": [
+     [
+      "Goblet Squat",
+      2,
+      10,
+      15,
+      "goblet-squat"
+     ],
+     [
+      "Shoulder Press Machine",
+      2,
+      10,
+      15,
+      "machine-shoulder-press"
+     ],
+     [
+      "Lat Pulldown",
+      2,
+      12,
+      15,
+      "lat-pulldown"
+     ],
+     [
+      "Dead Bug",
+      2,
+      12,
+      20,
+      "dead-bug"
+     ]
+    ]
+   },
+   {
+    "name": "Day C",
+    "items": [
+     [
+      "Glute Bridge",
+      2,
+      10,
+      15,
+      "glute-bridge"
+     ],
+     [
+      "Push-Up",
+      2,
+      10,
+      15,
+      "push-up"
+     ],
+     [
+      "Seated Cable Row",
+      2,
+      12,
+      15,
+      "seated-cable-row"
+     ],
+     [
+      "Side Plank",
+      2,
+      30,
+      45,
+      "side-plank"
+     ]
+    ]
+   }
+  ]
+ },
+ {
+  "id": "str-trio",
+  "name": "Strength — The Big Three",
+  "who": "all",
+  "split": "Full body",
+  "level": 3,
+  "weeks": 6,
+  "deload": true,
+  "note": "Squat, bench, deadlift — one each per day, practised heavy every week.",
+  "days": [
+   {
+    "name": "Squat day",
+    "items": [
+     [
+      "Barbell Back Squat",
+      4,
+      5,
+      8,
+      "box-squat"
+     ],
+     [
+      "Barbell Bench Press",
+      3,
+      8,
+      12,
+      "bench-press"
+     ],
+     [
+      "Barbell Bent-Over Row",
+      3,
+      8,
+      12,
+      "barbell-row"
+     ],
+     [
+      "Plank",
+      3,
+      45,
+      60,
+      "plank"
+     ]
+    ]
+   },
+   {
+    "name": "Bench day",
+    "items": [
+     [
+      "Barbell Bench Press",
+      4,
+      5,
+      8,
+      "bench-press"
+     ],
+     [
+      "Barbell Back Squat",
+      3,
+      8,
+      12,
+      "box-squat"
+     ],
+     [
+      "Pull-Up",
+      3,
+      8,
+      12,
+      "pull-up"
+     ]
+    ]
+   },
+   {
+    "name": "Deadlift day",
+    "items": [
+     [
+      "Conventional Deadlift",
+      4,
+      5,
+      8,
+      "deadlift"
+     ],
+     [
+      "Barbell Overhead Press",
+      3,
+      8,
+      12,
+      "overhead-press"
+     ],
+     [
+      "Lat Pulldown",
+      3,
+      8,
+      12,
+      "lat-pulldown"
+     ],
+     [
+      "Hanging Leg Raise",
+      3,
+      12,
+      20,
+      "hanging-leg-raise"
+     ]
+    ]
+   }
+  ]
  }
 ];
