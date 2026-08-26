@@ -2089,3 +2089,12 @@ body { font-size: 14px; }
   filter: grayscale(.7) brightness(.8); display: block; }
 .equip-chip.on .equip-ph { filter: none; }
 .equip-chip .equip-ic { padding: 6px 0 6px 4px; }
+
+/* week-start picker: the first cell is the week's hinge */
+.wks-strip { margin-top: 2px; }
+.wks-strip .cell { cursor: pointer; }
+.wks-strip .cell.today { position: relative; }
+.wks-strip .cell.today::after { content: 'START'; position: absolute; left: 50%;
+  transform: translateX(-50%); bottom: -14px; font-size: 7.5px; font-weight: 800;
+  letter-spacing: .14em; color: var(--lime); }
+.wks-strip { margin-bottom: 16px; }
