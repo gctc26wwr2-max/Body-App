@@ -100,6 +100,35 @@ window.EQUIP_ICON = {
     + '<rect x="8" y="13.6" width="8" height="2.8" rx="1.2" fill="currentColor" stroke="none"/>'
     + '<path d="M12 4v9.4"/><path d="M9 16.4v4M15 16.4v4"/>',
   // a weight stack — the one shape every machine has
+  /* ---- the split-out machines ---- */
+  // two rails, the bar caught on hooks
+  'm-smith': '<path d="M6 3v18M18 3v18"/><path d="M4.5 10.5h15" stroke-width="2.2"/>'
+    + '<path d="M6 8v2.5M18 8v2.5"/>',
+  // the 45-degree sled with a back pad under it
+  'm-hack': '<path d="M4 20 18 6"/><rect x="13.6" y="7.6" width="7" height="3" rx="1.2" transform="rotate(45 17 9)" fill="currentColor" stroke="none"/>'
+    + '<path d="M4 20h16"/>',
+  // a bench with the hips bridging off it
+  'm-hip': '<rect x="3" y="13.5" width="18" height="3" rx="1.2" fill="currentColor" stroke="none"/>'
+    + '<path d="M6 13.5V11a6 6 0 0 1 12 0v2.5"/>',
+  // two pads closing an arc
+  'm-fly': '<path d="M6.5 4.5c-3.4 4.4-3.4 10.6 0 15M17.5 4.5c3.4 4.4 3.4 10.6 0 15"/>'
+    + '<circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>',
+  // arms rising out to the sides
+  'm-latr': '<circle cx="12" cy="5" r="2.2" fill="currentColor" stroke="none"/>'
+    + '<path d="M12 8v6M12 9.5 5 6.5M12 9.5l7-3"/><path d="M8 20l4-6 4 6"/>',
+  // a forearm curling over a pad
+  'm-arms': '<path d="M4 16h9"/><path d="M13 16a5 5 0 0 0 5-5V7" stroke-width="2"/>'
+    + '<circle cx="18" cy="5.6" r="1.8" fill="currentColor" stroke="none"/>',
+  // a heel up on a block
+  'm-calf': '<path d="M4 20h16"/><rect x="13" y="15.5" width="7" height="4.5" rx="1" fill="currentColor" stroke="none"/>'
+    + '<path d="M9 20v-5.5l4-3.5"/>',
+  // the legs opening against pads
+  'm-abd': '<path d="M12 5v5"/><circle cx="12" cy="3.6" r="1.8" fill="currentColor" stroke="none"/>'
+    + '<path d="M12 10 6.5 19M12 10l5.5 9"/><path d="M4.5 16.5 8 18M19.5 16.5 16 18"/>',
+  // hips over the pad, body swinging up
+  'm-ghd': '<rect x="8.5" y="12" width="7" height="3.2" rx="1.4" fill="currentColor" stroke="none"/>'
+    + '<path d="M3.5 18.5 9 13M15.5 13c2.5 0 5-2 5.5-5"/>'
+    + '<circle cx="21" cy="5.8" r="1.7" fill="currentColor" stroke="none"/>',
   machine: '<rect x="6" y="3.5" width="12" height="17" rx="2"/>'
     + '<rect x="8.4" y="6.4" width="7.2" height="1.9" rx=".9" fill="currentColor" stroke="none"/>'
     + '<rect x="8.4" y="9.4" width="7.2" height="1.9" rx=".9" fill="currentColor" stroke="none"/>'

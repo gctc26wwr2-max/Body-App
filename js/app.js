@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v284';
+  const APP_VERSION = 'v285';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -4649,9 +4649,21 @@
   const equipKeys = () => (window.EQUIPMENT || []).map(q => q.key);
   function getEquip() {
     const raw = localStorage.getItem('equip');
-    if (raw === null) return new Set(equipKeys());
+    /* a fresh profile is already post-split — without the stamp, the first
+       saved kit would be "migrated" and quietly re-add whatever machine
+       chip had just been switched off */
+    if (raw === null) { localStorage.setItem('equipV2', '1'); return new Set(equipKeys()); }
     try {
       const s = new Set(JSON.parse(raw));
+      /* "Other machine" was split into nine named machines. A kit saved
+         before the split owns them exactly if it owned the bucket. */
+      if (!localStorage.getItem('equipV2')) {
+        if (s.has('machine'))
+          ['m-smith', 'm-hack', 'm-hip', 'm-fly', 'm-latr', 'm-arms', 'm-calf', 'm-abd', 'm-ghd']
+            .forEach(k => s.add(k));
+        localStorage.setItem('equipV2', '1');
+        localStorage.setItem('equip', JSON.stringify([...s]));
+      }
       (window.EQUIPMENT || []).forEach(q => { if (q.always) s.add(q.key); });
       return s;
     } catch { return new Set(equipKeys()); }
@@ -6812,25 +6824,34 @@
 
   /* One equipment picker, used by Block Master and by the builder itself —
      the gym you are standing in is the thing that decides the block. */
+  /* The kit list, as chips under counted headers. The old version was a
+     wall of twenty-five identical boxes — with everything owned it read as
+     one orange slab. A chip row is a third of the height, the section line
+     says how much of it you own, and the icon still tells the machines
+     apart at a glance. */
   function equipPicker(after) {
     const wrap = el('div', 'equip-wrap');
     const owned = getEquip();
     const all = (window.EXERCISE_LIBRARY || []);
     const secs = [...new Set((window.EQUIPMENT || []).map(q => q.sec || 'Other'))];
     secs.forEach(sec => {
-      wrap.appendChild(el('div', 'micro', sec));
-      const grid = el('div', 'equip-grid');
-      (window.EQUIPMENT || []).filter(q => (q.sec || 'Other') === sec).forEach(q => {
+      const items = (window.EQUIPMENT || []).filter(q => (q.sec || 'Other') === sec);
+      const have = items.filter(q => q.always || owned.has(q.key)).length;
+      const hd = el('div', 'eqs-head');
+      hd.appendChild(el('div', 'micro', sec));
+      hd.appendChild(el('div', 'eqs-n num', have === items.length ? 'all' : have + ' of ' + items.length));
+      wrap.appendChild(hd);
+      const row = el('div', 'equip-chips');
+      items.forEach(q => {
         const on = q.always || owned.has(q.key);
-        const b = el('button', 'equip-tile' + (on ? ' on' : '') + (q.always ? ' fixed' : ''));
+        const b = el('button', 'equip-chip' + (on ? ' on' : '') + (q.always ? ' fixed' : ''));
         const ico = el('span', 'equip-ic');
-        ico.innerHTML = '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" '
+        ico.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" '
           + 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
           + ((window.EQUIP_ICON || {})[q.key] || (window.EQUIP_ICON || {}).machine || '') + '</svg>';
         b.appendChild(ico);
         b.appendChild(el('span', 'equip-lbl', q.label));
         const n = all.filter(x => equipOf(x).includes(q.key)).length;
-        b.appendChild(el('span', 'equip-n', q.always ? 'always' : String(n)));
         b.title = q.always ? q.label : `${q.label} · ${n} move${n === 1 ? '' : 's'}`;
         if (!q.always) b.onclick = () => {
           const s = getEquip();
@@ -6839,17 +6860,20 @@
           haptic();
           after();
         };
-        grid.appendChild(b);
+        row.appendChild(b);
       });
-      wrap.appendChild(grid);
+      wrap.appendChild(row);
     });
     const acts = el('div', 'equip-acts');
-    const allBtn = el('button', 'btn-ghost', 'Select all');
-    allBtn.onclick = () => { setEquip(new Set((window.EQUIPMENT || []).map(q => q.key))); after(); };
-    const homeBtn = el('button', 'btn-ghost', 'Home only');
-    homeBtn.onclick = () => { setEquip(new Set(['bodyweight', 'mat'])); after(); };
-    acts.appendChild(allBtn);
-    acts.appendChild(homeBtn);
+    const preset = (label, fn) => {
+      const b = el('button', 'btn-ghost', label);
+      b.onclick = () => { fn(); haptic(); after(); };
+      acts.appendChild(b);
+    };
+    preset('Full gym', () => setEquip(new Set((window.EQUIPMENT || []).map(q => q.key))));
+    preset('No machines', () => setEquip(new Set((window.EQUIPMENT || [])
+      .filter(q => (q.sec || '') !== 'Machines').map(q => q.key))));
+    preset('Home', () => setEquip(new Set(['bodyweight', 'mat', 'band'])));
     wrap.appendChild(acts);
     return wrap;
   }
