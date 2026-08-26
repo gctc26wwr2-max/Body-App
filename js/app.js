@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v285';
+  const APP_VERSION = 'v286';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -109,6 +109,13 @@
     const step = wBump();
     return kg > 0 ? Math.max(step, Math.round(kg / step) * step) : 0;
   };      // one small jump, in kg
+  /* which day the week turns over — a Monday gym week is not universal:
+     plenty of the world starts Saturday or Sunday, and every weekly number
+     in the app moves with it */
+  const weekStartDow = () => ({ mon: 1, sat: 6, sun: 0 })[getProfile().weekStart] ?? 1;
+  const dowFrom = d => (d.getDay() - weekStartDow() + 7) % 7;   // 0 = the week's first day
+  const weekStripOff = () => (weekStartDow() + 6) % 7;          // Mon-based index of cell 0
+
   const hUnit = () => (getProfile().hUnits === 'ft' ? 'ft' : 'cm');
   const fmtH = cm => {
     if (!(cm > 0)) return '—';
@@ -558,22 +565,24 @@
 
     // ---- 7-day strip (rings = preferred training days) ----
     const strip = el('div', 'day-strip');
-    const dow = (now.getDay() + 6) % 7; // Mon=0
-    const monday = new Date(now); monday.setDate(now.getDate() - dow);
+    const dow = dowFrom(now);                       // 0 = the week's first day
+    const wk0 = new Date(now); wk0.setDate(now.getDate() - dow);
     const doneDates = new Set(workouts.map(x => x.date));
     const pref = plan.prefDays || [];
-    'MTWTFSS'.split('').forEach((ch, i) => {
-      const d = new Date(monday); d.setDate(monday.getDate() + i);
+    const off = weekStripOff();
+    for (let i = 0; i < 7; i++) {
+      const monIdx = (off + i) % 7;                 // prefDays stay Mon-indexed
+      const d = new Date(wk0); d.setDate(wk0.getDate() + i);
       const ds = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
       const cell = el('div', 'cell'
         + (ds === todayStr() ? ' today' : '')
         + (doneDates.has(ds) ? ' done' : '')
-        + (pref.includes(i) ? ' pref' : '')
-        + (pref.includes(i) && i < dow && !doneDates.has(ds) && !plan.pausedAt ? ' missed' : ''));
-      cell.appendChild(el('span', null, ch));
+        + (pref.includes(monIdx) ? ' pref' : '')
+        + (pref.includes(monIdx) && i < dow && !doneDates.has(ds) && !plan.pausedAt ? ' missed' : ''));
+      cell.appendChild(el('span', null, 'MTWTFSS'[monIdx]));
       cell.appendChild(el('i'));
       strip.appendChild(cell);
-    });
+    }
     root.appendChild(strip);
 
     // ---- the v5 arc layout, in every state ----
@@ -792,7 +801,7 @@
       return d >= ws && d < new Date(ws.getTime() + 7 * 86400000);
     });
     const now = new Date();
-    const dow = (now.getDay() + 6) % 7;
+    const dow = dowFrom(now);
     let ws = new Date(now); ws.setDate(now.getDate() - dow); ws.setHours(0, 0, 0, 0);
     let n = has(ws) ? 1 : 0;
     for (;;) {
@@ -824,7 +833,7 @@
   }
   function sameWeek(ds) {
     const now = new Date();
-    const dow = (now.getDay() + 6) % 7;
+    const dow = dowFrom(now);
     const monday = new Date(now); monday.setDate(now.getDate() - dow); monday.setHours(0, 0, 0, 0);
     const d = dateOf(ds);
     return d >= monday && d < new Date(monday.getTime() + 7 * 86400000);
@@ -3656,7 +3665,8 @@
     aim: '<circle cx="12" cy="12" r="7.4"/><circle cx="12" cy="12" r="2.6"/>'
       + '<path d="M12 2.2v2.6M12 19.2v2.6M2.2 12h2.6M19.2 12h2.6"/>',
     plates: '<path d="M3 12h18"/><path d="M6.5 8v8M10 6v12M14 6v12M17.5 8v8"/>',
-    flame: '<path d="M12 3c.5 3.4-1.6 5-2.9 6.6C7.8 11.2 7 12.9 7 14.5 7 17.6 9.2 20 12 20s5-2.4 5-5.5C17 10.7 13.7 8.6 12 3z"/>'
+    flame: '<path d="M12 3c.5 3.4-1.6 5-2.9 6.6C7.8 11.2 7 12.9 7 14.5 7 17.6 9.2 20 12 20s5-2.4 5-5.5C17 10.7 13.7 8.6 12 3z"/>',
+    cal: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="8" cy="14" r="1.4" fill="currentColor" stroke="none"/>'
   };
 
   const PREF_GROUPS = [
@@ -3667,7 +3677,8 @@
       ['kit', 'Equipment', 'kit'],
       ['aim', 'Muscle focus', 'focus'],
       ['plates', 'Weight jumps', 'jumps'],
-      ['theme', 'Theme'], ['units', 'Units', 'units']
+      ['theme', 'Theme'], ['units', 'Units', 'units'],
+      ['cal', 'Week starts', 'wkstart']
     ] },
     { title: 'Apple', rows: [
       ['health', 'Apple Health'], ['watch', 'Apple Watch'], ['link', 'Integrations']
@@ -3740,6 +3751,11 @@
           r.appendChild(el('span', 'pref-val', dImperial() ? 'lb · ft' : 'kg · cm'));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'units' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'units' ? null : 'units'; renderPrefs(); };
+        } else if (live === 'wkstart') {
+          const wl = { mon: 'Monday', sat: 'Saturday', sun: 'Sunday' };
+          r.appendChild(el('span', 'pref-val', wl[pDraft.weekStart] || 'Monday'));
+          r.appendChild(el('span', 'pref-go' + (prefOpen === 'wkstart' ? ' open' : ''), '›'));
+          r.onclick = () => { prefOpen = prefOpen === 'wkstart' ? null : 'wkstart'; renderPrefs(); };
         } else if (live === 'rest') {
           r.appendChild(el('span', 'pref-val num', fmtClock(dRest())));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'rest' ? ' open' : ''), '›'));
@@ -3787,6 +3803,16 @@
             }, 'you-seg'));
           panel.appendChild(el('div', 'ab-hint',
             'Weights, heights and the tape all follow this — nothing stored is rewritten.'));
+          list.appendChild(panel);
+        }
+        if (live === 'wkstart' && prefOpen === 'wkstart') {
+          const panel = el('div', 'pref-panel');
+          panel.appendChild(segToggle(
+            [['mon', 'Monday'], ['sat', 'Saturday'], ['sun', 'Sunday']],
+            ['sat', 'sun'].includes(pDraft.weekStart) ? pDraft.weekStart : 'mon',
+            k => { pDraft.weekStart = k; renderPrefs(); }, 'you-seg'));
+          panel.appendChild(el('div', 'ab-hint',
+            'The day strip, weekly totals and the streak all turn over on this day.'));
           list.appendChild(panel);
         }
         if (live === 'kit' && prefOpen === 'kit') {
@@ -3942,20 +3968,22 @@
       const pc = el('div', 'card');
       const strip = el('div', 'day-strip');
       plan.prefDays = plan.prefDays || [];
-      ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((ch, i) => {
-        const cell = el('button', 'cell' + (plan.prefDays.includes(i) ? ' today pref' : ''));
+      const off2 = weekStripOff();
+      for (let i = 0; i < 7; i++) {
+        const monIdx = (off2 + i) % 7;
+        const cell = el('button', 'cell' + (plan.prefDays.includes(monIdx) ? ' today pref' : ''));
         cell.type = 'button';
-        cell.appendChild(el('span', null, ch));
+        cell.appendChild(el('span', null, 'MTWTFSS'[monIdx]));
         cell.appendChild(el('i'));
         cell.onclick = async () => {
-          plan.prefDays = plan.prefDays.includes(i)
-            ? plan.prefDays.filter(x => x !== i)
-            : [...plan.prefDays, i].sort((a, b) => a - b);
+          plan.prefDays = plan.prefDays.includes(monIdx)
+            ? plan.prefDays.filter(x => x !== monIdx)
+            : [...plan.prefDays, monIdx].sort((a, b) => a - b);
           await DB.put('plans', plan);
           renderProfile();
         };
         strip.appendChild(cell);
-      });
+      }
       pc.appendChild(strip);
       const ph = el('div', 'hist-meta');
       ph.style.marginTop = '10px';
@@ -4465,7 +4493,7 @@
     {
       const weeksN = 8;
       const nowD = new Date();
-      const dow0 = (nowD.getDay() + 6) % 7;
+      const dow0 = dowFrom(nowD);
       const mon = new Date(nowD); mon.setDate(nowD.getDate() - dow0); mon.setHours(0, 0, 0, 0);
       const wk = Array.from({ length: weeksN }, (_, i) => {
         const ws = new Date(mon.getTime() - (weeksN - 1 - i) * 7 * 86400000);
@@ -5782,7 +5810,7 @@
       root.appendChild(base);
 
       const nowD = new Date();
-      const dow0 = (nowD.getDay() + 6) % 7;
+      const dow0 = dowFrom(nowD);
       const mon = new Date(nowD); mon.setDate(nowD.getDate() - dow0); mon.setHours(0, 0, 0, 0);
       const weekly = Array.from({ length: 8 }, (_, i) => {
         const ws = new Date(mon.getTime() - (7 - i) * 7 * 86400000);
@@ -6842,14 +6870,30 @@
       hd.appendChild(el('div', 'eqs-n num', have === items.length ? 'all' : have + ' of ' + items.length));
       wrap.appendChild(hd);
       const row = el('div', 'equip-chips');
+      /* a photograph of the actual kit beats a drawn glyph: each chip wears
+         a movement done on that equipment, hand-picked where the first match
+         shows the thing poorly, the stroke icon only where no photo exists */
+      const HAND_PHOTO = { barbell: 'deadlift', bar: 'pull-up', 'm-hip': 'hip-thrust', 'm-latr': 'lateral-raise' };
+      const photoFor = key => HAND_PHOTO[key]
+        || ((all.find(x => x.demo && equipOf(x).includes(key)) || {}).demo || null);
       items.forEach(q => {
         const on = q.always || owned.has(q.key);
         const b = el('button', 'equip-chip' + (on ? ' on' : '') + (q.always ? ' fixed' : ''));
-        const ico = el('span', 'equip-ic');
-        ico.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" '
-          + 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
-          + ((window.EQUIP_ICON || {})[q.key] || (window.EQUIP_ICON || {}).machine || '') + '</svg>';
-        b.appendChild(ico);
+        const slug = photoFor(q.key);
+        if (slug) {
+          const im = document.createElement('img');
+          im.src = `demos/${slug}/0.jpg`;
+          im.loading = 'lazy';
+          im.alt = '';
+          im.className = 'equip-ph';
+          b.appendChild(im);
+        } else {
+          const ico = el('span', 'equip-ic');
+          ico.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" '
+            + 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+            + ((window.EQUIP_ICON || {})[q.key] || (window.EQUIP_ICON || {}).machine || '') + '</svg>';
+          b.appendChild(ico);
+        }
         b.appendChild(el('span', 'equip-lbl', q.label));
         const n = all.filter(x => equipOf(x).includes(q.key)).length;
         b.title = q.always ? q.label : `${q.label} · ${n} move${n === 1 ? '' : 's'}`;
