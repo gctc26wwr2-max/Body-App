@@ -2074,7 +2074,7 @@ body { font-size: 14px; }
 .eqs-n { font-size: 11px; font-weight: 700; color: var(--t6); }
 .equip-chips { display: flex; flex-wrap: wrap; gap: 7px; }
 .equip-chip {
-  display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px 7px 9px;
+  display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px 5px 5px;
   border-radius: 11px; border: 1px solid var(--hair); background: none;
   color: var(--t5); font-size: 12px; font-weight: 700;
 }
@@ -2084,3 +2084,8 @@ body { font-size: 14px; }
 .equip-chip.fixed { border-style: dashed; }
 .equip-acts { display: flex; gap: 8px; margin-top: 16px; }
 .equip-acts .btn-ghost { flex: 1; padding: 10px 4px; font-size: 12px; }
+
+.equip-ph { width: 30px; height: 30px; border-radius: 8px; object-fit: cover;
+  filter: grayscale(.7) brightness(.8); display: block; }
+.equip-chip.on .equip-ph { filter: none; }
+.equip-chip .equip-ic { padding: 6px 0 6px 4px; }
