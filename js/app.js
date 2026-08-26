@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v281';
+  const APP_VERSION = 'v282';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -601,7 +601,7 @@
         const lastDoneC = (plan.completed || []).filter(c => c.day === dayIdx && c.duration).pop();
         const totalSets = day.items.reduce((a, it) => a + (it.sets || 3), 0);
         const due = prefD.length && doneThisWk < prefD.filter(x => x <= todayIdx).length;
-        meta = `${day.items.length} exercises · ~${lastDoneC ? lastDoneC.duration : Math.round(totalSets * 2.5)} min${due ? ' · due today' : ''}`;
+        meta = `${day.items.length} exercise${day.items.length === 1 ? '' : 's'} · ~${lastDoneC ? lastDoneC.duration : Math.round(totalSets * 2.5)} min${due ? ' · due today' : ''}`;
       } else if (mode === 'live') {
         meta = (lwNow.pausedAt ? 'Paused · ' : 'In progress · ')
           + `${fmtClock(wElapsed(lwNow))} elapsed`;
@@ -760,11 +760,16 @@
     const prog = doneCount > 0
       ? `<path d="M20 190 A150 150 0 0 1 ${px.toFixed(1)} ${py.toFixed(1)}" fill="none" stroke="#CE6B3D" stroke-width="2" stroke-linecap="round"/>`
       : '';
+    /* the big you-are-here ring reaches the label line — when it lands on an
+       end node (first session of the block, or the last one still to do) the
+       week label steps sideways rather than disappearing under it */
+    const x1 = doneCount === 0 ? 46 : 20;
+    const xN = doneCount === total - 1 ? 294 : 320;
     return `<svg viewBox="0 0 340 208" style="width:100%;height:auto;display:block" role="img" aria-label="Block progress">
       <path d="M20 190 A150 150 0 0 1 320 190" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5" stroke-dasharray="3 6"/>
       ${prog}${dots}
-      <text x="20" y="205" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W1</text>
-      <text x="320" y="205" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W${weeks}</text>
+      <text x="${x1}" y="205" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W1</text>
+      <text x="${xN}" y="205" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W${weeks}</text>
     </svg>`;
   }
 
@@ -3078,7 +3083,7 @@
         node.appendChild(el('i'));
         r.appendChild(node);
         r.appendChild(el('div', 'pd-name', day.name));
-        r.appendChild(el('div', 'pd-meta num', done ? 'done ✓' : day.items.length + ' exercises ▾'));
+        r.appendChild(el('div', 'pd-meta num', done ? 'done ✓' : day.items.length + (day.items.length === 1 ? ' exercise ▾' : ' exercises ▾')));
         const go = el('button', 'pd-go');
         if (done) {
           go.textContent = '✓';
