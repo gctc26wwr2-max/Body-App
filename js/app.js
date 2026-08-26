@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v287';
+  const APP_VERSION = 'v288';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -6871,57 +6871,84 @@
      one orange slab. A chip row is a third of the height, the section line
      says how much of it you own, and the icon still tells the machines
      apart at a glance. */
+  /* The kit list as two spinnable photo rails — flick through a gym, tick
+     what it has. Every tile is a photograph of the equipment in use with a
+     tick badge; a tap toggles it on the spot, and each section carries its
+     own All / None. Scroll positions survive the re-render, so ticking the
+     tenth machine does not throw you back to the first. */
   function equipPicker(after) {
     const wrap = el('div', 'equip-wrap');
     const owned = getEquip();
     const all = (window.EXERCISE_LIBRARY || []);
+    const HAND_PHOTO = { barbell: 'deadlift', bar: 'pull-up', 'm-hip': 'hip-thrust', 'm-latr': 'lateral-raise' };
+    const photoFor = key => HAND_PHOTO[key]
+      || ((all.find(x => x.demo && equipOf(x).includes(key)) || {}).demo || null);
+    const mem = equipPicker._scroll = equipPicker._scroll || {};
     const secs = [...new Set((window.EQUIPMENT || []).map(q => q.sec || 'Other'))];
     secs.forEach(sec => {
       const items = (window.EQUIPMENT || []).filter(q => (q.sec || 'Other') === sec);
       const have = items.filter(q => q.always || owned.has(q.key)).length;
       const hd = el('div', 'eqs-head');
       hd.appendChild(el('div', 'micro', sec));
-      hd.appendChild(el('div', 'eqs-n num', have === items.length ? 'all' : have + ' of ' + items.length));
+      const tools = el('div', 'eqs-tools');
+      tools.appendChild(el('div', 'eqs-n num', have === items.length ? 'all' : have + ' of ' + items.length));
+      const mini = (label, fn) => {
+        const b = el('button', 'eqs-mini', label);
+        b.onclick = () => { fn(); haptic(); after(); };
+        tools.appendChild(b);
+      };
+      mini('All', () => { const s2 = getEquip(); items.forEach(q => s2.add(q.key)); setEquip(s2); });
+      mini('None', () => { const s2 = getEquip(); items.forEach(q => { if (!q.always) s2.delete(q.key); }); setEquip(s2); });
+      hd.appendChild(tools);
       wrap.appendChild(hd);
-      const row = el('div', 'equip-chips');
-      /* a photograph of the actual kit beats a drawn glyph: each chip wears
-         a movement done on that equipment, hand-picked where the first match
-         shows the thing poorly, the stroke icon only where no photo exists */
-      const HAND_PHOTO = { barbell: 'deadlift', bar: 'pull-up', 'm-hip': 'hip-thrust', 'm-latr': 'lateral-raise' };
-      const photoFor = key => HAND_PHOTO[key]
-        || ((all.find(x => x.demo && equipOf(x).includes(key)) || {}).demo || null);
+
+      const rail = el('div', 'eqw-rail');
       items.forEach(q => {
         const on = q.always || owned.has(q.key);
-        const b = el('button', 'equip-chip' + (on ? ' on' : '') + (q.always ? ' fixed' : ''));
+        const t = el('button', 'eqw-tile' + (on ? ' on' : '') + (q.always ? ' fixed' : ''));
+        const ph = el('div', 'eqw-ph');
         const slug = photoFor(q.key);
         if (slug) {
           const im = document.createElement('img');
           im.src = `demos/${slug}/0.jpg`;
           im.loading = 'lazy';
           im.alt = '';
-          im.className = 'equip-ph';
-          b.appendChild(im);
+          ph.appendChild(im);
         } else {
           const ico = el('span', 'equip-ic');
-          ico.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" '
+          ico.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" '
             + 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
             + ((window.EQUIP_ICON || {})[q.key] || (window.EQUIP_ICON || {}).machine || '') + '</svg>';
-          b.appendChild(ico);
+          ph.appendChild(ico);
         }
-        b.appendChild(el('span', 'equip-lbl', q.label));
+        ph.appendChild(el('i', 'eqw-tick'));
+        t.appendChild(ph);
+        t.appendChild(el('span', 'eqw-lbl', q.label));
         const n = all.filter(x => equipOf(x).includes(q.key)).length;
-        b.title = q.always ? q.label : `${q.label} · ${n} move${n === 1 ? '' : 's'}`;
-        if (!q.always) b.onclick = () => {
-          const s = getEquip();
-          s.has(q.key) ? s.delete(q.key) : s.add(q.key);
-          setEquip(s);
+        t.title = q.always ? q.label : `${q.label} · ${n} move${n === 1 ? '' : 's'}`;
+        if (!q.always) t.onclick = () => {
+          const s2 = getEquip();
+          s2.has(q.key) ? s2.delete(q.key) : s2.add(q.key);
+          setEquip(s2);
+          mem[sec] = rail.scrollLeft;
           haptic();
           after();
         };
-        row.appendChild(b);
+        rail.appendChild(t);
       });
-      wrap.appendChild(row);
+      rail.addEventListener('scroll', () => { mem[sec] = rail.scrollLeft; }, { passive: true });
+      if (mem[sec]) {
+        /* restore after layout has given the rail its width — a single rAF
+           can land before that and the position clamps to nothing */
+        const v = mem[sec];
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          rail.scrollLeft = v;
+          setTimeout(() => { rail.scrollLeft = v; }, 90);
+        }));
+      }
+      wrap.appendChild(rail);
     });
+
     const acts = el('div', 'equip-acts');
     const preset = (label, fn) => {
       const b = el('button', 'btn-ghost', label);
