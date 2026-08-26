@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v286';
+  const APP_VERSION = 'v287';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -112,7 +112,8 @@
   /* which day the week turns over — a Monday gym week is not universal:
      plenty of the world starts Saturday or Sunday, and every weekly number
      in the app moves with it */
-  const weekStartDow = () => ({ mon: 1, sat: 6, sun: 0 })[getProfile().weekStart] ?? 1;
+  const WEEK_DOW = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+  const weekStartDow = () => WEEK_DOW[getProfile().weekStart] ?? 1;
   const dowFrom = d => (d.getDay() - weekStartDow() + 7) % 7;   // 0 = the week's first day
   const weekStripOff = () => (weekStartDow() + 6) % 7;          // Mon-based index of cell 0
 
@@ -3752,7 +3753,8 @@
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'units' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'units' ? null : 'units'; renderPrefs(); };
         } else if (live === 'wkstart') {
-          const wl = { mon: 'Monday', sat: 'Saturday', sun: 'Sunday' };
+          const wl = { sun: 'Sunday', mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday',
+            thu: 'Thursday', fri: 'Friday', sat: 'Saturday' };
           r.appendChild(el('span', 'pref-val', wl[pDraft.weekStart] || 'Monday'));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'wkstart' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'wkstart' ? null : 'wkstart'; renderPrefs(); };
@@ -3807,12 +3809,24 @@
         }
         if (live === 'wkstart' && prefOpen === 'wkstart') {
           const panel = el('div', 'pref-panel');
-          panel.appendChild(segToggle(
-            [['mon', 'Monday'], ['sat', 'Saturday'], ['sun', 'Sunday']],
-            ['sat', 'sun'].includes(pDraft.weekStart) ? pDraft.weekStart : 'mon',
-            k => { pDraft.weekStart = k; renderPrefs(); }, 'you-seg'));
+          /* the week itself is the control: seven cells drawn in your week's
+             order. Tap any day and the row spins to put it first — you are
+             not choosing from a list, you are arranging the week. */
+          const KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+          const start = ({ sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 })[pDraft.weekStart] ?? 1;
+          const strip2 = el('div', 'day-strip wks-strip');
+          for (let i = 0; i < 7; i++) {
+            const d = (start + i) % 7;
+            const cell = el('button', 'cell' + (i === 0 ? ' today' : ''));
+            cell.type = 'button';
+            cell.appendChild(el('span', null, 'SMTWTFS'[d]));
+            cell.appendChild(el('i'));
+            cell.onclick = () => { pDraft.weekStart = KEYS[d]; haptic(); renderPrefs(); };
+            strip2.appendChild(cell);
+          }
+          panel.appendChild(strip2);
           panel.appendChild(el('div', 'ab-hint',
-            'The day strip, weekly totals and the streak all turn over on this day.'));
+            'Tap the day your week begins. The Today strip, weekly totals and the streak all turn over there.'));
           list.appendChild(panel);
         }
         if (live === 'kit' && prefOpen === 'kit') {
