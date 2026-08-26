@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v283';
+  const APP_VERSION = 'v284';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -733,9 +733,13 @@
     }
   }
 
-  /* Block arc — N session dots on a semicircle, today at the crest (v5 handoff) */
+  /* Block arc — N session dots on a semicircle, today at the crest (v5 handoff).
+     The baseline sits high enough that the you-are-here ring (r 15) can never
+     reach the label line: labels live at y 208, the ring bottoms out at 197.
+     So W1 and the last week stay anchored under their endpoints in every
+     state, instead of dodging the ring when it lands on an end node. */
   function blockArcSVG(total, doneCount, weeks) {
-    const R = 150, CX = 170, CY = 190;
+    const R = 150, CX = 170, CY = 182;
     const pt = i => {
       const a = Math.PI - i * (Math.PI / Math.max(1, total - 1));
       return [CX + R * Math.cos(a), CY - R * Math.sin(a)];
@@ -758,18 +762,13 @@
     }
     const [px, py] = pt(Math.min(doneCount, total - 1));
     const prog = doneCount > 0
-      ? `<path d="M20 190 A150 150 0 0 1 ${px.toFixed(1)} ${py.toFixed(1)}" fill="none" stroke="#CE6B3D" stroke-width="2" stroke-linecap="round"/>`
+      ? `<path d="M20 182 A150 150 0 0 1 ${px.toFixed(1)} ${py.toFixed(1)}" fill="none" stroke="#CE6B3D" stroke-width="2" stroke-linecap="round"/>`
       : '';
-    /* the big you-are-here ring reaches the label line — when it lands on an
-       end node (first session of the block, or the last one still to do) the
-       week label steps sideways rather than disappearing under it */
-    const x1 = doneCount === 0 ? 46 : 20;
-    const xN = doneCount === total - 1 ? 294 : 320;
-    return `<svg viewBox="0 0 340 208" style="width:100%;height:auto;display:block" role="img" aria-label="Block progress">
-      <path d="M20 190 A150 150 0 0 1 320 190" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5" stroke-dasharray="3 6"/>
+    return `<svg viewBox="0 0 340 212" style="width:100%;height:auto;display:block" role="img" aria-label="Block progress">
+      <path d="M20 182 A150 150 0 0 1 320 182" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5" stroke-dasharray="3 6"/>
       ${prog}${dots}
-      <text x="${x1}" y="205" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W1</text>
-      <text x="${xN}" y="205" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W${weeks}</text>
+      <text x="20" y="208" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W1</text>
+      <text x="320" y="208" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W${weeks}</text>
     </svg>`;
   }
 
