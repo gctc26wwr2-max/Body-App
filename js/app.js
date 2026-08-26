@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v288';
+  const APP_VERSION = 'v289';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -6936,15 +6936,36 @@
         };
         rail.appendChild(t);
       });
-      rail.addEventListener('scroll', () => { mem[sec] = rail.scrollLeft; }, { passive: true });
+      /* the wheel look: whatever sits under the middle stands full size,
+         neighbours fall away in scale and light with distance — the same
+         physics language as every other wheel in the app */
+      const focus = () => {
+        const r = rail.getBoundingClientRect();
+        if (!r.width) return;
+        const cx = r.left + r.width / 2;
+        rail.querySelectorAll('.eqw-tile').forEach(t2 => {
+          const b2 = t2.getBoundingClientRect();
+          const d = Math.min(1, Math.abs(b2.left + b2.width / 2 - cx) / (r.width * 0.6));
+          t2.style.transform = `scale(${(1 - d * 0.18).toFixed(3)})`;
+          t2.style.opacity = (1 - d * 0.45).toFixed(3);
+        });
+      };
+      let raf2 = false;
+      rail.addEventListener('scroll', () => {
+        mem[sec] = rail.scrollLeft;
+        if (!raf2) { raf2 = true; requestAnimationFrame(() => { raf2 = false; focus(); }); }
+      }, { passive: true });
       if (mem[sec]) {
         /* restore after layout has given the rail its width — a single rAF
            can land before that and the position clamps to nothing */
         const v = mem[sec];
         requestAnimationFrame(() => requestAnimationFrame(() => {
           rail.scrollLeft = v;
-          setTimeout(() => { rail.scrollLeft = v; }, 90);
+          focus();
+          setTimeout(() => { rail.scrollLeft = v; focus(); }, 90);
         }));
+      } else {
+        requestAnimationFrame(() => requestAnimationFrame(focus));
       }
       wrap.appendChild(rail);
     });
