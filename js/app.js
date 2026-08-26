@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v282';
+  const APP_VERSION = 'v283';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -6727,6 +6727,7 @@
         `${b.name} · ${b.days.length} day${b.days.length === 1 ? '' : 's'} · `
         + `${total} exercise${total === 1 ? '' : 's'} · `
         + `${b.weeks} week${b.weeks === 1 ? '' : 's'}${b.deload ? ' + deload' : ''}`));
+      let kitGaps = 0;
       b.days.forEach(d => {
         const dh = el('div', 'blk-day');
         dh.appendChild(el('div', 'blk-day-name', d.name));
@@ -6738,11 +6739,28 @@
           left.appendChild(el('div', 'ai-row-n', it.name));
           if (it.how === 'closest') left.appendChild(el('div', 'ai-tag', 'nearest to “' + it.asked + '”'));
           if (it.how === 'new') left.appendChild(el('div', 'ai-tag new', 'new — added to your library'));
+          /* the prompt's catalogue is kit-filtered, but nothing forces the
+             reply to stay inside it — the same check the Ready blocks run
+             happens here, before the block is yours */
+          if (it.how !== 'new' && it.rec && !equipOK(it.rec)) {
+            const own2 = getEquip();
+            const need = equipOf(it.rec).filter(k => !own2.has(k))
+              .map(k => ((window.EQUIPMENT || []).find(q => q.key === k) || { label: k }).label);
+            if (need.length) {
+              left.appendChild(el('div', 'ai-tag kit', 'needs ' + need.join(', ') + ' — not in your kit'));
+              kitGaps++;
+            }
+          }
           r.appendChild(left);
           r.appendChild(el('div', 'ai-row-m num', `${it.sets} × ${it.repLo}-${it.repHi}`));
           out.appendChild(r);
         });
       });
+      if (kitGaps) {
+        out.appendChild(el('div', 'ai-kitnote',
+          `${kitGaps} movement${kitGaps === 1 ? ' needs' : 's need'} kit you don't own. `
+          + 'Install anyway, tick the kit in Settings, or paste this back to the AI and ask for substitutes.'));
+      }
       const go = el('button', 'btn-cta big');
       go.style.cssText = 'width:100%;margin-top:14px';
       go.textContent = 'Create this block';
