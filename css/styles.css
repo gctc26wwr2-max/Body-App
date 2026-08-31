@@ -2135,3 +2135,15 @@ body { font-size: 14px; }
   margin-top: 6px; line-height: 1.2; }
 .eqw-tile.on .eqw-lbl { color: var(--t3); }
 .eqw-tile.fixed .eqw-ph { border-style: dashed; }
+
+/* ---- the cardio watch ---- */
+.cd-watch { position: relative; width: min(72vw, 280px); margin: 14px auto 10px; }
+.cd-watch svg { display: block; width: 100%; height: auto; }
+.cd-watch .wz-bez { transition: transform 1s linear; }
+.cd-watch .wz-hand line { transition: transform .12s cubic-bezier(.4, 2.2, .6, 1); }
+.wz-mid { position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center; pointer-events: none; }
+.wz-mid .cd-clock { font-size: 34px; font-weight: 800; letter-spacing: -.02em; color: var(--t1); line-height: 1; }
+.wz-mid .cd-sub { margin-top: 7px; font-size: 10.5px; font-weight: 700; color: var(--t5); }
+.cd-watch.paused { opacity: .55; }
+.cd-watch.paused .wz-bez, .cd-watch.paused .wz-hand line { transition: none; }

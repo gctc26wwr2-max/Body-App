@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v296';
+  const APP_VERSION = 'v297';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1886,6 +1886,31 @@
     try { tone(660, 0, 0.13, 0.5); } catch { /* best-effort */ }
   }
 
+  /* the ratchet of a dive-watch bezel: a 15 ms burst of filtered noise,
+     one per notch while the cardio dials are being set */
+  let bezelBuf = null;
+  function bezelClick() {
+    ensureAudio();
+    try {
+      if (!bezelBuf) {
+        const n = Math.floor(audioCtx.sampleRate * 0.015);
+        bezelBuf = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
+        const d = bezelBuf.getChannelData(0);
+        for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+      }
+      const src = audioCtx.createBufferSource();
+      src.buffer = bezelBuf;
+      const f = audioCtx.createBiquadFilter();
+      f.type = 'highpass';
+      f.frequency.value = 2400;
+      const g = audioCtx.createGain();
+      g.gain.value = 0.55;
+      src.connect(f); f.connect(g); g.connect(audioCtx.destination);
+      src.start();
+      window.__bezeln = (window.__bezeln || 0) + 1;
+    } catch { /* best-effort */ }
+  }
+
   /* Five alerts, built out of oscillators rather than downloaded. Nothing to
      licence, nothing to ship, nothing to fetch — and each one is a handful of
      notes: [frequency, start, length, loudness]. */
@@ -3325,7 +3350,8 @@
   }
   /* Horizontal option rail — the ruler language applied to a short list of
      choices. Swipe it or tap an option; it snaps to the nearest and ticks. */
-  function optionRail(labels, index, onChange, tickW) {
+  function optionRail(labels, index, onChange, tickW, clicky) {
+    const notch = () => { haptic(); if (clicky) bezelClick(); };
     // short labels (plain numbers) want a tighter tick so more of the range
     // is on screen at once; word labels keep the roomy default
     const TICK = tickW || 96;
@@ -3375,7 +3401,7 @@
         const d = idxAt(off);
         if (d !== lastDetent) {                      // a click for every notch passed
           lastDetent = d;
-          haptic();
+          notch();
           lit(clampI(d));
         }
         if (p < 1) { raf = requestAnimationFrame(step); return; }
@@ -3388,7 +3414,7 @@
 
     const setVal = (i, anim) => {
       i = clampI(i);
-      if (i !== val) haptic();
+      if (i !== val) notch();
       val = i; mark(); slide(anim); onChange(val);
     };
 
@@ -3407,7 +3433,7 @@
       const off = so + dx;
       put(off);
       const n = Math.round(dx / TICK);
-      if (n !== lastN) { lastN = n; haptic(); lit(clampI(idxAt(off))); }
+      if (n !== lastN) { lastN = n; notch(); lit(clampI(idxAt(off))); }
       const now = performance.now(), dt = now - lastT;
       if (dt > 0) { vx = (e.clientX - lastX) / dt; lastX = e.clientX; lastT = now; }
     });
@@ -5766,7 +5792,7 @@
       upd();
       clearTimeout(renderCardio._t);
       renderCardio._t = setTimeout(renderCardio, 380);
-    }, 118));
+    }, 118, true));
 
     const progVal = el('div', 'cd-row-val', shownProg);
     const progRail = optionRail(progLabels, pi, i => {
@@ -5781,7 +5807,7 @@
       }
       paintNote();
       upd();
-    }, 104);
+    }, 104, true);
     const progRow = row('Program', progVal, progRail);
 
     const minsVal = el('div', 'cd-row-val', shownMins + ' min');
@@ -5797,7 +5823,7 @@
         paintNote();
       }
       upd();
-    }, 62);
+    }, 62, true);
     row('Minutes', minsVal, minsRail);
 
     root.appendChild(stack);
@@ -5828,15 +5854,40 @@
       const met = metOf(lc.act, env);
       const doneSec = () => Math.min(total, Math.round((lc.acc || 0) + (lc.startedAt ? (Date.now() - lc.startedAt) / 1000 : 0)));
 
-      // the whole frame is the bar: a soft fill that drains behind the numbers
-      const live = el('div', 'cd-live' + (lc.startedAt ? '' : ' paused'));
-      const gauge = el('i', 'cd-gauge');
-      live.appendChild(gauge);
+      /* not a flat bar — a watch. The bezel turns through one revolution
+         over the whole session, the clay arc is the elapsed sweep, and a
+         seconds hand steps once a second like quartz. */
+      const live = el('div', 'cd-watch' + (lc.startedAt ? '' : ' paused'));
+      const R = 78, C = (2 * Math.PI * R).toFixed(2);
+      let bezTicks = '';
+      for (let i = 0; i < 60; i++) {
+        const a = i * 6 * Math.PI / 180;
+        const big = i % 5 === 0;
+        const r1 = big ? 84 : 87.5, r2 = 93;
+        bezTicks += `<line x1="${(100 + r1 * Math.sin(a)).toFixed(2)}" y1="${(100 - r1 * Math.cos(a)).toFixed(2)}"`
+          + ` x2="${(100 + r2 * Math.sin(a)).toFixed(2)}" y2="${(100 - r2 * Math.cos(a)).toFixed(2)}"`
+          + ` stroke="${big ? '#8A8178' : '#3B342E'}" stroke-width="${big ? 2.4 : 1.2}" stroke-linecap="round"/>`;
+      }
+      live.innerHTML = `<svg viewBox="0 0 200 200" class="wz">
+        <circle cx="100" cy="100" r="96" fill="#14100E" stroke="#241E1A" stroke-width="1.5"/>
+        <g class="wz-bez">${bezTicks}
+          <path d="M100 4.5 L106 15 L94 15 Z" fill="#CE6B3D"/>
+        </g>
+        <circle cx="100" cy="100" r="${R}" fill="#0E0B0A" stroke="#241E1A" stroke-width="1"/>
+        <circle class="wz-arc" cx="100" cy="100" r="${R}" fill="none" stroke="#CE6B3D" stroke-width="3.5"
+          stroke-linecap="round" stroke-dasharray="0 ${C}" transform="rotate(-90 100 100)"/>
+        <g class="wz-hand"><line x1="100" y1="100" x2="100" y2="34" stroke="#6D3A22" stroke-width="1.6" stroke-linecap="round"/></g>
+        <circle cx="100" cy="100" r="3" fill="#CE6B3D"/>
+      </svg>`;
+      const mid = el('div', 'wz-mid');
       const clock = el('div', 'cd-clock num', '0:00');
-      live.appendChild(clock);
       const sub = el('div', 'cd-sub num', '');
-      live.appendChild(sub);
+      mid.append(clock, sub);
+      live.appendChild(mid);
       root.appendChild(live);
+      const arcEl = live.querySelector('.wz-arc');
+      const bezEl = live.querySelector('.wz-bez');
+      const handEl = live.querySelector('.wz-hand');
 
       const acts = el('div', 'block-actions');
       const pause = el('button', 'btn-ghost', lc.startedAt ? 'Pause' : 'Resume');
@@ -5872,8 +5923,10 @@
         const d2 = doneSec(), l = Math.max(0, total - d2);
         clock.textContent = fmtClock(l);
         sub.textContent = `${Math.round(d2 / 60)} of ${lc.mins} min · ~${cardioKcal(met, d2 / 60, kg)} kcal`;
-        const rem = Math.max(0, 100 - Math.min(100, d2 / total * 100));
-        gauge.style.width = rem + '%';
+        const frac = Math.min(1, d2 / total);
+        arcEl.setAttribute('stroke-dasharray', `${(frac * 2 * Math.PI * 78).toFixed(2)} ${(2 * Math.PI * 78).toFixed(2)}`);
+        bezEl.setAttribute('transform', `rotate(${(frac * 360).toFixed(2)} 100 100)`);
+        handEl.setAttribute('transform', `rotate(${(d2 % 60) * 6} 100 100)`);
         if (l <= 0 && !cardioAlerted) {
           cardioAlerted = true;
           beep();
