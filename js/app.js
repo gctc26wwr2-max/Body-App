@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v291';
+  const APP_VERSION = 'v292';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -154,6 +154,9 @@
 
   /* ---------------- pure logic (design spec) ---------------- */
   const est1RM = (kg, reps) => reps > 0 ? kg * (1 + reps / 30) : 0;   // Epley
+  /* On an assisted machine the stack is help, not load — progress runs the
+     other way. Less weight is the achievement, and zero is graduation. */
+  const isAssisted = ex => /assisted/i.test((ex && ex.name) || '');
 
   function suggestion(sets, ex) {
     // warm ramp sets are deliberately light — they neither earn an
@@ -162,7 +165,14 @@
     if (!logged.length) return { kind: 'idle' };
     const last = logged[logged.length - 1];
     const step = ex ? jumpBase(ex) : wBump();  // the jump the kit in hand allows, in the unit on screen
-    if (last.reps >= last.targetHi) return { kind: 'increase', step, nextKg: +(last.kg + step).toFixed(3), last };
+    if (last.reps >= last.targetHi) {
+      const down = isAssisted(ex);
+      return {
+        kind: 'increase', step, down,
+        nextKg: +(down ? Math.max(0, last.kg - step) : last.kg + step).toFixed(3),
+        last
+      };
+    }
     return { kind: 'hold', kg: last.kg, last };
   }
   function applySuggestion(sets, nextKg) {
@@ -968,7 +978,12 @@
       // and reps from the most recent session of this exercise
       const hist = sessions.filter(s => s.exerciseId === ex.id).sort((a, b) => b.ts - a.ts);
       const lastSets = hist.length ? hist[0].sets : null;
-      const lastMax = lastSets ? Math.max(...lastSets.map(s => s.weight || 0)) : 0;
+      const assisted = isAssisted(ex);
+      const lastMax = lastSets
+        ? (assisted
+          ? Math.min(...lastSets.map(s2 => s2.weight || 0))     // least help you managed
+          : Math.max(...lastSets.map(s2 => s2.weight || 0)))
+        : 0;
       exList.push({
         exerciseId: ex.id, name: ex.name,
         timed: /second/i.test(ex.notes || ''),   // hold/interval exercises log seconds
@@ -981,7 +996,8 @@
           // start every set at the heaviest weight you reached last time —
           // weight you earned mid-session carries into the whole next session
           const base = lastMax || item.kg || 0;
-          const kg = deload ? wRound(base * DELOAD_LOAD) : base;
+          // a deload on an assisted machine means MORE help, not less weight
+          const kg = deload ? wRound(base * (assisted ? 2 - DELOAD_LOAD : DELOAD_LOAD)) : base;
           const reps = (prev && prev.reps) || lo;
           return { kg, reps, targetLo: lo, targetHi: hi, done: false };
         })
@@ -997,10 +1013,12 @@
       if (first && !first.timed) {
         const base = first.sets[0] ? first.sets[0].kg : 0;
         if (base > 0) {
-          /* targets are 1—hi so a deliberately light set never reads as a miss */
+          /* targets are 1—hi so a deliberately light set never reads as a
+             miss. On an assisted machine "lighter" means more help. */
+          const wUp = isAssisted(first) ? [1.5, 1.25] : [0.5, 0.75];
           first.sets.unshift(
-            { kg: wRound(base * 0.5), reps: 8, targetLo: 1, targetHi: first.repHi, done: false, warm: true },
-            { kg: wRound(base * 0.75), reps: 5, targetLo: 1, targetHi: first.repHi, done: false, warm: true }
+            { kg: wRound(base * wUp[0]), reps: 8, targetLo: 1, targetHi: first.repHi, done: false, warm: true },
+            { kg: wRound(base * wUp[1]), reps: 5, targetLo: 1, targetHi: first.repHi, done: false, warm: true }
           );
           ramp = true;
         }
@@ -1493,10 +1511,12 @@
       t.appendChild(el('div', 's-title', `Top of range · ${sug.last.reps}/${cur.repLo}-${cur.repHi}`));
       t.appendChild(el('div', 's-body', cur.timed
         ? 'Full hold banked — add 5 s to your remaining sets.'
-        : `Go up to ${fmtW(sug.nextKg)} on your remaining sets.`));
+        : sug.down
+          ? `Drop the help to ${fmtW(sug.nextKg)} — less machine, more you.`
+          : `Go up to ${fmtW(sug.nextKg)} on your remaining sets.`));
       s.appendChild(t);
       if (cur.sets.some(x => !x.done)) {
-        const act = el('button', 's-act num', cur.timed ? '+5 s' : '+' + fmtW(sug.step));
+        const act = el('button', 's-act num', cur.timed ? '+5 s' : (sug.down ? '−' : '+') + fmtW(sug.step));
         act.onclick = () => {
           if (cur.timed) cur.sets.forEach(x => { if (!x.done) x.reps += 5; });
           else applySuggestion(cur.sets, sug.nextKg);
@@ -1521,7 +1541,9 @@
       t.appendChild(el('div', 's-title', 'Progression'));
       t.appendChild(el('div', 's-body', cur.timed
         ? `Tap ▸ on a set to run the hold timer — reach ${cur.repHi} s to progress.`
-        : `Hit ${cur.repHi} reps on a set to earn +${jumpLabel(jumpKg(cur))}.`));
+        : isAssisted(cur)
+          ? `Hit ${cur.repHi} reps on a set to earn ${jumpLabel(jumpKg(cur))} less help.`
+          : `Hit ${cur.repHi} reps on a set to earn +${jumpLabel(jumpKg(cur))}.`));
       s.appendChild(t);
       card.appendChild(s);
     }
@@ -2898,13 +2920,25 @@
       const done = e.sets.filter(s => s.done);
       volume += done.reduce((a, s) => a + s.kg * s.reps, 0);
       setCount += done.length;
-      // PR detection vs history
-      const bestToday = Math.max(...done.map(s => est1RM(s.kg, s.reps)));
-      const prior = sessionsAll.filter(s => s.exerciseId === e.exerciseId)
-        .flatMap(s => s.sets.map(x => est1RM(x.weight || 0, x.reps)));
-      const bestPrior = prior.length ? Math.max(...prior) : 0;
-      if (bestPrior > 0 && bestToday > bestPrior) {
-        prs.push({ name: e.name, before: Math.round(bestPrior), after: Math.round(bestToday) });
+      // PR detection vs history — inverted for assisted machines, where the
+      // record is the LEAST help you needed for an honest set
+      if (isAssisted(e)) {
+        const honest = s2 => s2.reps >= (e.repLo || 1);
+        const todayMin = Math.min(...done.filter(honest).map(s2 => s2.kg), Infinity);
+        const priorArr = sessionsAll.filter(s2 => s2.exerciseId === e.exerciseId)
+          .flatMap(s2 => s2.sets.filter(x => x.reps >= (e.repLo || 1)).map(x => x.weight || 0));
+        const priorMin = priorArr.length ? Math.min(...priorArr) : Infinity;
+        if (isFinite(todayMin) && isFinite(priorMin) && todayMin < priorMin) {
+          prs.push({ name: e.name, before: Math.round(priorMin), after: Math.round(todayMin) });
+        }
+      } else {
+        const bestToday = Math.max(...done.map(s => est1RM(s.kg, s.reps)));
+        const prior = sessionsAll.filter(s => s.exerciseId === e.exerciseId)
+          .flatMap(s => s.sets.map(x => est1RM(x.weight || 0, x.reps)));
+        const bestPrior = prior.length ? Math.max(...prior) : 0;
+        if (bestPrior > 0 && bestToday > bestPrior) {
+          prs.push({ name: e.name, before: Math.round(bestPrior), after: Math.round(bestToday) });
+        }
       }
       await DB.put('sessions', {
         id: DB.uid(), exerciseId: e.exerciseId, date: todayStr(), ts: Date.now(),
@@ -4267,8 +4301,12 @@
         let run = 1;
         for (let i = tops.length - 2; i >= 0 && tops[i] === last; i--) run++;
         const pct = Math.round((last - first) / first * 100);
+        const rec2 = allExs.find(x => x.id === id);
+        const inv = isAssisted(rec2);
         let v;
-        if (run >= 3) v = `stalled at ${fmtW(last)} for ${run} sessions`;
+        if (run >= 3) v = `stalled at ${fmtW(last)}${inv ? ' of assistance' : ''} for ${run} sessions`;
+        else if (inv && pct <= -3) v = `assistance ${fmtWn(first)}→${fmtW(last)} (${pct}%) — progressing`;
+        else if (inv && pct >= 3) v = `assistance ${fmtWn(first)}→${fmtW(last)} (+${pct}%) — needing more help`;
         else if (pct >= 3) v = `${fmtWn(first)}→${fmtW(last)} over ${recent.length} sessions (+${pct}%)`;
         else if (pct <= -3) v = `${fmtWn(first)}→${fmtW(last)} (${pct}%) — going backwards`;
         else v = `holding around ${fmtW(last)}`;
