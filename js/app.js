@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v304';
+  const APP_VERSION = 'v305';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5726,20 +5726,13 @@
     for (let i = 1; i < 24; i++) {                     // zero belongs to the pip
       if (i === 6 || i === 12 || i === 18) continue;   // the numerals live there
       ticks += i % 2 === 0
-        ? tickLine(i * 15, 80.5, 89, 4.4, '#E8E4DC')   // broad bars at the tens
-        : tickLine(i * 15, 83.5, 89, 1.8, '#CFC9BF');  // slim marks between
+        ? tickLine(i * 15, 83, 94.5, 4.6, '#E8E4DC')   // broad bars at the tens
+        : tickLine(i * 15, 86.5, 94.5, 1.8, '#CFC9BF'); // slim marks between
     }
     /* the dense count-up hashes of the first quarter */
     for (let h = 1; h < 12; h++) {
       if (h % 2 === 0) continue;
-      ticks += tickLine(h * 7.5, 85.5, 89, 1.1, '#9B958A');
-    }
-    /* the coin edge: a ring of dark notches carving scallops into the steel */
-    let teeth = '';
-    for (let i = 0; i < 44; i++) {
-      const a = (i / 44) * 2 * Math.PI;
-      teeth += `<circle cx="${(100 + 99 * Math.sin(a)).toFixed(2)}" cy="${(100 - 99 * Math.cos(a)).toFixed(2)}"`
-        + ` r="2.6" fill="#0B0908"/>`;
+      ticks += tickLine(h * 7.5, 89.5, 94.5, 1.1, '#9B958A');
     }
     let nums = '';
     /* printed ON the insert like a real bezel: each numeral sits on the
@@ -5747,8 +5740,8 @@
     for (const m of [30, 60, 90]) {
       const deg = m / MAXV * 360;
       const a = deg * Math.PI / 180;
-      const x = (100 + 84.5 * Math.sin(a)).toFixed(1);
-      const y = (100 - 84.5 * Math.cos(a)).toFixed(1);
+      const x = (100 + 86.5 * Math.sin(a)).toFixed(1);
+      const y = (100 - 86.5 * Math.cos(a)).toFixed(1);
       nums += `<text x="${x}" y="${y}" dy="4.2" text-anchor="middle" fill="#F0ECE4"`
         + ` font-size="12.5" font-weight="800" font-family="Archivo, sans-serif"`
         + ` transform="rotate(${deg} ${x} ${y})">${m}</text>`;
@@ -5758,25 +5751,18 @@
     const RA = 56, CA = (2 * Math.PI * RA).toFixed(2);
     wrap.innerHTML = `<svg viewBox="0 0 200 200" class="wz">
       <defs>
-        <linearGradient id="bzSteel" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#CCC5BA"/>
-          <stop offset=".55" stop-color="#8F897E"/>
-          <stop offset="1" stop-color="#57524A"/>
-        </linearGradient>
         <radialGradient id="bzIns" cx="50%" cy="30%" r="82%">
           <stop offset="0" stop-color="#31333A"/>
           <stop offset=".55" stop-color="#17181C"/>
           <stop offset="1" stop-color="#0A0A0C"/>
         </radialGradient>
       </defs>
-      <circle cx="100" cy="100" r="95" fill="none" stroke="url(#bzSteel)" stroke-width="8.5"/>
-      ${teeth}
-      <circle cx="100" cy="100" r="90.6" fill="none" stroke="#3A352E" stroke-width="1.2"/>
+      <circle cx="100" cy="100" r="97.6" fill="none" stroke="#2E2A25" stroke-width="1.2"/>
       <g class="bz-ring">
-        <circle cx="100" cy="100" r="84" fill="none" stroke="url(#bzIns)" stroke-width="13.2"/>
+        <circle cx="100" cy="100" r="87.2" fill="none" stroke="url(#bzIns)" stroke-width="19.5"/>
         ${ticks}${nums}
-        <circle cx="100" cy="15.5" r="5" fill="#101013" stroke="#C4BDB2" stroke-width="1.6"/>
-        <circle cx="100" cy="15.5" r="2.9" fill="#EDE9E0"/>
+        <circle cx="100" cy="13.2" r="5.2" fill="#101013" stroke="#C4BDB2" stroke-width="1.6"/>
+        <circle cx="100" cy="13.2" r="3" fill="#EDE9E0"/>
       </g>
       <path d="M100 10.5 L104.8 2.5 L95.2 2.5 Z" fill="#CE6B3D"/>
       <circle cx="100" cy="100" r="77.2" fill="none" stroke="#3A332C" stroke-width="1.3"/>
