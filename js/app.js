@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v299';
+  const APP_VERSION = 'v300';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5451,7 +5451,7 @@
   };
   let cardioEnv = localStorage.getItem('cardioEnv') || 'indoor';
   let cardioActName = localStorage.getItem('cardioAct') || 'Run';
-  let cardioMins = 20, cardioInt = null, cardioAlerted = false;
+  let cardioMins = 0, cardioInt = null, cardioAlerted = false;   // 0 = nothing set yet
   /* The programs a machine's panel offers, minus the machine — and each
      activity carries its own set, because a pool has no incline button and a
      rope has no pace. Manual is always first: pick a time and go. */
@@ -5836,7 +5836,7 @@
     // ---- the pickers stay on screen the whole time ----
     cardioAlerted = running ? cardioAlerted : false;
     const minsList = Array.from({ length: 24 }, (_, i) => (i + 1) * 5);
-    if (!minsList.includes(cardioMins)) cardioMins = 20;
+    if (cardioMins && !minsList.includes(cardioMins)) cardioMins = 0;
     const env = running ? (lc.env || 'indoor') : cardioEnv;
     let list = actsFor(env);
     const actName = running ? lc.act : cardioActName;
@@ -5857,8 +5857,13 @@
       'defer'));
 
     const kcalEl = el('div', 'cd-kcal num');
+    let startBtn = null;
     const upd = () => {
-      kcalEl.textContent = `~${cardioKcal(metOf(cardioActName, cardioEnv), cardioMins, kg)} kcal`;
+      kcalEl.textContent = cardioMins
+        ? `~${cardioKcal(metOf(cardioActName, cardioEnv), cardioMins, kg)} kcal`
+        : 'Turn the bezel or pick a program';
+      kcalEl.classList.toggle('idle', !cardioMins);
+      if (startBtn) startBtn.disabled = !cardioMins;
     };
 
     /* Three rails stacked, not three wheels side by side: at this width a
@@ -5915,7 +5920,7 @@
     const progRow = row('Program', progVal, progRail);
 
     const dial = bezelDial({
-      min: 5, max: 120, step: 5, value: shownMins, locked: running,
+      min: 0, max: 120, step: 5, value: shownMins, locked: running,
       onChange: v => {
         cardioMins = v;
         const pr4 = progs.find(x => x.label === cardioProg);
@@ -5936,14 +5941,16 @@
     root.appendChild(progNote);
 
     if (!running) {
-      upd();
       root.appendChild(kcalEl);
 
       const start = el('button', 'btn-cta big');
+      startBtn = start;
       start.style.width = '100%';
       start.appendChild(svgIcon(PLAY, 13));
       start.appendChild(document.createTextNode(' Start'));
+      upd();
       start.onclick = () => {
+        if (!cardioMins) return;
         liveCardio.set({
           act: cardioActName, env: cardioEnv, mins: cardioMins,
           prog: cardioProg !== 'None' ? cardioProg : null,
