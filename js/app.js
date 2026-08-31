@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v292';
+  const APP_VERSION = 'v293';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5138,7 +5138,8 @@
     play.onclick = () => showMove(shown[pmEx]);
     const exWheel = () => pickerWheel(shown.map(x => x.name), pmEx, i => { pmEx = i; paintHard(); }, 'wide',
       i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15')),
-      () => showMove(shown[pmEx]));
+      () => showMove(shown[pmEx]),
+      i => paintHard(i));
     exBox.appendChild(exWheel());
     exBox.appendChild(play);
     c2.appendChild(exBox);
@@ -5173,9 +5174,9 @@
        re-render, so this line repaints on its own — you find out what the
        exercise asks of you before you add it, not after. */
     const pickHard = el('div', 'pm-hard');
-    const paintHard = () => {
+    const paintHard = ix => {
       pickHard.innerHTML = '';
-      const item = shown[pmEx];
+      const item = shown[ix == null ? pmEx : ix];
       const h = item && hardshipOf(item);
       if (!h) { pickHard.hidden = true; return; }
       pickHard.hidden = false;
@@ -5478,7 +5479,7 @@
      tick lines running down a dial with a fixed clay indicator.
      tickFor(i) returns 'w20' | 'w15' | 'w11' for the mark's length.
      onTap(i), if given, fires when the centred row is tapped. */
-  function pickerWheel(labels, index, onChange, cls, tickFor, onTap) {
+  function pickerWheel(labels, index, onChange, cls, tickFor, onTap, onDetent) {
     const TICK = 40;
     let val = Math.max(0, Math.min(labels.length - 1, index));
     const wrap = el('div', 'pw' + (cls ? ' ' + cls : ''));
@@ -5539,6 +5540,7 @@
           haptic();
           const c = clampI(d);
           [...strip.children].forEach((t, i) => t.classList.toggle('sel', i === c));
+          if (onDetent) onDetent(c);
         }
         if (p < 1) { raf = requestAnimationFrame(step); return; }
         val = target;
@@ -5564,7 +5566,15 @@
       const dy = e.clientY - sy;
       put(so + dy);
       const n = Math.round(dy / TICK);
-      if (n !== lastN) { lastN = n; haptic(); }
+      if (n !== lastN) {
+        lastN = n;
+        haptic();
+        /* the row under the needle lights and reports mid-drag, so anything
+           reading the wheel (the difficulty line) tracks the spin live */
+        const c = clampI(idxAt(so + dy));
+        [...strip.children].forEach((t, i) => t.classList.toggle('sel', i === c));
+        if (onDetent) onDetent(c);
+      }
       const now = performance.now(), dt = now - lastT;
       if (dt > 0) { vy = (e.clientY - lastY) / dt; lastY = e.clientY; lastT = now; }
     });
