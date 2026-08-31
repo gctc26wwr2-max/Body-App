@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v290';
+  const APP_VERSION = 'v291';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5961,9 +5961,9 @@
      layer has not been written for yet. */
   const HARDSHIP = [
     null,
-    { n: 1, label: 'Beginner', note: 'easy to do right — learn it under load' },
-    { n: 2, label: 'Intermediate', note: 'needs practice before it gets heavy' },
-    { n: 3, label: 'Advanced', note: 'technique-heavy — earn it before loading' }
+    { n: 1, label: 'Beginner', note: 'simple — hard to get wrong' },
+    { n: 2, label: 'Intermediate', note: 'takes some practice — start light' },
+    { n: 3, label: 'Advanced', note: 'learn the movement first, then add weight' }
   ];
   const HARD_BY_WORD = { beginner: 1, intermediate: 2, advanced: 3 };
 
