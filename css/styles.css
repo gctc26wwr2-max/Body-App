@@ -2155,3 +2155,8 @@ body { font-size: 14px; }
 .bz-min { font-size: 40px; font-weight: 800; letter-spacing: -.03em; color: var(--t1); line-height: 1; }
 .bz-unit { font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
   color: var(--t6); margin-top: 3px; }
+
+/* the same case, running: the countdown moves into the inner dial */
+.bz-dial.run .bz-min { font-size: 25px; letter-spacing: -.01em; }
+.bz-dial.run .bz-unit { text-transform: none; letter-spacing: .02em; font-size: 9.5px; margin-top: 5px; }
+.bz-dial.paused { opacity: .55; }
