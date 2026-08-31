@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v302';
+  const APP_VERSION = 'v303';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5716,15 +5716,30 @@
     const perDeg = (MAXV) / 360;                     // one turn = the full range
     let val = Math.max(MINV, Math.min(MAXV, opts.value));
     const wrap = el('div', 'bz-dial');
-    let ticks = '';
-    for (let i = 0; i < 24; i++) {
-      if (i === 6 || i === 12 || i === 18) continue;   // the numerals live there
-      const a = i * 15 * Math.PI / 180;
-      const big = i % 6 === 0;
-      const r1 = big ? 82 : 86, r2 = 93;
-      ticks += `<line x1="${(100 + r1 * Math.sin(a)).toFixed(2)}" y1="${(100 - r1 * Math.cos(a)).toFixed(2)}"`
+    const tickLine = (deg, r1, r2, w, col) => {
+      const a = deg * Math.PI / 180;
+      return `<line x1="${(100 + r1 * Math.sin(a)).toFixed(2)}" y1="${(100 - r1 * Math.cos(a)).toFixed(2)}"`
         + ` x2="${(100 + r2 * Math.sin(a)).toFixed(2)}" y2="${(100 - r2 * Math.cos(a)).toFixed(2)}"`
-        + ` stroke="${big ? '#D8CCBE' : '#7A6555'}" stroke-width="${big ? 2.6 : 1.4}" stroke-linecap="round"/>`;
+        + ` stroke="${col}" stroke-width="${w}" stroke-linecap="butt"/>`;
+    };
+    let ticks = '';
+    for (let i = 1; i < 24; i++) {                     // zero belongs to the pip
+      if (i === 6 || i === 12 || i === 18) continue;   // the numerals live there
+      ticks += i % 2 === 0
+        ? tickLine(i * 15, 80.5, 89, 4.4, '#E8E4DC')   // broad bars at the tens
+        : tickLine(i * 15, 83.5, 89, 1.8, '#CFC9BF');  // slim marks between
+    }
+    /* the dense count-up hashes of the first quarter */
+    for (let h = 1; h < 12; h++) {
+      if (h % 2 === 0) continue;
+      ticks += tickLine(h * 7.5, 85.5, 89, 1.1, '#9B958A');
+    }
+    /* the coin edge: a ring of dark notches carving scallops into the steel */
+    let teeth = '';
+    for (let i = 0; i < 44; i++) {
+      const a = (i / 44) * 2 * Math.PI;
+      teeth += `<circle cx="${(100 + 99 * Math.sin(a)).toFixed(2)}" cy="${(100 - 99 * Math.cos(a)).toFixed(2)}"`
+        + ` r="2.6" fill="#0B0908"/>`;
     }
     let nums = '';
     /* printed ON the insert like a real bezel: each numeral sits on the
@@ -5732,33 +5747,39 @@
     for (const m of [30, 60, 90]) {
       const deg = m / MAXV * 360;
       const a = deg * Math.PI / 180;
-      const x = (100 + 87 * Math.sin(a)).toFixed(1);
-      const y = (100 - 87 * Math.cos(a)).toFixed(1);
-      nums += `<text x="${x}" y="${y}" dy="3.8" text-anchor="middle" fill="#EAE0D3"`
-        + ` font-size="11" font-weight="800" font-family="Archivo, sans-serif"`
+      const x = (100 + 84.5 * Math.sin(a)).toFixed(1);
+      const y = (100 - 84.5 * Math.cos(a)).toFixed(1);
+      nums += `<text x="${x}" y="${y}" dy="4.2" text-anchor="middle" fill="#F0ECE4"`
+        + ` font-size="12.5" font-weight="800" font-family="Archivo, sans-serif"`
         + ` transform="rotate(${deg} ${x} ${y})">${m}</text>`;
     }
     /* two dials in one case: the outer ring sets the time, the inner one
        runs it — a sweep arc and an orbiting second under the same glass */
     const RA = 56, CA = (2 * Math.PI * RA).toFixed(2);
-    const CI = (2 * Math.PI * 87).toFixed(2);       // the insert's centreline
     wrap.innerHTML = `<svg viewBox="0 0 200 200" class="wz">
       <defs>
-        <radialGradient id="bzIns" cx="50%" cy="38%" r="75%">
-          <stop offset="0" stop-color="#4A2617"/>
-          <stop offset="1" stop-color="#2C1710"/>
+        <linearGradient id="bzSteel" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#CCC5BA"/>
+          <stop offset=".55" stop-color="#8F897E"/>
+          <stop offset="1" stop-color="#57524A"/>
+        </linearGradient>
+        <radialGradient id="bzIns" cx="50%" cy="30%" r="82%">
+          <stop offset="0" stop-color="#31333A"/>
+          <stop offset=".55" stop-color="#17181C"/>
+          <stop offset="1" stop-color="#0A0A0C"/>
         </radialGradient>
       </defs>
-      <circle cx="100" cy="100" r="97.5" fill="none" stroke="#4A423A" stroke-width="1.6"/>
-      <circle cx="100" cy="100" r="96" fill="#14100E"/>
+      <circle cx="100" cy="100" r="95" fill="none" stroke="url(#bzSteel)" stroke-width="8.5"/>
+      ${teeth}
+      <circle cx="100" cy="100" r="90.6" fill="none" stroke="#3A352E" stroke-width="1.2"/>
       <g class="bz-ring">
-        <circle cx="100" cy="100" r="87" fill="none" stroke="url(#bzIns)" stroke-width="17.5"/>
-        <circle cx="100" cy="100" r="87" fill="none" stroke="#B45430" stroke-width="17.5"
-          stroke-dasharray="${(2 * Math.PI * 87 / 4).toFixed(2)} ${CI}" transform="rotate(-90 100 100)" opacity=".8"/>
+        <circle cx="100" cy="100" r="84" fill="none" stroke="url(#bzIns)" stroke-width="13.2"/>
         ${ticks}${nums}
+        <circle cx="100" cy="15.5" r="5" fill="#101013" stroke="#C4BDB2" stroke-width="1.6"/>
+        <circle cx="100" cy="15.5" r="2.9" fill="#EDE9E0"/>
       </g>
-      <path d="M100 3 L106.5 14 L93.5 14 Z" fill="#CE6B3D"/>
-      <circle cx="100" cy="100" r="78" fill="none" stroke="#3A332C" stroke-width="1.4"/>
+      <path d="M100 10.5 L104.8 2.5 L95.2 2.5 Z" fill="#CE6B3D"/>
+      <circle cx="100" cy="100" r="77.2" fill="none" stroke="#3A332C" stroke-width="1.3"/>
       <circle cx="100" cy="100" r="62" fill="#0E0B0A" stroke="#241E1A" stroke-width="1"/>
       <circle class="bz-track" cx="100" cy="100" r="${RA}" fill="none" stroke="#241E1A" stroke-width="3"/>
       <circle class="bz-arc" cx="100" cy="100" r="${RA}" fill="none" stroke="#CE6B3D" stroke-width="3"
