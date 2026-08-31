@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v294';
+  const APP_VERSION = 'v295';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -157,6 +157,10 @@
   /* On an assisted machine the stack is help, not load — progress runs the
      other way. Less weight is the achievement, and zero is graduation. */
   const isAssisted = ex => !!(ex && (ex.assisted || /assisted/i.test(ex.name || '')));
+  /* seconds, not reps: the catalogue names its timed movements outright;
+     a custom exercise opts in by mentioning seconds in its notes */
+  const isTimedEx = ex => !!(ex && (
+    (window.TIMED_EXERCISES || []).includes(ex.name) || /second/i.test(ex.notes || '')));
 
   function suggestion(sets, ex) {
     // warm ramp sets are deliberately light — they neither earn an
@@ -986,7 +990,7 @@
         : 0;
       exList.push({
         exerciseId: ex.id, name: ex.name, assisted,
-        timed: /second/i.test(ex.notes || ''),   // hold/interval exercises log seconds
+        timed: isTimedEx(ex),                    // hold/interval exercises log seconds
         perSide: /side/i.test(ex.notes || ''),   // run the hold once per side
         repLo: lo, repHi: hi, rest: restDefault(), deload,
         sets: Array.from({ length: deload
@@ -6109,7 +6113,7 @@
     row.appendChild(th);
     const c = el('div');
     c.appendChild(el('div', 'pv-name', ex ? ex.name : '(deleted)'));
-    const timed = /second/i.test((ex && ex.notes) || '');
+    const timed = isTimedEx(ex);
     const pvMeta = el('div', 'pv-meta num',
       `${it.sets} × ${it.repLo}-${it.repHi}${timed ? ' s' : ' reps'}`
       + (it.kg ? ` · ${fmtW(it.kg)}` : ''));
@@ -6251,7 +6255,7 @@
         const c = el('div');
         c.appendChild(el('div', 'pv-name', name));
         /* written out — "3 × 8–12" means nothing until someone has trained */
-        const timed = /second/i.test(rec.notes || '');
+        const timed = isTimedEx(rec);
         const meta = el('div', 'pv-meta num',
           `${sets} set${sets === 1 ? '' : 's'} · ${fmtRange(lo, hi)} ${timed ? 's' : 'reps'}`);
         if (rec) addHardship(meta, rec);

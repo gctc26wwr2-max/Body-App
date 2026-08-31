@@ -675,6 +675,18 @@ window.MOVE_BY_GROUP = {
    injury: anything asking for kit you have switched off drops out of the
    builder. Bodyweight is always on, so a home setup still has a plan.
 --------------------------------------------------------------------------- */
+/* Movements measured by the clock, not the bar: holds, carries, rope and
+   sled work, and the cardio machines when they land inside a strength block.
+   The app logs these in seconds and runs the hold timer for them. */
+window.TIMED_EXERCISES = [
+  'Plank', 'Side Plank', 'Copenhagen Plank', 'Wall Sit', 'Dead Hang',
+  'Jump Rope', 'Battle Ropes', 'HIIT Sprints', 'Mountain Climbers',
+  "Farmer\u2019s Carry", 'Suitcase Carry', 'Front Rack Carry', 'Overhead Carry',
+  'Sled Push', 'Sled Drag',
+  'Treadmill Run', 'Cycling', 'Rowing Machine', 'Elliptical', 'Stair Climber',
+  'Incline Treadmill Walk', 'Air Bike', 'Ski Erg', 'Swimming'
+];
+
 window.EQUIPMENT = [
   { key: 'bodyweight', label: 'Bodyweight', sec: 'Free weights & basics', always: true },
   { key: 'barbell',    label: 'Barbell',        sec: 'Free weights & basics' },

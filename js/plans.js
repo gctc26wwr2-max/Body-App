@@ -4286,8 +4286,8 @@ window.READY_PLANS = [
      [
       "Wall Sit",
       2,
-      10,
-      15,
+      30,
+      45,
       "bodyweight-squat"
      ],
      [
@@ -6250,8 +6250,8 @@ window.READY_PLANS = [
      [
       "Sled Push",
       3,
-      8,
-      12,
+      30,
+      45,
       "sled-push"
      ],
      [
@@ -6323,8 +6323,8 @@ window.READY_PLANS = [
      [
       "Sled Push",
       3,
-      8,
-      12,
+      30,
+      45,
       "sled-push"
      ],
      [
