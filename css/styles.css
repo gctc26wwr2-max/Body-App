@@ -2160,3 +2160,6 @@ body { font-size: 14px; }
 .bz-dial.run .bz-min { font-size: 25px; letter-spacing: -.01em; }
 .bz-dial.run .bz-unit { text-transform: none; letter-spacing: .02em; font-size: 9.5px; margin-top: 5px; }
 .bz-dial.paused { opacity: .55; }
+
+.cd-kcal.idle { color: var(--t6); font-family: inherit; font-weight: 600; }
+.btn-cta:disabled { opacity: .35; pointer-events: none; }
