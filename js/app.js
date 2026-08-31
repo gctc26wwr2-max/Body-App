@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v297';
+  const APP_VERSION = 'v298';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5707,6 +5707,93 @@
     return wrap;
   }
 
+  /* A bezel you set by turning — the Submariner idea pointed backwards:
+     one revolution is two hours, every 15 degrees a five-minute click. The
+     ring rotates under a fixed lume triangle, the chosen time reads in the
+     middle, and each detent clicks like the real thing. */
+  function bezelDial(opts) {
+    const MINV = opts.min, MAXV = opts.max, STEP = opts.step;
+    const perDeg = (MAXV) / 360;                     // one turn = the full range
+    let val = Math.max(MINV, Math.min(MAXV, opts.value));
+    const wrap = el('div', 'bz-dial');
+    let ticks = '';
+    for (let i = 0; i < 24; i++) {
+      const a = i * 15 * Math.PI / 180;
+      const big = i % 6 === 0;
+      const r1 = big ? 82 : 86, r2 = 93;
+      ticks += `<line x1="${(100 + r1 * Math.sin(a)).toFixed(2)}" y1="${(100 - r1 * Math.cos(a)).toFixed(2)}"`
+        + ` x2="${(100 + r2 * Math.sin(a)).toFixed(2)}" y2="${(100 - r2 * Math.cos(a)).toFixed(2)}"`
+        + ` stroke="${big ? '#8A8178' : '#3B342E'}" stroke-width="${big ? 2.6 : 1.4}" stroke-linecap="round"/>`;
+    }
+    let nums = '';
+    for (const m of [30, 60, 90]) {
+      const a = m / MAXV * 2 * Math.PI;
+      nums += `<text x="${(100 + 72 * Math.sin(a)).toFixed(1)}" y="${(100 - 72 * Math.cos(a) + 3.4).toFixed(1)}"`
+        + ` text-anchor="middle" fill="#6B6157" font-size="10" font-weight="800"`
+        + ` font-family="Archivo, sans-serif">${m}</text>`;
+    }
+    wrap.innerHTML = `<svg viewBox="0 0 200 200" class="wz">
+      <circle cx="100" cy="100" r="96" fill="#14100E" stroke="#241E1A" stroke-width="1.5"/>
+      <g class="bz-ring">${ticks}${nums}</g>
+      <path d="M100 3 L106.5 14 L93.5 14 Z" fill="#CE6B3D"/>
+      <circle cx="100" cy="100" r="62" fill="#0E0B0A" stroke="#241E1A" stroke-width="1"/>
+    </svg>`;
+    const mid = el('div', 'wz-mid');
+    const big = el('div', 'bz-min num', String(val));
+    mid.appendChild(big);
+    mid.appendChild(el('div', 'bz-unit', 'min'));
+    wrap.appendChild(mid);
+    const ring = wrap.querySelector('.bz-ring');
+    const paint = anim => {
+      ring.style.transition = anim ? 'transform .3s ease-out' : 'none';
+      ring.style.transform = `rotate(${-(val / MAXV) * 360}deg)`;
+      big.textContent = String(val);
+    };
+    paint(false);
+
+    const angleAt = e => {
+      const r = wrap.getBoundingClientRect();
+      return Math.atan2(e.clientX - (r.left + r.width / 2), (r.top + r.height / 2) - e.clientY) * 180 / Math.PI;
+    };
+    let dragging = false, lastA = 0, acc = 0, startVal = 0;
+    wrap.style.touchAction = 'none';
+    wrap.addEventListener('pointerdown', e => {
+      dragging = true; lastA = angleAt(e); acc = 0; startVal = val;
+      wrap.setPointerCapture(e.pointerId);
+    });
+    wrap.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const a = angleAt(e);
+      let d = a - lastA;
+      if (d > 180) d -= 360;
+      if (d < -180) d += 360;
+      lastA = a; acc += d;
+      /* turning clockwise raises the time — the ring itself turns the other
+         way under the marker, like a bezel does */
+      const raw = startVal + acc * perDeg;
+      const snapped = Math.max(MINV, Math.min(MAXV, Math.round(raw / STEP) * STEP));
+      if (snapped !== val) {
+        val = snapped;
+        haptic();
+        bezelClick();
+        paint(false);
+        opts.onChange(val);
+      }
+    });
+    const end = () => { dragging = false; };
+    wrap.addEventListener('pointerup', end);
+    wrap.addEventListener('pointercancel', end);
+
+    wrap.set = v => {
+      v = Math.max(MINV, Math.min(MAXV, Math.round(v / STEP) * STEP));
+      if (v === val) return;
+      val = v;
+      paint(true);
+    };
+    wrap.get = () => val;
+    return wrap;
+  }
+
   async function renderCardio() {
     const root = $('#view-cardio');
     root.innerHTML = '';
@@ -5801,8 +5888,7 @@
       const pr3 = progs.find(x => x.label === cardioProg);
       if (pr3) {
         cardioMins = pr3.mins;
-        minsVal.textContent = pr3.mins + ' min';
-        minsRail.spinTo(minsList.indexOf(pr3.mins));   // in front of you
+        dial.set(pr3.mins);            // the ring turns in front of you
         progRow.classList.remove('off');
       }
       paintNote();
@@ -5810,23 +5896,24 @@
     }, 104, true);
     const progRow = row('Program', progVal, progRail);
 
-    const minsVal = el('div', 'cd-row-val', shownMins + ' min');
-    const minsRail = optionRail(minsList.map(String), minsList.indexOf(shownMins), i => {
-      cardioMins = minsList[i];
-      minsVal.textContent = cardioMins + ' min';
-      const pr4 = progs.find(x => x.label === cardioProg);
-      if (pr4 && pr4.mins !== cardioMins) {
-        cardioProg = 'None';         // the time is yours now
-        progVal.textContent = 'None';
-        progRail.spinTo(0);          // and the rail says so too
-        progRow.classList.add('off');
-        paintNote();
+    const dial = bezelDial({
+      min: 5, max: 120, step: 5, value: shownMins,
+      onChange: v => {
+        cardioMins = v;
+        const pr4 = progs.find(x => x.label === cardioProg);
+        if (pr4 && pr4.mins !== cardioMins) {
+          cardioProg = 'None';         // the time is yours now
+          progVal.textContent = 'None';
+          progRail.spinTo(0);          // and the rail says so too
+          progRow.classList.add('off');
+          paintNote();
+        }
+        upd();
       }
-      upd();
-    }, 62, true);
-    row('Minutes', minsVal, minsRail);
+    });
 
     root.appendChild(stack);
+    if (!running) root.appendChild(dial);
     paintNote();
     root.appendChild(progNote);
 

@@ -2147,3 +2147,11 @@ body { font-size: 14px; }
 .wz-mid .cd-sub { margin-top: 7px; font-size: 10.5px; font-weight: 700; color: var(--t5); }
 .cd-watch.paused { opacity: .55; }
 .cd-watch.paused .wz-bez, .cd-watch.paused .wz-hand line { transition: none; }
+
+/* ---- the setting bezel ---- */
+.bz-dial { position: relative; width: min(64vw, 250px); margin: 16px auto 4px; }
+.bz-dial svg { display: block; width: 100%; height: auto; }
+.bz-ring { transform-origin: 100px 100px; }
+.bz-min { font-size: 40px; font-weight: 800; letter-spacing: -.03em; color: var(--t1); line-height: 1; }
+.bz-unit { font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--t6); margin-top: 3px; }
