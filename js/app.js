@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v300';
+  const APP_VERSION = 'v301';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5723,22 +5723,36 @@
       const r1 = big ? 82 : 86, r2 = 93;
       ticks += `<line x1="${(100 + r1 * Math.sin(a)).toFixed(2)}" y1="${(100 - r1 * Math.cos(a)).toFixed(2)}"`
         + ` x2="${(100 + r2 * Math.sin(a)).toFixed(2)}" y2="${(100 - r2 * Math.cos(a)).toFixed(2)}"`
-        + ` stroke="${big ? '#8A8178' : '#3B342E'}" stroke-width="${big ? 2.6 : 1.4}" stroke-linecap="round"/>`;
+        + ` stroke="${big ? '#D8CCBE' : '#7A6555'}" stroke-width="${big ? 2.6 : 1.4}" stroke-linecap="round"/>`;
     }
     let nums = '';
     for (const m of [30, 60, 90]) {
       const a = m / MAXV * 2 * Math.PI;
       nums += `<text x="${(100 + 72 * Math.sin(a)).toFixed(1)}" y="${(100 - 72 * Math.cos(a) + 3.4).toFixed(1)}"`
-        + ` text-anchor="middle" fill="#6B6157" font-size="10" font-weight="800"`
+        + ` text-anchor="middle" fill="#D8CCBE" font-size="10" font-weight="800"`
         + ` font-family="Archivo, sans-serif">${m}</text>`;
     }
     /* two dials in one case: the outer ring sets the time, the inner one
        runs it — a sweep arc and an orbiting second under the same glass */
     const RA = 56, CA = (2 * Math.PI * RA).toFixed(2);
+    const CI = (2 * Math.PI * 87).toFixed(2);       // the insert's centreline
     wrap.innerHTML = `<svg viewBox="0 0 200 200" class="wz">
-      <circle cx="100" cy="100" r="96" fill="#14100E" stroke="#241E1A" stroke-width="1.5"/>
-      <g class="bz-ring">${ticks}${nums}</g>
+      <defs>
+        <radialGradient id="bzIns" cx="50%" cy="38%" r="75%">
+          <stop offset="0" stop-color="#4A2617"/>
+          <stop offset="1" stop-color="#2C1710"/>
+        </radialGradient>
+      </defs>
+      <circle cx="100" cy="100" r="97.5" fill="none" stroke="#4A423A" stroke-width="1.6"/>
+      <circle cx="100" cy="100" r="96" fill="#14100E"/>
+      <g class="bz-ring">
+        <circle cx="100" cy="100" r="87" fill="none" stroke="url(#bzIns)" stroke-width="17.5"/>
+        <circle cx="100" cy="100" r="87" fill="none" stroke="#B45430" stroke-width="17.5"
+          stroke-dasharray="${(2 * Math.PI * 87 / 4).toFixed(2)} ${CI}" transform="rotate(-90 100 100)" opacity=".8"/>
+        ${ticks}${nums}
+      </g>
       <path d="M100 3 L106.5 14 L93.5 14 Z" fill="#CE6B3D"/>
+      <circle cx="100" cy="100" r="78" fill="none" stroke="#3A332C" stroke-width="1.4"/>
       <circle cx="100" cy="100" r="62" fill="#0E0B0A" stroke="#241E1A" stroke-width="1"/>
       <circle class="bz-track" cx="100" cy="100" r="${RA}" fill="none" stroke="#241E1A" stroke-width="3"/>
       <circle class="bz-arc" cx="100" cy="100" r="${RA}" fill="none" stroke="#CE6B3D" stroke-width="3"

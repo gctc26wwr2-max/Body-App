@@ -2163,3 +2163,5 @@ body { font-size: 14px; }
 
 .cd-kcal.idle { color: var(--t6); font-family: inherit; font-weight: 600; }
 .btn-cta:disabled { opacity: .35; pointer-events: none; }
+
+.wz [hidden] { display: none; }
