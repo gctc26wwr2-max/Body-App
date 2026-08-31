@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v295';
+  const APP_VERSION = 'v296';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -426,6 +426,24 @@
   async function renderTab() {
     exercises = (await DB.all('exercises')).sort((a, b) => a.name.localeCompare(b.name));
     plans = await DB.all('plans');
+    /* one-time: blocks written before the timed split carry rep targets on
+       movements the app now measures in seconds — 2×10 Wall Sit becomes an
+       honest 30–45 s, once, and only where the numbers are clearly reps */
+    if (!localStorage.getItem('timedMig1')) {
+      for (const pl of plans) {
+        let dirty = false;
+        for (const d of (pl.days || [])) {
+          for (const it of (d.items || [])) {
+            const ex2 = exercises.find(e => e.id === it.exerciseId);
+            if (ex2 && isTimedEx(ex2) && (it.repHi || 0) <= 20) {
+              it.repLo = 30; it.repHi = 45; dirty = true;
+            }
+          }
+        }
+        if (dirty) await DB.put('plans', pl);
+      }
+      localStorage.setItem('timedMig1', '1');
+    }
     await promoteQueued();
     if (currentTab === 'today') await renderToday();
     else if (currentTab === 'plan') await renderPlanTab();
@@ -679,7 +697,7 @@
             if (addHardship(hb, ex)) nmc.appendChild(hb);
           }
           r.appendChild(nmc);
-          r.appendChild(el('div', 'exi-scheme', `${it.sets || 3} × ${it.repLo || 8}–${it.repHi || 12}${it.kg ? ' · ' + fmtW(it.kg) : ''}`));
+          r.appendChild(el('div', 'exi-scheme', `${it.sets || 3} × ${it.repLo || 8}–${it.repHi || 12}${ex && isTimedEx(ex) ? ' s' : ''}${it.kg ? ' · ' + fmtW(it.kg) : ''}`));
           if (ex) r.onclick = () => openDetail(ex.id, 'library');
           idx.appendChild(r);
         });
@@ -2764,7 +2782,7 @@
      inside is no place to learn a second way of picking something. What you
      add lands at the end of the rail and is logged like everything else — it
      does not touch the block you are running. */
-  let addSets = 3, addExIx = 0, addReps = 3, addQuery = '', addGroup = 'All';
+  let addSets = 3, addExIx = 0, addReps = 3, addSecs = 2, addQuery = '', addGroup = 'All';
   /* set when the exercise form was opened from the dial sheet, so what you
      write goes straight where you were adding it instead of only into the
      library */
@@ -2836,12 +2854,26 @@
       const c2 = el('div', 'cd-col pm-exx');
       c2.appendChild(el('div', 'micro', shown.length === pool.length ? 'Exercise' : `Exercise · ${shown.length}`));
       c2.appendChild(pickerWheel(shown.map(x => x.name), addExIx, i => { addExIx = i; paintPick(); }, 'wide',
-        i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15'))));
+        i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15')), null,
+        i => { const it = shown[i]; if (it) buildThird2(it); }));
       wheels.appendChild(c2);
       const c3 = el('div', 'cd-col pm-reps');
-      c3.appendChild(el('div', 'micro', 'Reps'));
-      c3.appendChild(pickerWheel(PM_REPS.map(r => r.label), addReps, i => { addReps = i; }, null,
-        i => (i % 2 ? 'w11' : 'w15')));
+      const repLbl2 = el('div', 'micro', 'Reps');
+      c3.appendChild(repLbl2);
+      let c3Timed2 = null;
+      const buildThird2 = item => {
+        const t = isTimedEx(item);
+        if (t === c3Timed2) return;
+        c3Timed2 = t;
+        repLbl2.textContent = t ? 'Seconds' : 'Reps';
+        const wheel = t
+          ? pickerWheel(PM_SECS.map(r => r.label), addSecs, i => { addSecs = i; }, null,
+            i => (i % 2 ? 'w11' : 'w15'))
+          : pickerWheel(PM_REPS.map(r => r.label), addReps, i => { addReps = i; }, null,
+            i => (i % 2 ? 'w11' : 'w15'));
+        if (c3.children.length > 1) c3.replaceChild(wheel, c3.lastChild);
+        else c3.appendChild(wheel);
+      };
       wheels.appendChild(c3);
       root.appendChild(wheels);
 
@@ -2849,6 +2881,7 @@
       const paintPick = () => {
         hardLine.innerHTML = '';
         const item = shown[addExIx];
+        buildThird2(item);
         const h = item && hardshipOf(item);
         if (!h) return;
         hardLine.appendChild(hardChip(item));
@@ -2866,7 +2899,7 @@
         // the pick lands where it belongs, so there is nothing to go back to
         sheetBack = null;
         addTarget = null;
-        await opts.onPick(item, addSets, PM_REPS[addReps]);
+        await opts.onPick(item, addSets, isTimedEx(item) ? PM_SECS[addSecs] : PM_REPS[addReps]);
       };
       root.appendChild(go);
     }
@@ -2875,7 +2908,7 @@
     own.style.width = '100%';
     own.textContent = '＋ Write your own';
     own.onclick = () => {
-      const spec = { sets: addSets, reps: PM_REPS[addReps], onPick: opts.onPick };
+      const spec = { sets: addSets, reps: PM_REPS[addReps], secs: PM_SECS[addSecs], onPick: opts.onPick };
       pickerAfterSave = spec;
       // cancelling the form drops you back on the dials, not out of everything
       sheetBack = () => { openDialPicker(opts); };
@@ -4702,7 +4735,17 @@
     { label: '15–20', lo: 15, hi: 20 },
     { label: '20–30', lo: 20, hi: 30 }
   ];
-  let pmDays = null, pmDay = 0, pmSets = 2, pmEx = 0, pmReps = 2, pmName = '';
+  /* the third dial for a movement measured by the clock */
+  const PM_SECS = [
+    { label: '15–20 s', lo: 15, hi: 20 },
+    { label: '20–30 s', lo: 20, hi: 30 },
+    { label: '30–45 s', lo: 30, hi: 45 },
+    { label: '45–60 s', lo: 45, hi: 60 },
+    { label: '60–90 s', lo: 60, hi: 90 },
+    { label: '2–3 min', lo: 120, hi: 180 },
+    { label: '3–5 min', lo: 180, hi: 300 }
+  ];
+  let pmDays = null, pmDay = 0, pmSets = 2, pmEx = 0, pmReps = 2, pmSecs = 2, pmName = '';
   let pmInj = 0, pmGroup = 'All', pmQuery = '';
   /* a fifth, lighter week on the end of the block — on by default, because a
      four-week block run flat out is where people stall */
@@ -5168,9 +5211,24 @@
     find.oninput = () => { pmQuery = find.value; refilter(); };
     wheels.appendChild(c2);
     const c3 = el('div', 'cd-col pm-reps');
-    c3.appendChild(el('div', 'micro', 'Reps'));
-    c3.appendChild(pickerWheel(PM_REPS.map(r => r.label), pmReps, i => { pmReps = i; }, null,
-      i => (i % 2 ? 'w11' : 'w15')));
+    const repLbl = el('div', 'micro', 'Reps');
+    c3.appendChild(repLbl);
+    /* a plank is not eight of anything: when the movement under the needle
+       runs on the clock, this dial turns into seconds — and turns back */
+    let c3Timed = null;
+    const buildThird = item => {
+      const t = isTimedEx(item);
+      if (t === c3Timed) return;
+      c3Timed = t;
+      repLbl.textContent = t ? 'Seconds' : 'Reps';
+      const wheel = t
+        ? pickerWheel(PM_SECS.map(r => r.label), pmSecs, i => { pmSecs = i; }, null,
+          i => (i % 2 ? 'w11' : 'w15'))
+        : pickerWheel(PM_REPS.map(r => r.label), pmReps, i => { pmReps = i; }, null,
+          i => (i % 2 ? 'w11' : 'w15'));
+      if (c3.children.length > 1) c3.replaceChild(wheel, c3.lastChild);
+      else c3.appendChild(wheel);
+    };
     wheels.appendChild(c3);
     root.appendChild(wheels);
 
@@ -5181,6 +5239,7 @@
     const paintHard = ix => {
       pickHard.innerHTML = '';
       const item = shown[ix == null ? pmEx : ix];
+      buildThird(item);
       const h = item && hardshipOf(item);
       if (!h) { pickHard.hidden = true; return; }
       pickHard.hidden = false;
@@ -5196,9 +5255,10 @@
     addBtn.onclick = () => {
       const item = shown[pmEx];
       if (!item) return;
+      const rng = isTimedEx(item) ? PM_SECS[pmSecs] : PM_REPS[pmReps];
       pmDays[pmDay].items.push({
         name: item.name, sets: pmSets,
-        repLo: PM_REPS[pmReps].lo, repHi: PM_REPS[pmReps].hi
+        repLo: rng.lo, repHi: rng.hi
       });
       haptic();
       renderPlanMaker();
@@ -5241,7 +5301,7 @@
         const hb = el('div', 'exi-hard');
         if (addHardship(hb, it)) nm.appendChild(hb);
         r.appendChild(nm);
-        r.appendChild(el('div', 'exi-scheme', `${it.sets} × ${it.repLo}–${it.repHi}`));
+        r.appendChild(el('div', 'exi-scheme', `${it.sets} × ${it.repLo}–${it.repHi}${isTimedEx(it) ? ' s' : ''}`));
         const x = el('button', 'hist-del', '✕');
         x.onclick = () => { day.items.splice(i, 1); renderPlanMaker(); };
         r.appendChild(x);
