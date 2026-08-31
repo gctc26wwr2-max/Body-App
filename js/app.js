@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v293';
+  const APP_VERSION = 'v294';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -156,7 +156,7 @@
   const est1RM = (kg, reps) => reps > 0 ? kg * (1 + reps / 30) : 0;   // Epley
   /* On an assisted machine the stack is help, not load — progress runs the
      other way. Less weight is the achievement, and zero is graduation. */
-  const isAssisted = ex => /assisted/i.test((ex && ex.name) || '');
+  const isAssisted = ex => !!(ex && (ex.assisted || /assisted/i.test(ex.name || '')));
 
   function suggestion(sets, ex) {
     // warm ramp sets are deliberately light — they neither earn an
@@ -985,7 +985,7 @@
           : Math.max(...lastSets.map(s2 => s2.weight || 0)))
         : 0;
       exList.push({
-        exerciseId: ex.id, name: ex.name,
+        exerciseId: ex.id, name: ex.name, assisted,
         timed: /second/i.test(ex.notes || ''),   // hold/interval exercises log seconds
         perSide: /side/i.test(ex.notes || ''),   // run the hold once per side
         repLo: lo, repHi: hi, rest: restDefault(), deload,
@@ -7503,6 +7503,7 @@
       form.name.value = ex.name;
       form.group.value = ex.group || 'Other';
       form.hardship.value = String((hardshipOf(ex) || { n: 1 }).n);
+      form.assisted.value = ex.assisted ? '1' : '0';
       form.notes.value = ex.notes || '';
       (ex.mediaIds || []).forEach(id => pendingMedia.push({ existingId: id }));
     }
@@ -7559,6 +7560,7 @@
     /* your own rating, so a movement you invented still says how hard it is
        under its name like every other one */
     ex.hardship = Math.min(3, Math.max(1, +f.hardship.value || 1));
+    ex.assisted = f.assisted.value === '1';
     ex.notes = f.notes.value.trim();
     /* Anything written here is the user's own and stays deletable — unless
        they have typed the name of something already in the catalog, in which
