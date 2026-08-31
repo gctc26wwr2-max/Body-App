@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v301';
+  const APP_VERSION = 'v302';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5718,6 +5718,7 @@
     const wrap = el('div', 'bz-dial');
     let ticks = '';
     for (let i = 0; i < 24; i++) {
+      if (i === 6 || i === 12 || i === 18) continue;   // the numerals live there
       const a = i * 15 * Math.PI / 180;
       const big = i % 6 === 0;
       const r1 = big ? 82 : 86, r2 = 93;
@@ -5726,11 +5727,16 @@
         + ` stroke="${big ? '#D8CCBE' : '#7A6555'}" stroke-width="${big ? 2.6 : 1.4}" stroke-linecap="round"/>`;
     }
     let nums = '';
+    /* printed ON the insert like a real bezel: each numeral sits on the
+       band's centreline, rotated radially so its top faces the glass edge */
     for (const m of [30, 60, 90]) {
-      const a = m / MAXV * 2 * Math.PI;
-      nums += `<text x="${(100 + 72 * Math.sin(a)).toFixed(1)}" y="${(100 - 72 * Math.cos(a) + 3.4).toFixed(1)}"`
-        + ` text-anchor="middle" fill="#D8CCBE" font-size="10" font-weight="800"`
-        + ` font-family="Archivo, sans-serif">${m}</text>`;
+      const deg = m / MAXV * 360;
+      const a = deg * Math.PI / 180;
+      const x = (100 + 87 * Math.sin(a)).toFixed(1);
+      const y = (100 - 87 * Math.cos(a)).toFixed(1);
+      nums += `<text x="${x}" y="${y}" dy="3.8" text-anchor="middle" fill="#EAE0D3"`
+        + ` font-size="11" font-weight="800" font-family="Archivo, sans-serif"`
+        + ` transform="rotate(${deg} ${x} ${y})">${m}</text>`;
     }
     /* two dials in one case: the outer ring sets the time, the inner one
        runs it — a sweep arc and an orbiting second under the same glass */
@@ -5756,8 +5762,8 @@
       <circle cx="100" cy="100" r="62" fill="#0E0B0A" stroke="#241E1A" stroke-width="1"/>
       <circle class="bz-track" cx="100" cy="100" r="${RA}" fill="none" stroke="#241E1A" stroke-width="3"/>
       <circle class="bz-arc" cx="100" cy="100" r="${RA}" fill="none" stroke="#CE6B3D" stroke-width="3"
-        stroke-linecap="round" stroke-dasharray="0 ${CA}" transform="rotate(-90 100 100)"/>
-      <g class="bz-sec" hidden><circle cx="100" cy="${100 - RA}" r="3.4" fill="#CE6B3D"/></g>
+        stroke-linecap="round" stroke-dasharray="0 ${CA}" transform="rotate(-90 100 100)" display="none"/>
+      <g class="bz-sec" display="none"><circle cx="100" cy="${100 - RA}" r="3.4" fill="#CE6B3D"/></g>
     </svg>`;
     const mid = el('div', 'wz-mid');
     const big = el('div', 'bz-min num', String(val));
@@ -5770,7 +5776,8 @@
     const secEl = wrap.querySelector('.bz-sec');
     wrap.setRun = (frac, sec) => {
       wrap.classList.add('run');
-      secEl.hidden = false;
+      secEl.removeAttribute('display');
+      arcEl.removeAttribute('display');
       arcEl.setAttribute('stroke-dasharray', `${(frac * 2 * Math.PI * RA).toFixed(2)} ${CA}`);
       secEl.setAttribute('transform', `rotate(${(sec % 60) * 6} 100 100)`);
     };
