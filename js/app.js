@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v298';
+  const APP_VERSION = 'v299';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5732,17 +5732,34 @@
         + ` text-anchor="middle" fill="#6B6157" font-size="10" font-weight="800"`
         + ` font-family="Archivo, sans-serif">${m}</text>`;
     }
+    /* two dials in one case: the outer ring sets the time, the inner one
+       runs it — a sweep arc and an orbiting second under the same glass */
+    const RA = 56, CA = (2 * Math.PI * RA).toFixed(2);
     wrap.innerHTML = `<svg viewBox="0 0 200 200" class="wz">
       <circle cx="100" cy="100" r="96" fill="#14100E" stroke="#241E1A" stroke-width="1.5"/>
       <g class="bz-ring">${ticks}${nums}</g>
       <path d="M100 3 L106.5 14 L93.5 14 Z" fill="#CE6B3D"/>
       <circle cx="100" cy="100" r="62" fill="#0E0B0A" stroke="#241E1A" stroke-width="1"/>
+      <circle class="bz-track" cx="100" cy="100" r="${RA}" fill="none" stroke="#241E1A" stroke-width="3"/>
+      <circle class="bz-arc" cx="100" cy="100" r="${RA}" fill="none" stroke="#CE6B3D" stroke-width="3"
+        stroke-linecap="round" stroke-dasharray="0 ${CA}" transform="rotate(-90 100 100)"/>
+      <g class="bz-sec" hidden><circle cx="100" cy="${100 - RA}" r="3.4" fill="#CE6B3D"/></g>
     </svg>`;
     const mid = el('div', 'wz-mid');
     const big = el('div', 'bz-min num', String(val));
-    mid.appendChild(big);
-    mid.appendChild(el('div', 'bz-unit', 'min'));
+    const unit = el('div', 'bz-unit', 'min');
+    mid.append(big, unit);
     wrap.appendChild(mid);
+    wrap.bigEl = big;
+    wrap.unitEl = unit;
+    const arcEl = wrap.querySelector('.bz-arc');
+    const secEl = wrap.querySelector('.bz-sec');
+    wrap.setRun = (frac, sec) => {
+      wrap.classList.add('run');
+      secEl.hidden = false;
+      arcEl.setAttribute('stroke-dasharray', `${(frac * 2 * Math.PI * RA).toFixed(2)} ${CA}`);
+      secEl.setAttribute('transform', `rotate(${(sec % 60) * 6} 100 100)`);
+    };
     const ring = wrap.querySelector('.bz-ring');
     const paint = anim => {
       ring.style.transition = anim ? 'transform .3s ease-out' : 'none';
@@ -5758,6 +5775,7 @@
     let dragging = false, lastA = 0, acc = 0, startVal = 0;
     wrap.style.touchAction = 'none';
     wrap.addEventListener('pointerdown', e => {
+      if (opts.locked) return;               // a running watch is not for turning
       dragging = true; lastA = angleAt(e); acc = 0; startVal = val;
       wrap.setPointerCapture(e.pointerId);
     });
@@ -5897,7 +5915,7 @@
     const progRow = row('Program', progVal, progRail);
 
     const dial = bezelDial({
-      min: 5, max: 120, step: 5, value: shownMins,
+      min: 5, max: 120, step: 5, value: shownMins, locked: running,
       onChange: v => {
         cardioMins = v;
         const pr4 = progs.find(x => x.label === cardioProg);
@@ -5913,7 +5931,7 @@
     });
 
     root.appendChild(stack);
-    if (!running) root.appendChild(dial);
+    root.appendChild(dial);
     paintNote();
     root.appendChild(progNote);
 
@@ -5941,40 +5959,11 @@
       const met = metOf(lc.act, env);
       const doneSec = () => Math.min(total, Math.round((lc.acc || 0) + (lc.startedAt ? (Date.now() - lc.startedAt) / 1000 : 0)));
 
-      /* not a flat bar — a watch. The bezel turns through one revolution
-         over the whole session, the clay arc is the elapsed sweep, and a
-         seconds hand steps once a second like quartz. */
-      const live = el('div', 'cd-watch' + (lc.startedAt ? '' : ' paused'));
-      const R = 78, C = (2 * Math.PI * R).toFixed(2);
-      let bezTicks = '';
-      for (let i = 0; i < 60; i++) {
-        const a = i * 6 * Math.PI / 180;
-        const big = i % 5 === 0;
-        const r1 = big ? 84 : 87.5, r2 = 93;
-        bezTicks += `<line x1="${(100 + r1 * Math.sin(a)).toFixed(2)}" y1="${(100 - r1 * Math.cos(a)).toFixed(2)}"`
-          + ` x2="${(100 + r2 * Math.sin(a)).toFixed(2)}" y2="${(100 - r2 * Math.cos(a)).toFixed(2)}"`
-          + ` stroke="${big ? '#8A8178' : '#3B342E'}" stroke-width="${big ? 2.4 : 1.2}" stroke-linecap="round"/>`;
-      }
-      live.innerHTML = `<svg viewBox="0 0 200 200" class="wz">
-        <circle cx="100" cy="100" r="96" fill="#14100E" stroke="#241E1A" stroke-width="1.5"/>
-        <g class="wz-bez">${bezTicks}
-          <path d="M100 4.5 L106 15 L94 15 Z" fill="#CE6B3D"/>
-        </g>
-        <circle cx="100" cy="100" r="${R}" fill="#0E0B0A" stroke="#241E1A" stroke-width="1"/>
-        <circle class="wz-arc" cx="100" cy="100" r="${R}" fill="none" stroke="#CE6B3D" stroke-width="3.5"
-          stroke-linecap="round" stroke-dasharray="0 ${C}" transform="rotate(-90 100 100)"/>
-        <g class="wz-hand"><line x1="100" y1="100" x2="100" y2="34" stroke="#6D3A22" stroke-width="1.6" stroke-linecap="round"/></g>
-        <circle cx="100" cy="100" r="3" fill="#CE6B3D"/>
-      </svg>`;
-      const mid = el('div', 'wz-mid');
-      const clock = el('div', 'cd-clock num', '0:00');
-      const sub = el('div', 'cd-sub num', '');
-      mid.append(clock, sub);
-      live.appendChild(mid);
-      root.appendChild(live);
-      const arcEl = live.querySelector('.wz-arc');
-      const bezEl = live.querySelector('.wz-bez');
-      const handEl = live.querySelector('.wz-hand');
+      /* the same watch, now running: the outer bezel stays where it was
+         set, the inner dial does the work */
+      dial.classList.toggle('paused', !lc.startedAt);
+      const clock = dial.bigEl;
+      const sub = dial.unitEl;
 
       const acts = el('div', 'block-actions');
       const pause = el('button', 'btn-ghost', lc.startedAt ? 'Pause' : 'Resume');
@@ -6010,10 +5999,7 @@
         const d2 = doneSec(), l = Math.max(0, total - d2);
         clock.textContent = fmtClock(l);
         sub.textContent = `${Math.round(d2 / 60)} of ${lc.mins} min · ~${cardioKcal(met, d2 / 60, kg)} kcal`;
-        const frac = Math.min(1, d2 / total);
-        arcEl.setAttribute('stroke-dasharray', `${(frac * 2 * Math.PI * 78).toFixed(2)} ${(2 * Math.PI * 78).toFixed(2)}`);
-        bezEl.setAttribute('transform', `rotate(${(frac * 360).toFixed(2)} 100 100)`);
-        handEl.setAttribute('transform', `rotate(${(d2 % 60) * 6} 100 100)`);
+        dial.setRun(Math.min(1, d2 / total), d2);
         if (l <= 0 && !cardioAlerted) {
           cardioAlerted = true;
           beep();
