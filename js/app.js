@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v303';
+  const APP_VERSION = 'v304';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5810,20 +5810,29 @@
     };
     paint(false);
 
-    const angleAt = e => {
+    const polar = e => {
       const r = wrap.getBoundingClientRect();
-      return Math.atan2(e.clientX - (r.left + r.width / 2), (r.top + r.height / 2) - e.clientY) * 180 / Math.PI;
+      const dx = e.clientX - (r.left + r.width / 2);
+      const dy = e.clientY - (r.top + r.height / 2);
+      return { a: Math.atan2(dx, -dy) * 180 / Math.PI, rad: Math.hypot(dx, dy) / (r.width / 2) };
     };
-    let dragging = false, lastA = 0, acc = 0, startVal = 0;
+    let dragging = false, lastA = 0, acc = 0, startVal = 0, pid = null;
     wrap.style.touchAction = 'none';
     wrap.addEventListener('pointerdown', e => {
       if (opts.locked) return;               // a running watch is not for turning
-      dragging = true; lastA = angleAt(e); acc = 0; startVal = val;
+      /* only the bezel band turns. Near the centre, a few pixels of finger
+         wobble reads as half a revolution — a tap on the big number must
+         never spin the time. */
+      const p0 = polar(e);
+      if (p0.rad < 0.55) return;
+      dragging = true; pid = e.pointerId; lastA = p0.a; acc = 0; startVal = val;
       wrap.setPointerCapture(e.pointerId);
     });
     wrap.addEventListener('pointermove', e => {
-      if (!dragging) return;
-      const a = angleAt(e);
+      if (!dragging || e.pointerId !== pid) return;
+      const pt = polar(e);
+      if (pt.rad < 0.4) return;              // drifting across the centre says nothing
+      const a = pt.a;
       let d = a - lastA;
       if (d > 180) d -= 360;
       if (d < -180) d += 360;
@@ -5840,7 +5849,7 @@
         opts.onChange(val);
       }
     });
-    const end = () => { dragging = false; };
+    const end = e => { if (!e || e.pointerId === pid) { dragging = false; pid = null; } };
     wrap.addEventListener('pointerup', end);
     wrap.addEventListener('pointercancel', end);
 
