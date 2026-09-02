@@ -44,8 +44,24 @@
   };
   const mulOf = key => (CARDIO_EFFORT.find(e => e.key === key) || CARDIO_EFFORT[1]).mul;
   const liveCardio = {
-    get() { try { return JSON.parse(localStorage.getItem('liveCardio') || 'null'); } catch { return null; } },
-    set(v) { v ? localStorage.setItem('liveCardio', JSON.stringify(v)) : localStorage.removeItem('liveCardio'); }
+    get() {
+      const raw = localStorage.getItem('liveCardio');
+      if (raw == null) return null;
+      let v = null;
+      try { v = JSON.parse(raw); } catch {}
+      const ok = v && typeof v === 'object' && !Array.isArray(v)
+        && Number.isFinite(+v.mins)
+        && (v.startedAt == null || Number.isFinite(+v.startedAt));
+      if (!ok) {
+        try { localStorage.removeItem('liveCardio'); } catch {}
+        return null;
+      }
+      return v;
+    },
+    set(v) {
+      try { v ? localStorage.setItem('liveCardio', JSON.stringify(v)) : localStorage.removeItem('liveCardio'); }
+      catch (e) { console.error('liveCardio save failed', e); }
+    }
   };
   let cardioEnv = localStorage.getItem('cardioEnv') || 'indoor';
   let cardioActName = localStorage.getItem('cardioAct') || 'Run';

@@ -4,7 +4,7 @@
    part loaded after this one. Load order is index.html's script order.
    Map of what lives where: FUNCTIONS.md */
 'use strict';
-  const APP_VERSION = 'v315';
+  const APP_VERSION = 'v316';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -296,10 +296,26 @@
   }
   const blockNumber = plan => plans.slice().sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).findIndex(p => p.id === plan.id) + 1;
 
-  /* ---------------- live workout ---------------- */
+  /* ---------------- live workout ----------------
+     The in-flight session survives restarts through this key, so a corrupt
+     value here would brick the app for exactly the user mid-session. get()
+     therefore checks the shape the renderers iterate, not just that the
+     JSON parses — anything else is dropped so the next boot starts clean. */
   const live = {
-    get() { try { return JSON.parse(localStorage.getItem('liveWorkout')); } catch { return null; } },
-    set(v) { v ? localStorage.setItem('liveWorkout', JSON.stringify(v)) : localStorage.removeItem('liveWorkout'); }
+    get() {
+      const raw = localStorage.getItem('liveWorkout');
+      if (raw == null) return null;
+      let v = null;
+      try { v = JSON.parse(raw); } catch {}
+      const ok = v && typeof v === 'object' && !Array.isArray(v)
+        && Array.isArray(v.exs) && v.exs.every(x => x && typeof x === 'object' && Array.isArray(x.sets));
+      if (!ok) { try { localStorage.removeItem('liveWorkout'); } catch {} return null; }
+      return v;
+    },
+    set(v) {
+      try { v ? localStorage.setItem('liveWorkout', JSON.stringify(v)) : localStorage.removeItem('liveWorkout'); }
+      catch (e) { console.error('liveWorkout save failed', e); }
+    }
   };
 
   /* ---------------- media ---------------- */

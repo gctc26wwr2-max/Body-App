@@ -20,7 +20,10 @@
   const SESSION_MINS = [30, 45, 60, 75, 90];
 
   function getProfile() {
-    try { return JSON.parse(localStorage.getItem('profile') || '{}') || {}; } catch { return {}; }
+    try {
+      const o = JSON.parse(localStorage.getItem('profile') || '{}');
+      return o && typeof o === 'object' && !Array.isArray(o) ? o : {};
+    } catch { return {}; }
   }
   function setProfile(patch) {
     const next = { ...getProfile(), ...patch };
