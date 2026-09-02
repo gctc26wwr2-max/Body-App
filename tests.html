@@ -304,6 +304,20 @@ t('getProfile: non-object junk falls back to {}', () => {
   localStorage.clear();
 });
 
+/* ---------------- ageYears (birth date → current age) ---------------- */
+t('ageYears counts a birthday-month as passed', () => {
+  const now = new Date(); const y = now.getFullYear(), m = now.getMonth() + 1;
+  eq(ageYears({ birth: (y - 34) + '-' + String(m).padStart(2, '0') }), 34, 'this month');
+  const nm = m === 12 ? 1 : m + 1, ny = m === 12 ? y - 33 : y - 34;
+  eq(ageYears({ birth: ny + '-' + String(nm).padStart(2, '0') }), 33, 'next month');
+});
+t('ageYears falls back to a legacy age number, else null', () => {
+  eq(ageYears({ age: 41 }), 41);
+  eq(ageYears({ birth: '19x2-03', age: 28 }), 28, 'garbage birth, legacy age');
+  eq(ageYears({ age: 'old' }), null);
+  eq(ageYears({}), null);
+});
+
 /* ---------------- runner ---------------- */
 (async () => {
   exercises = []; plans = [];
