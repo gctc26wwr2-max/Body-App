@@ -421,7 +421,8 @@
       if (g) bits.push('goal: ' + g.label.toLowerCase());
       if (lv) bits.push('training ' + lv.label.toLowerCase());
       if (pr.sessionMins) bits.push(pr.sessionMins + ' min per session');
-      if (pr.age) bits.push(pr.age + ' yrs');
+      const yrs = ageYears(pr);
+      if (yrs != null) bits.push(yrs + ' yrs');
       if (pr.sex) bits.push(pr.sex);
       if (pr.heightCm) bits.push(pr.heightCm + ' cm');
       const bf = navyBodyFat(pr);

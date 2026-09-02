@@ -53,6 +53,20 @@
     ? Math.round(8 + items.reduce((a, it) => a + it.sets * 2.5, 0))
     : 0;
 
+  const MONTHS3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  /* current age from profile.birth ('YYYY-MM'); profiles from before the
+     birth-date change fall back to their stored age number */
+  function ageYears(pr) {
+    if (pr && /^\d{4}-\d{2}$/.test(String(pr.birth || ''))) {
+      const [y, m] = pr.birth.split('-').map(Number);
+      const now = new Date();
+      let a = now.getFullYear() - y;
+      if (now.getMonth() + 1 < m) a--;
+      return Math.max(0, Math.min(120, a));
+    }
+    return pr && pr.age != null && Number.isFinite(+pr.age) ? +pr.age : null;
+  }
+
   /* Settings — one page with everything on it, no rows that open more rows. */
   function openAbout() { sDraft = null; abTape = 'heightCm'; show('about'); renderAbout(); }
 
@@ -181,14 +195,44 @@
         k => { sDraft.sex = k; renderAbout(); }, 'you-seg'),
       'Only used for the body-fat estimate', lockFor('sex', 'male'));
 
-    const ageOut = el('div', 'ab-val' + (pr.age != null ? '' : ' unset'),
-      (pr.age != null ? pr.age : 30) + ' yrs');
-    const ageR = rulerScale({
-      value: pr.age != null ? +pr.age : 30, step: 1, tickW: 34, span: 14, min: 12,
-      labelEvery: 1, majorEvery: 5, dragOnly: true, cls: 'dense',
-      onChange: v => { sDraft.age = v; ageOut.textContent = v + ' yrs'; ageOut.classList.remove('unset'); }
-    });
-    card('age', 'Age', ageOut, ageR.el, null, lockFor('age', 30));
+    /* Born, not "age": a birth date never goes stale — the shown years keep
+       themselves current. Month + year is precise enough for an age and one
+       question less than a full date. A profile from before this change only
+       carries age; that seeds the year wheel until the person corrects it. */
+    const NOWY = new Date().getFullYear();
+    const bYears = []; for (let y = NOWY - 10; y >= NOWY - 90; y--) bYears.push(y);
+    const seeded = pr.birth || (pr.age != null ? (NOWY - +pr.age) + '-01' : null);
+    let [by, bm] = (seeded || (NOWY - 30) + '-06').split('-').map(Number);
+    const bornSet = pr.birth != null || pr.age != null;
+    const bornOut = el('div', 'ab-val' + (bornSet ? '' : ' unset'),
+      (ageYears({ birth: by + '-' + String(bm).padStart(2, '0') }) ?? 30) + ' yrs');
+    const bornHint = el('div', 'ab-hint', bornSet
+      ? MONTHS3[bm - 1] + ' ' + by + ' — the age keeps itself current'
+      : 'Pick month and year — the age keeps itself current');
+    const setBirth = () => {
+      sDraft.birth = by + '-' + String(bm).padStart(2, '0');
+      sDraft.age = ageYears(sDraft);        // older readers still see a number
+      bornOut.textContent = sDraft.age + ' yrs';
+      bornOut.classList.remove('unset');
+      bornHint.textContent = MONTHS3[bm - 1] + ' ' + by + ' — the age keeps itself current';
+    };
+    const bornWheels = el('div', 'cd-wheels jump-wheels');
+    const bmCol = el('div', 'cd-col');
+    bmCol.appendChild(el('div', 'micro', 'Month'));
+    bmCol.appendChild(pickerWheel(MONTHS3, bm - 1, i => { bm = i + 1; setBirth(); },
+      'short', null, null, null, 'Birth month'));
+    const byCol = el('div', 'cd-col');
+    byCol.appendChild(el('div', 'micro', 'Year'));
+    byCol.appendChild(pickerWheel(bYears.map(String), Math.max(0, bYears.indexOf(by)),
+      i => { by = bYears[i]; setBirth(); }, 'short', null, null, null, 'Birth year'));
+    bornWheels.appendChild(bmCol); bornWheels.appendChild(byCol);
+    card('birth', 'Born', bornOut, bornWheels, null, {
+      on: bornSet, dflt: (NOWY - 30) + '-06',
+      toggle: () => {
+        if (bornSet) { delete sDraft.birth; delete sDraft.age; }
+        else { sDraft.birth = (NOWY - 30) + '-06'; sDraft.age = ageYears(sDraft); }
+      }
+    }).appendChild(bornHint);
 
     /* ---- the tape ----
        Height, waist and neck are the same action with the tape in three
