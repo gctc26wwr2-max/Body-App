@@ -177,7 +177,7 @@
   function sparkSVG(vals, w = 68, h = 24) {
     if (vals.length < 2) {
       return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">` +
-        `<circle cx="${w - 6}" cy="${h / 2}" r="3" fill="#CE6B3D"/></svg>`;
+        `<circle cx="${w - 6}" cy="${h / 2}" r="3" fill="${ACC}"/></svg>`;
     }
     const lo = Math.min(...vals), hi = Math.max(...vals);
     const X = i => 3 + i / (vals.length - 1) * (w - 10);
@@ -185,9 +185,9 @@
     const d = smoothPath(vals.map((v, i) => [X(i), Y(v)]));
     const area = d + ` L${X(vals.length - 1).toFixed(1)} ${h - 2} L${X(0).toFixed(1)} ${h - 2} Z`;
     return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">` +
-      `<path d="${area}" fill="rgba(206,107,61,.12)"/>` +
-      `<path d="${d}" fill="none" stroke="#CE6B3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` +
-      `<circle cx="${X(vals.length - 1).toFixed(1)}" cy="${Y(vals[vals.length - 1]).toFixed(1)}" r="3" fill="#CE6B3D" stroke="#151110" stroke-width="1.5"/></svg>`;
+      `<path d="${area}" fill="rgba(${accRGB()},.12)"/>` +
+      `<path d="${d}" fill="none" stroke="${ACC}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` +
+      `<circle cx="${X(vals.length - 1).toFixed(1)}" cy="${Y(vals[vals.length - 1]).toFixed(1)}" r="3" fill="${ACC}" stroke="#151110" stroke-width="1.5"/></svg>`;
   }
 
   /* ============================================================

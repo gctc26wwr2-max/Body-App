@@ -4,7 +4,7 @@
    part loaded after this one. Load order is index.html's script order.
    Map of what lives where: FUNCTIONS.md */
 'use strict';
-  const APP_VERSION = 'v322';
+  const APP_VERSION = 'v323';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -107,6 +107,39 @@
     mach: [[1, 0.5], [2.5, 1], [5, 2.5], [10, 5], [15, 7.5], [20, 10]],
     bar: [[1, 0.5], [2.5, 1.25], [5, 2.5], [10, 5], [20, 10]]
   };
+
+  /* ---------------- accent ----------------
+     One colour runs the whole app. The stylesheet leans on --lime and
+     friends; the JS-built SVGs use ACC. applyAccent() points both at the
+     chosen swatch — pass a key to preview, no argument to follow whatever
+     the saved profile says. */
+  const ACCENTS = [
+    { key: 'clay', label: 'Clay', hex: '#CE6B3D' },
+    { key: 'moss', label: 'Moss', hex: '#9AA84E' },
+    { key: 'sea', label: 'Sea', hex: '#4E9FA8' },
+    { key: 'sky', label: 'Sky', hex: '#6B8FCE' },
+    { key: 'orchid', label: 'Orchid', hex: '#B06BCE' },
+    { key: 'ember', label: 'Ember', hex: '#CE4B55' }
+  ];
+  let ACC = '#CE6B3D';
+  const hexRGB = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const mixHex = (a, b, t) => {
+    const A = hexRGB(a), B = hexRGB(b);
+    return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+  };
+  const accRGB = () => hexRGB(ACC).join(',');
+  function applyAccent(key) {
+    const a = ACCENTS.find(x => x.key === (key ?? getProfile().accent)) || ACCENTS[0];
+    ACC = a.hex;
+    const s = document.documentElement.style;
+    s.setProperty('--lime', ACC);
+    s.setProperty('--acc-rgb', accRGB());
+    s.setProperty('--lime-bg', `rgba(${accRGB()},.08)`);
+    s.setProperty('--lime-border', `rgba(${accRGB()},.30)`);
+    s.setProperty('--lime-dim', mixHex(ACC, '#000000', .15));
+    s.setProperty('--lime-pale', mixHex(ACC, '#FFFFFF', .18));
+    return a;
+  }
 
   const wRound = kg => {
     const step = wBump();
@@ -381,11 +414,11 @@
       + '<stop offset="0" stop-color="#3A2115"/><stop offset="1" stop-color="#140E0B"/>'
       + '</radialGradient>'
       + '<linearGradient id="wmSun" x1="0" y1="0" x2="0" y2="1">'
-      + '<stop offset="0" stop-color="#E9A06C"/><stop offset="1" stop-color="#CE6B3D"/>'
+      + '<stop offset="0" stop-color="' + mixHex(ACC, '#FFFFFF', .3) + '"/><stop offset="1" stop-color="' + ACC + '"/>'
       + '</linearGradient>'
       + '</defs>'
       + '<rect width="52" height="52" fill="url(#wmSky)"/>'
-      + '<g stroke="#CE6B3D" stroke-width="1.8" stroke-linecap="round" opacity=".85">'
+      + '<g stroke="' + ACC + '" stroke-width="1.8" stroke-linecap="round" opacity=".85">'
       + '<path d="M26 8v4.4"/><path d="M13.6 13.6l3.1 3.1"/><path d="M38.4 13.6l-3.1 3.1"/>'
       + '<path d="M7.5 26h4.4"/><path d="M40.1 26h4.4"/>'
       + '</g>'

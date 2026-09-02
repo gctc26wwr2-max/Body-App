@@ -304,6 +304,18 @@ t('getProfile: non-object junk falls back to {}', () => {
   localStorage.clear();
 });
 
+/* ---------------- accent ---------------- */
+t('mixHex blends and applyAccent repaints the vars', () => {
+  eq(mixHex('#000000', '#ffffff', .5), '#808080');
+  eq(mixHex('#CE6B3D', '#000000', 0), '#ce6b3d');
+  localStorage.setItem('profile', JSON.stringify({ accent: 'sea' }));
+  const a = applyAccent();
+  eq(a.key, 'sea');
+  eq(document.documentElement.style.getPropertyValue('--lime'), '#4E9FA8');
+  localStorage.clear();
+  eq(applyAccent().key, 'clay', 'default');
+});
+
 /* ---------------- mediaStore seam ---------------- */
 t('mediaStore: save → meta/url → remove round-trip', async () => {
   const f = new File(['x'.repeat(64)], 'clip.mp4', { type: 'video/mp4' });

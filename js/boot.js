@@ -285,6 +285,7 @@
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
 
+  applyAccent();
   migrate().then(() => {
     const lw = live.get();
     if (lw) { show('workout'); renderTab().then(renderWorkout); }

@@ -361,12 +361,12 @@
       `<text x="${padL - 5}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end" fill="#6A625A" font-size="9" font-family="Archivo, sans-serif">${(Math.round(v * 10) / 10)}</text>`
     ).join('');
     const dots = P.map((p, i) =>
-      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i === P.length - 1 ? 4 : 3}" fill="#CE6B3D" stroke="#151110" stroke-width="2"/>`
+      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i === P.length - 1 ? 4 : 3}" fill="${ACC}" stroke="#151110" stroke-width="2"/>`
     ).join('');
     return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;margin-top:12px" role="img" aria-label="Body weight over time">
       ${grid}
-      <path d="${area}" fill="rgba(206,107,61,.12)"/>
-      <path d="${line}" fill="none" stroke="#CE6B3D" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="${area}" fill="rgba(${accRGB()},.12)"/>
+      <path d="${line}" fill="none" stroke="${ACC}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       ${dots}
       <text x="${padL}" y="${H - 6}" fill="#6A625A" font-size="9" font-family="Archivo, sans-serif">${fmtD(x0)}</text>
       <text x="${W - padR}" y="${H - 6}" text-anchor="end" fill="#6A625A" font-size="9" font-family="Archivo, sans-serif">${fmtD(x1)}</text>
