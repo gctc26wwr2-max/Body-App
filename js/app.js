@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v307';
+  const APP_VERSION = 'v308';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -4784,7 +4784,7 @@
     { key: 'back', label: 'Lower back', avoid: ['spineload', 'hinge', 'spineflex', 'spinerot'] },
     { key: 'shoulder', label: 'Shoulder', avoid: ['overhead', 'shoulder'] },
     { key: 'knee', label: 'Knee', avoid: ['knee', 'impact'] },
-    { key: 'elbow', label: 'Elbow', avoid: ['elbow'] },
+    { key: 'elbow', label: 'Elbow', avoid: ['elbow', 'grip'] },   // heavy grip loads the epicondyles
     { key: 'wrist', label: 'Wrist', avoid: ['wrist'] },
     { key: 'neck', label: 'Neck', avoid: ['neck', 'spineflex'] },
     { key: 'hip', label: 'Hip', avoid: ['hip', 'hinge'] },
