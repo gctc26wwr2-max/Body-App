@@ -331,6 +331,10 @@
      So W1 and the last week stay anchored under their endpoints in every
      state, instead of dodging the ring when it lands on an end node. */
   function blockArcSVG(total, doneCount, weeks) {
+    /* this string becomes innerHTML — every input must leave here numeric */
+    total = Math.max(1, Math.round(+total) || 1);
+    doneCount = Math.max(0, Math.round(+doneCount) || 0);
+    weeks = Math.max(1, Math.min(52, Math.round(+weeks) || 4));
     const R = 150, CX = 170, CY = 182;
     const pt = i => {
       const a = Math.PI - i * (Math.PI / Math.max(1, total - 1));
