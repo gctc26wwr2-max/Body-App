@@ -2178,9 +2178,7 @@ body { font-size: 0.8235rem; }
 .jump-wheels { margin-top: 10px; }
 .jump-wheels .cd-col:last-child { flex: 1; }
 .jump-wheels .pw { height: 8.2353rem; }
-.jump-wheels .pw-item { padding: 0 4px 0 8px; gap: 6px; }
-.jump-wheels .pw-slot { width: 12px; }
-.jump-wheels .pw-item i { width: 8px !important; }
-.jump-wheels .pw-item.sel i { width: 12px !important; }
-.jump-wheels .pw-ind { left: 8px; width: 12px; }
-.jump-wheels .pw-lbl { overflow: visible; text-overflow: clip; }
+.jump-wheels .pw-slot, .jump-wheels .pw-ind { display: none; }
+.jump-wheels .pw-item { padding: 0 4px; justify-content: center; }
+.jump-wheels .pw-lbl { flex: 0 1 auto; text-align: center; overflow: visible; text-overflow: clip; }
+.jump-wheels .micro { text-align: center; }
