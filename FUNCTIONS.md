@@ -1,15 +1,31 @@
-# Rackside — function inventory (v312)
+# Rackside — function inventory (v313)
 
-For code review in a Claude chat. Vanilla JS PWA, no build step. One IIFE in
-`js/app.js` holds nearly everything; data catalogues live in `js/library.js`
-and `js/plans.js`; `js/db.js` wraps IndexedDB; `sw.js` is the offline cache.
-Line numbers refer to v312.
+Vanilla JS PWA, no build step. The old 8,300-line `js/app.js` is split into
+14 plain scripts loaded in order from `index.html`; classic scripts share one
+global scope, so top-level `const`/`let`/`function` in an earlier file are
+visible to every later one — one namespace, zero build. Data catalogues live
+in `js/library.js` and `js/plans.js`; `js/db.js` wraps IndexedDB; `sw.js` is
+the offline cache. Each `###` heading below names the file that section
+lives in.
 
 ## File layout
 
 | File | Role |
 |---|---|
-| `js/app.js` | The app: all views, controls, domain logic (~8300 lines) |
+| `js/core.js` | APP_VERSION, shared state, DOM/format/unit helpers, a11y, training math, plan state, modals, navigation |
+| `js/today.js` | Today tab, progress arc, hero cards |
+| `js/workout.js` | Live session, hold timer, audio, rest timer |
+| `js/controls.js` | Faces/stars, drag/swipe, ruler, numpad, weight/time/rep scales, dial picker |
+| `js/plan.js` | Finish workout, summary, Plan tab, optionRail |
+| `js/settings.js` | Profile getters, About you, Settings (prefs) |
+| `js/profile.js` | Profile tab, bodyweight graph, reports, backup/restore |
+| `js/stats.js` | Stats tab, injuries + equipment filters, substitutions |
+| `js/planmaker.js` | Plan-maker wheels flow |
+| `js/cardio.js` | Cardio tab, pickerWheel, bezelDial watch |
+| `js/libviews.js` | Library shell, coaching content, ready-made blocks |
+| `js/ai.js` | AI import flow, segToggle, equipment picker, starter |
+| `js/detail.js` | Exercise detail, muscle panel, exercise form/media |
+| `js/boot.js` | Plan form editor, migrate(), boot sequence |
 | `js/db.js` | Tiny IndexedDB wrapper (`DB.all/get/put/del`, `DB.uid`) |
 | `js/library.js` | Data: exercise catalogue, demos, movement/stress tags, equipment, timed-exercise list |
 | `js/plans.js` | Data: 57 ready-made training blocks (`window.READY_PLANS`) |
@@ -23,234 +39,234 @@ cardio, media`; localStorage holds `profile`, `equip`, `injuries(+On)`,
 
 ---
 
-## js/app.js
+## App sections (per file)
 
-### DOM & formatting utilities
-- `el(tag, cls, txt)` L8 — element factory used everywhere
-- `svgIcon(path, size, fill)` L18 — inline SVG from a path string
-- `todayStr()` L47 — local date as `YYYY-MM-DD`
-- `dateOf(s)` L51 — parse a date string at local midnight
-- `fmtClock(s)` L52 — seconds → `m:ss`
-- `fmtKg(v)` L56 — number → trimmed string (no unit)
+### DOM & formatting utilities — `core.js`
+- `el(tag, cls, txt)` — element factory used everywhere
+- `svgIcon(path, size, fill)` — inline SVG from a path string
+- `todayStr()` — local date as `YYYY-MM-DD`
+- `dateOf(s)` — parse a date string at local midnight
+- `fmtClock(s)` — seconds → `m:ss`
+- `fmtKg(v)` — number → trimmed string (no unit)
 
-### Units (kg/lb honesty layer)
-- `wUnit() / toW / fromW / fmtWn / fmtW` L62–66 — active unit, kg↔display conversion, formatting
-- `wStep()` L67 — ruler tick (0.5 kg or 1 lb)
-- `wPlates()` L68 — quick-add chip sizes per unit
-- `wBump()` L69 — generic nudge expressed in kg
-- `jumpKind(ex)` L81 — classify exercise → `db | mach | bar`
-- `jumpKg(ex)` L87 — configured progression jump (kg) for that kind
-- `jumpW / jumpBase / jumpLabel` L96–100 — the jump in on-screen units; lb users climb in real plate steps (`KG2LB_JUMP`), never converted decimals
-- `wRound(kg)` L108 — snap a weight to the rack's step
-- `weekStartDow / dowFrom / weekStripOff` L116–118 — user-chosen week start (any weekday) → strip math
-- `hUnit / fmtH` L120–121 — height units
+### Units (kg/lb honesty layer) — `core.js`
+- `wUnit() / toW / fromW / fmtWn / fmtW` — active unit, kg↔display conversion, formatting
+- `wStep()` — ruler tick (0.5 kg or 1 lb)
+- `wPlates()` — quick-add chip sizes per unit
+- `wBump()` — generic nudge expressed in kg
+- `jumpKind(ex)` — classify exercise → `db | mach | bar`
+- `jumpKg(ex)` — configured progression jump (kg) for that kind
+- `jumpW / jumpBase / jumpLabel` — the jump in on-screen units; lb users climb in real plate steps (`KG2LB_JUMP`), never converted decimals
+- `wRound(kg)` — snap a weight to the rack's step
+- `weekStartDow / dowFrom / weekStripOff` — user-chosen week start (any weekday) → strip math
+- `hUnit / fmtH` — height units
 
-### Accessibility & onboarding
-- `a11ySlider(wrap, o)` L133 — retrofits slider role, aria-value*, tabIndex, Arrow-key stepping onto any custom drag control; returns a repaint fn
-- `coachSeen(k)` L161 — one-shot coach-mark flag
-- `coachMark(anchor, text, key)` L162 — first-run hint bubble, shown once
+### Accessibility & onboarding — `core.js`
+- `a11ySlider(wrap, o)` — retrofits slider role, aria-value*, tabIndex, Arrow-key stepping onto any custom drag control; returns a repaint fn
+- `coachSeen(k)` — one-shot coach-mark flag
+- `coachMark(anchor, text, key)` — first-run hint bubble, shown once
 
-### Training math
-- `est1RM(kg, reps)` L185 — Epley estimate
-- `isAssisted(ex)` L188 — assisted machines: less weight = more achievement (flag or name match)
-- `isTimedEx(ex)` L191 — measured in seconds, not reps (`TIMED_EXERCISES` or notes)
-- `suggestion(sets, ex)` L194 — next-weight advice from last session (inverted wording/direction for assisted)
-- `applySuggestion(sets, nextKg)` L211 — write advice into working (not warm-up) sets
-- `repTone(set)` L214 — colour class for a rep result vs target
-- `plateMath(totalKg, barKg)` L220 — per-side plate breakdown (float-tolerant)
-- `plateLine(kg)` L234 — human plate string; 20 kg / 45 lb bars
-- `isBarbell(ex)` L245
+### Training math — `core.js`
+- `est1RM(kg, reps)` — Epley estimate
+- `isAssisted(ex)` — assisted machines: less weight = more achievement (flag or name match)
+- `isTimedEx(ex)` — measured in seconds, not reps (`TIMED_EXERCISES` or notes)
+- `suggestion(sets, ex)` — next-weight advice from last session (inverted wording/direction for assisted)
+- `applySuggestion(sets, nextKg)` — write advice into working (not warm-up) sets
+- `repTone(set)` — colour class for a rep result vs target
+- `plateMath(totalKg, barKg)` — per-side plate breakdown (float-tolerant)
+- `plateLine(kg)` — human plate string; 20 kg / 45 lb bars
+- `isBarbell(ex)`
 
-### Block/plan state
-- `planWeek(plan)` L247 — calendar week since start
-- `progressWeek(plan)` L252 — first week whose days aren't all done
-- `isDeloadWeek(plan, wk)` L266
-- `weekOf(plan)` L269 — the week shown to the user
-- `planFinished / activePlan / queuedPlans` L273–280
-- `promoteQueued()` L283 — auto-start the next queued block when one finishes
-- `blockNumber(plan)` L294 — ordinal by creation
+### Block/plan state — `core.js`
+- `planWeek(plan)` — calendar week since start
+- `progressWeek(plan)` — first week whose days aren't all done
+- `isDeloadWeek(plan, wk)`
+- `weekOf(plan)` — the week shown to the user
+- `planFinished / activePlan / queuedPlans`
+- `promoteQueued()` — auto-start the next queued block when one finishes
+- `blockNumber(plan)` — ordinal by creation
 
-### Media & modals
-- `mediaURL(id)` L303 — object URL for a stored photo/video
-- `demoEl / thumbFor / warmMark / animFor` L311–357 — exercise imagery helpers
-- `appConfirm({...})` L364 — promise-based confirm modal
-- `askOnClose({what, save, leave})` L386 — Save / Discard / Keep editing on dirty close
-- `appChoose({...})` L402 — n-way modal
-- `openSheet / closeSheets / dismissSheet` L425–428 — bottom sheets
+### Media & modals — `core.js`
+- `mediaURL(id)` — object URL for a stored photo/video
+- `demoEl / thumbFor / warmMark / animFor` — exercise imagery helpers
+- `appConfirm({...})` — promise-based confirm modal
+- `askOnClose({what, save, leave})` — Save / Discard / Keep editing on dirty close
+- `appChoose({...})` — n-way modal
+- `openSheet / closeSheets / dismissSheet` — bottom sheets
 
-### Navigation & Today
-- `show(view)` L442 — switch views, manage tabbar
-- `renderTab()` L455 — load DB, run one-time migrations (`timedMig1`), route to the active tab
-- `renderToday()` L488 — Today tab: hero, week strip, day cards, empty states
-- `blockArcSVG(total, done, weeks)` L812 — progress arc with week labels along the legs
-- `resumePlan(plan)` L848
-- `weekStreak(workouts)` L860
-- `heroTop / heroStat / pairCard / sameWeek` L876–896
+### Navigation & Today — `core.js + today.js`
+- `show(view)` — switch views, manage tabbar
+- `renderTab()` — load DB, run one-time migrations (`timedMig1`), route to the active tab
+- `renderToday()` — Today tab: hero, week strip, day cards, empty states
+- `blockArcSVG(total, done, weeks)` — progress arc with week labels along the legs
+- `resumePlan(plan)`
+- `weekStreak(workouts)`
+- `heroTop / heroStat / pairCard / sameWeek`
 
-### Live workout
-- `restDefault()` L914 — session rest length from profile
-- `wElapsed(lw)` L924 — elapsed minus paused time
-- `pauseWorkout / paintPausePop / closePausePop / resumeWorkout` L927–991
-- `fmtRange(lo, hi)` L1009
-- `startWorkout(plan, dayIndex)` L1011 — build `liveWorkout` (warm-up sets from rotating pools, carry-forward weights per kind)
-- `renderWorkout()` L1165 — the live session screen
-- `exerciseCard(lw, cur, ei, sessions)` L1292 — one exercise: sets, scales, advice, kit-gap tags (~390 lines, the biggest function)
-- `cancelHold / closeHoldPop / toggleHold(exIdx, si)` L1684–1699 — timed-set hold countdown
-- `stepper(set, key, step, onChange)` L1857 — ± stepper row
+### Live workout — `workout.js`
+- `restDefault()` — session rest length from profile
+- `wElapsed(lw)` — elapsed minus paused time
+- `pauseWorkout / paintPausePop / closePausePop / resumeWorkout`
+- `fmtRange(lo, hi)`
+- `startWorkout(plan, dayIndex)` — build `liveWorkout` (warm-up sets from rotating pools, carry-forward weights per kind)
+- `renderWorkout()` — the live session screen
+- `exerciseCard(lw, cur, ei, sessions)` — one exercise: sets, scales, advice, kit-gap tags (~390 lines, the biggest function)
+- `cancelHold / closeHoldPop / toggleHold(exIdx, si)` — timed-set hold countdown
+- `stepper(set, key, step, onChange)` — ± stepper row
 
-### Audio & haptics
-- `ensureAudio / tone / tickBeep` L1897–1913 — WebAudio graph
-- `bezelClick()` L1921 — 15 ms filtered-noise ratchet for wheels/bezel
-- `alertOf / alertKey / playAlert / buildBeepAudio / beep` L1958–2009 — rest-end alert sounds (incl. background `<audio>` fallback)
-- `haptic()` L2139 — vibrate if supported
+### Audio & haptics — `workout.js`
+- `ensureAudio / tone / tickBeep` — WebAudio graph
+- `bezelClick()` — 15 ms filtered-noise ratchet for wheels/bezel
+- `alertOf / alertKey / playAlert / buildBeepAudio / beep` — rest-end alert sounds (incl. background `<audio>` fallback)
+- `haptic()` — vibrate if supported
 
-### Rest timer
-- `startRest / stopRest / armRestTick / restTick` L2023–2073 — persisted countdown, ticks, auto-alert
-- `updatePill(justDone)` L2107 — floating rest/session pill
-- `setDelta(cur, si)` L2128 — vs-last-time delta chip
+### Rest timer — `workout.js`
+- `startRest / stopRest / armRestTick / restTick` — persisted countdown, ticks, auto-alert
+- `updatePill(justDone)` — floating rest/session pill
+- `setDelta(cur, si)` — vs-last-time delta chip
 
-### Icons & touch primitives
-- `feelIcon / starIcon / starRow` L2156–2205 — session-feel and difficulty widgets
-- `dragReorder(container, rowSel, onDrop, prep)` L2225 — long-press row reorder
-- `swipeToRemove(row, onRemove)` L2283
-- `gripEl(title)` L2326
+### Icons & touch primitives — `controls.js`
+- `feelIcon / starIcon / starRow` — session-feel and difficulty widgets
+- `dragReorder(container, rowSel, onDrop, prep)` — long-press row reorder
+- `swipeToRemove(row, onRemove)`
+- `gripEl(title)`
 
-### Custom controls (the app's signature widgets)
-- `rulerScale(opts)` L2341 — horizontal drag ruler; off-grid rebase, label/unit, a11y slider
-- `paintReadout(big, text)` L2491
-- `openNumPad(opts)` L2502 — tap-to-type door used by every scale
-- `weightScale / timeScale / repScale` L2543–2672 — per-set weight, seconds, reps editors built on the ruler/strip
-- `inlineRest(lw, cur)` L2779 — in-session rest nudge row
-- `openDialPicker / renderDialPicker` L2866–2878 — full-screen dial chooser
-- `optionRail(labels, index, onChange, tickW, clicky, ariaLabel)` L3398 — horizontal inertial rail (russian-roulette coast, bezel clicks, a11y)
-- `pickerWheel(labels, index, onChange, cls, tickFor, onTap, onDetent, ariaLabel)` L5684 — vertical wheel; per-detent live callbacks, a11y
-- `bezelDial(opts)` L5837 — Sea-Dweller cardio watch: turnable bezel, inner running dial, centre-tap numpad, dead-zone guard, a11y
-- `segToggle(items, activeKey, onPick, extra)` L7286 — segmented control
+### Custom controls (the app's signature widgets) — `controls.js; optionRail in plan.js, pickerWheel/bezelDial in cardio.js, segToggle in ai.js`
+- `rulerScale(opts)` — horizontal drag ruler; off-grid rebase, label/unit, a11y slider
+- `paintReadout(big, text)`
+- `openNumPad(opts)` — tap-to-type door used by every scale
+- `weightScale / timeScale / repScale` — per-set weight, seconds, reps editors built on the ruler/strip
+- `inlineRest(lw, cur)` — in-session rest nudge row
+- `openDialPicker / renderDialPicker` — full-screen dial chooser
+- `optionRail(labels, index, onChange, tickW, clicky, ariaLabel)` — horizontal inertial rail (russian-roulette coast, bezel clicks, a11y)
+- `pickerWheel(labels, index, onChange, cls, tickFor, onTap, onDetent, ariaLabel)` — vertical wheel; per-detent live callbacks, a11y
+- `bezelDial(opts)` — Sea-Dweller cardio watch: turnable bezel, inner running dial, centre-tap numpad, dead-zone guard, a11y
+- `segToggle(items, activeKey, onPick, extra)` — segmented control
 
-### Workout finish & summary
-- `finishWorkout()` L2991 — score, save session+workout, advance block
-- `renderSummary(w, plan)` L3094 — post-session screen
-- `sumCard(v, l)` L3161
+### Workout finish & summary — `plan.js`
+- `finishWorkout()` — score, save session+workout, advance block
+- `renderSummary(w, plan)` — post-session screen
+- `sumCard(v, l)`
 
-### Plan tab
-- `renderPlanTab()` L3171 — block overview, week rows, queue, finish/abandon
+### Plan tab — `plan.js`
+- `renderPlanTab()` — block overview, week rows, queue, finish/abandon
 
-### Profile, settings, about
-- `getProfile / setProfile` L3545–3548
-- `goalOf()` L3553
-- `navyBodyFat(pr)` L3557 — US Navy estimate
-- `dayMinutes(items)` L3572 — session length estimate
-- `openAbout / renderAbout` L3577–3582 — About you (tape measures, goals)
-- `openPrefs / renderPrefs` L3852–3854 — Settings: rest, sound, equipment count, focus, weight-jump wheels, units, week start; draft + save-on-close
-- `renderProfile()` L4096 — profile tab: identity, bodyweight card+graph, data & backup controls
-- `smoothPath(P)` L4305 — Catmull-Rom-ish path
-- `bwGraphSVG(entries)` L4333
+### Profile, settings, about — `settings.js; renderProfile in profile.js`
+- `getProfile / setProfile`
+- `goalOf()`
+- `navyBodyFat(pr)` — US Navy estimate
+- `dayMinutes(items)` — session length estimate
+- `openAbout / renderAbout` — About you (tape measures, goals)
+- `openPrefs / renderPrefs` — Settings: rest, sound, equipment count, focus, weight-jump wheels, units, week start; draft + save-on-close
+- `renderProfile()` — profile tab: identity, bodyweight card+graph, data & backup controls
+- `smoothPath(P)` — Catmull-Rom-ish path
+- `bwGraphSVG(entries)`
 
-### Reports, backup, reset
-- `shareReport / trainingReport` L4363–4375 — plain-text training summary for a Claude chat
-- `backupData()` L4593 — export JSON stamped `version: BACKUP_SCHEMA` + `appVersion`
-- `restoreData(fileBlob)` L4619 — validate, refuse newer-schema files, walk `BACKUP_MIGRATIONS` ladder (v5→6: machine-bucket split, timed reps→seconds), merge by id
-- `resetHistory()` L4648 — wipe sessions/workouts, keep exercises/blocks
-- `agoDays(ds)` L4662
+### Reports, backup, reset — `profile.js`
+- `shareReport / trainingReport` — plain-text training summary for a Claude chat
+- `backupData()` — export JSON stamped `version: BACKUP_SCHEMA` + `appVersion`
+- `restoreData(fileBlob)` — validate, refuse newer-schema files, walk `BACKUP_MIGRATIONS` ladder (v5→6: machine-bucket split, timed reps→seconds), merge by id
+- `resetHistory()` — wipe sessions/workouts, keep exercises/blocks
+- `agoDays(ds)`
 
-### Stats
-- `renderStats()` L4671 — trends, PRs (min-help for assisted), attendance
-- `sparkSVG(vals, w, h)` L4839
+### Stats — `stats.js`
+- `renderStats()` — trends, PRs (min-help for assisted), attendance
+- `sparkSVG(vals, w, h)`
 
-### Injuries & equipment filters
-- `getInjuries / setInjuries / injEnabled` L4901–4906
-- `equipKeys / getEquip / setEquip` L4910–4932 — kit set; one-time `equipV2` machine split
-- `equipOf(ex)` L4933 — kit an exercise needs (map + regex inference)
-- `equipOK(ex)` L4942 — available with current kit?
-- `moveOf / patternOf / stressOf` L4951–4960 — movement pattern + stress tags
-- `injuryTags()` L4962 — flagged areas → avoid-tag set
-- `isRisky(ex, tags)` L4969 — stress ∩ avoid (the injury filter; see INJURY-FLAGS-REVIEW.md)
-- `substituteFor(ex, allowed)` L4974 — same-pattern safe swap
-- `demoSlug / showMove` L4988–4990 — demo viewer
+### Injuries & equipment filters — `stats.js`
+- `getInjuries / setInjuries / injEnabled`
+- `equipKeys / getEquip / setEquip` — kit set; one-time `equipV2` machine split
+- `equipOf(ex)` — kit an exercise needs (map + regex inference)
+- `equipOK(ex)` — available with current kit?
+- `moveOf / patternOf / stressOf` — movement pattern + stress tags
+- `injuryTags()` — flagged areas → avoid-tag set
+- `isRisky(ex, tags)` — stress ∩ avoid (the injury filter; see INJURY-FLAGS-REVIEW.md)
+- `substituteFor(ex, allowed)` — same-pattern safe swap
+- `demoSlug / showMove` — demo viewer
 
-### Plan maker
-- `orderRank / sortDayHardestFirst` L5048–5058 — compounds first
-- `pmExerciseList()` L5066 — searchable, kit- and injury-aware pool
-- `openPlanMaker / renderPlanMaker` L5075–5089 — three wheels (sets / exercise / reps-or-seconds), difficulty line repaints per detent
-- `createPlanFromMaker()` L5471
+### Plan maker — `planmaker.js`
+- `orderRank / sortDayHardestFirst` — compounds first
+- `pmExerciseList()` — searchable, kit- and injury-aware pool
+- `openPlanMaker / renderPlanMaker` — three wheels (sets / exercise / reps-or-seconds), difficulty line repaints per detent
+- `createPlanFromMaker()`
 
-### Cardio
-- `actsFor / metOf / mulOf` L5553–5559 — activities, MET values, effort multiplier
-- `progsFor(act)` L5656 — per-activity program rails with activity-specific time targets
-- `cardioKcal(met, mins, kg, effort)` L5661 / `liftKcal` L5671
-- `renderCardio()` L6017 — activity/program rails + bezel-dial watch; manual turn resets Program to None; Start disabled at 0
-- `finishCardio(auto)` L6302 — save, kcal, streak
+### Cardio — `cardio.js`
+- `actsFor / metOf / mulOf` — activities, MET values, effort multiplier
+- `progsFor(act)` — per-activity program rails with activity-specific time targets
+- `cardioKcal(met, mins, kg, effort)` / `liftKcal`
+- `renderCardio()` — activity/program rails + bezel-dial watch; manual turn resets Program to None; Start disabled at 0
+- `finishCardio(auto)` — save, kcal, streak
 
-### Exercise library & detail
-- `loadContent / contentIdFor / contentFor` L6346–6395 — coaching notes lookup
-- `hardshipOf / hardChip / addHardship` L6421–6450 — difficulty labels (plain wording)
-- `renderLibrary()` L6462 — library tab shell
-- `planItemRow(it, from)` L6503
-- `renderMasterNew(root)` L6525 — "start a block" chooser
-- `contentForDetail / muscleSets / musclePanel` L7567–7592 — muscle-map panel
-- `blockMembership(ex)` L7641 — which blocks use this move
-- `openDetail(exId, from)` L7706 — exercise detail: history, PRs, demo, media
-- `detStat / goBackFromDetail` L7874–7882
-- `openExerciseForm(ex)` L7892 — custom exercise form (incl. assisted flag, timed detection)
-- `renderMediaPreview()` L7917 — attach photos/videos
+### Exercise library & detail — `libviews.js + detail.js`
+- `loadContent / contentIdFor / contentFor` — coaching notes lookup
+- `hardshipOf / hardChip / addHardship` — difficulty labels (plain wording)
+- `renderLibrary()` — library tab shell
+- `planItemRow(it, from)`
+- `renderMasterNew(root)` — "start a block" chooser
+- `contentForDetail / muscleSets / musclePanel` — muscle-map panel
+- `blockMembership(ex)` — which blocks use this move
+- `openDetail(exId, from)` — exercise detail: history, PRs, demo, media
+- `detStat / goBackFromDetail`
+- `openExerciseForm(ex)` — custom exercise form (incl. assisted flag, timed detection)
+- `renderMediaPreview()` — attach photos/videos
 
-### Ready-made blocks
-- `readyKitGap(plan)` L6597 — moves needing kit you switched off
-- `installReady(plan)` L6610
-- `openReadySheet / readyCover / readyName` L6627–6711 — picture-card shelves + detail sheet
-- `renderMasterReady(root)` L6713
+### Ready-made blocks — `libviews.js`
+- `readyKitGap(plan)` — moves needing kit you switched off
+- `installReady(plan)`
+- `openReadySheet / readyCover / readyName` — picture-card shelves + detail sheet
+- `renderMasterReady(root)`
 
-### AI import
-- `aiPool()` L6846 — exercises the prompt may use (kit-aware)
-- `focusToggle / focusLabels / focusPicker` L6870–6881
-- `aiDaysDefault()` L6926
-- `buildPlanPrompt()` L6934 — the copyable prompt: goals, kit, injuries, history trends, PRs, attendance
-- `aiNorm / matchExercise` L6977–6983 — fuzzy name → catalogue match
-- `aiReps(v, fallback)` L7007
-- `aiCarveJSON(text)` L7019 — dig the JSON block out of a chat reply
-- `parseBlockReply(raw)` L7038 — validate/normalise an imported block
-- `createPlanFromImport(block)` L7085 — install (kit-gap tags on unavailable moves)
-- `renderMasterAI(root)` L7123 — the AI flow UI
+### AI import — `ai.js`
+- `aiPool()` — exercises the prompt may use (kit-aware)
+- `focusToggle / focusLabels / focusPicker`
+- `aiDaysDefault()`
+- `buildPlanPrompt()` — the copyable prompt: goals, kit, injuries, history trends, PRs, attendance
+- `aiNorm / matchExercise` — fuzzy name → catalogue match
+- `aiReps(v, fallback)`
+- `aiCarveJSON(text)` — dig the JSON block out of a chat reply
+- `parseBlockReply(raw)` — validate/normalise an imported block
+- `createPlanFromImport(block)` — install (kit-gap tags on unavailable moves)
+- `renderMasterAI(root)` — the AI flow UI
 
-### Equipment picker & misc library
-- `equipPicker(after)` L7326 — photo rails with tick-all/untick-all
-- `renderMasterLib / renderLibList` L7434–7466
-- `installStarter()` L7518
-- `isCatalogName / isCustomEx / ensureExercise` L7545–7549 — custom-vs-catalogue identity
+### Equipment picker & misc library — `ai.js`
+- `equipPicker(after)` — photo rails with tick-all/untick-all
+- `renderMasterLib / renderLibList`
+- `installStarter()`
+- `isCatalogName / isCustomEx / ensureExercise` — custom-vs-catalogue identity
 
-### Plan form (manual editor)
-- `planDirty` L8013 / `openPlanForm(plan, template)` L8016 / `renderPlanDays()` L8056
-- `numIn(val, set)` L8122 — numeric input row
+### Plan form (manual editor) — `boot.js`
+- `planDirty` / `openPlanForm(plan, template)` / `renderPlanDays()`
+- `numIn(val, set)` — numeric input row
 
-### Boot
-- `migrate()` L8168 — seed/patch stored data on upgrade
-- `setWinH()` L8244 — real viewport height var
-- `checkUpdate()` L8268 — poll `version.json`, prompt reload
+### Boot — `boot.js`
+- `migrate()` — seed/patch stored data on upgrade
+- `setWinH()` — real viewport height var
+- `checkUpdate()` — poll `version.json`, prompt reload
 
 ---
 
 ## js/db.js
-- `open()` L7 — open `body-app-db`, create stores on upgrade
-- `tx(store, mode, fn)` L47 — one-transaction helper
-- `uid()` L58 — crypto UUID with fallback
+- `open()` — open `body-app-db`, create stores on upgrade
+- `tx(store, mode, fn)` — one-transaction helper
+- `uid()` — crypto UUID with fallback
 - returns `DB.{all, get, put, del, uid}`
 
 ## js/library.js (data, no logic)
-- `EXERCISE_LIBRARY` L3 — 183-move catalogue (name, group, notes)
-- `EXERCISE_DEMOS` L94 — demo slugs
-- `STARTER_BLOCK` L384
-- `MOVEMENTS` L420 — per-move `[pattern, ...stressTags]` (drives the injury filter)
-- `MOVE_FAMILY / MOVE_INFER / MOVE_BY_GROUP` L619–662 — substitution families + fallbacks
-- `TIMED_EXERCISES` L681 — 24 second-measured moves
-- `EQUIPMENT` L690 — 34 kit keys (9 named machines)
-- `EXERCISE_EQUIP / EQUIP_INFER` L727, L919 — kit requirements per move
-- `CONTENT_*` L945+ — coaching-note lookups
+- `EXERCISE_LIBRARY` — 183-move catalogue (name, group, notes)
+- `EXERCISE_DEMOS` — demo slugs
+- `STARTER_BLOCK`
+- `MOVEMENTS` — per-move `[pattern, ...stressTags]` (drives the injury filter)
+- `MOVE_FAMILY / MOVE_INFER / MOVE_BY_GROUP` — substitution families + fallbacks
+- `TIMED_EXERCISES` — 24 second-measured moves
+- `EQUIPMENT` — 34 kit keys (9 named machines)
+- `EXERCISE_EQUIP / EQUIP_INFER`, — kit requirements per move
+- `CONTENT_*` — coaching-note lookups
 
 ## js/plans.js (data)
-- `READY_PLANS` L4 — 57 ready blocks with cover art metadata
+- `READY_PLANS` — 57 ready blocks with cover art metadata
 
 ## sw.js
-- `install` — pre-cache `ASSETS` under `body-app-v312`
+- `install` — pre-cache `ASSETS` under `body-app-v313`
 - `activate` — drop old caches
 - `fetch` — cache-first, network fallback
 
