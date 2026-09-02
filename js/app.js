@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v310';
+  const APP_VERSION = 'v311';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -74,9 +74,9 @@
      plates — and every gym's rack is different, so Settings can re-pin each
      one. Stored in kg; shown in whatever unit you use. */
   const JUMP_KINDS = [
-    { key: 'db', label: 'Dumbbells & kettlebells', opts: [0.5, 1, 2, 2.5], def: 2 },
-    { key: 'mach', label: 'Machines & cables', opts: [1, 2.5, 5], def: 2.5 },
-    { key: 'bar', label: 'Barbell', opts: [1.25, 2.5, 5], def: 2.5 }
+    { key: 'db', label: 'Dumbbells & kettlebells', short: 'Dumbbell', opts: [0.5, 1, 1.25, 2, 2.5, 4, 5], def: 2 },
+    { key: 'mach', label: 'Machines & cables', short: 'Machine', opts: [0.5, 1, 1.25, 2, 2.5, 5, 7.5, 10], def: 2.5 },
+    { key: 'bar', label: 'Barbell', short: 'Barbell', opts: [0.5, 1, 1.25, 2.5, 5, 10], def: 2.5 }
   ];
   const jumpKind = ex => {
     const ks = equipOf(ex);
@@ -92,7 +92,7 @@
   /* the same jump in the unit on screen — lb racks move in their own steps,
      so a stored metric jump maps to the real plate next to it, never to a
      converted decimal */
-  const KG2LB_JUMP = { 0.5: 1, 1: 2.5, 1.25: 2.5, 2: 5, 2.5: 5, 5: 10 };
+  const KG2LB_JUMP = { 0.5: 1, 1: 2.5, 1.25: 2.5, 2: 5, 2.5: 5, 4: 10, 5: 10, 7.5: 15, 10: 20 };
   const jumpW = ex => (wUnit() === 'lb' ? (KG2LB_JUMP[jumpKg(ex)] || 5) : jumpKg(ex));
   /* one on-screen jump expressed in kg — what progression actually adds, so
      an lb lifter climbs in 5 lb, not in 2.5 kg dressed up as 5.51 */
@@ -100,9 +100,9 @@
   const jumpLabel = kgv => (wUnit() === 'lb' ? fmtKg(KG2LB_JUMP[kgv] || 5) : fmtKg(kgv)) + ' ' + wUnit();
   /* lb gyms rack lb options; stored value stays in kg so nothing else moves */
   const JUMP_LB_OPTS = {
-    db: [[1, 0.5], [2.5, 1], [5, 2]],
-    mach: [[2.5, 1], [5, 2.5], [10, 5]],
-    bar: [[2.5, 1.25], [5, 2.5], [10, 5]]
+    db: [[1, 0.5], [2.5, 1], [5, 2], [10, 4]],
+    mach: [[1, 0.5], [2.5, 1], [5, 2.5], [10, 5], [15, 7.5], [20, 10]],
+    bar: [[1, 0.5], [2.5, 1.25], [5, 2.5], [10, 5], [20, 10]]
   };
 
   const wRound = kg => {
@@ -3999,23 +3999,34 @@
           const panel = el('div', 'pref-panel');
           panel.appendChild(el('div', 'ab-hint',
             'How much one notch adds on the weight scale — set it to what your gym racks.'));
+          const wheels = el('div', 'cd-wheels jump-wheels');
+          const paintVal = () => {
+            const val = r.querySelector('.pref-val');
+            if (val) val.textContent = JUMP_KINDS.map(x =>
+              jumpLabel((pDraft.jumps || {})[x.key] > 0 ? +pDraft.jumps[x.key] : x.def).replace(' ' + wUnit(), '')).join(' · ');
+          };
           JUMP_KINDS.forEach(k => {
-            panel.appendChild(el('div', 'micro', k.label));
-            const cur3 = (pDraft.jumps || {})[k.key] > 0 ? +pDraft.jumps[k.key] : k.def;
+            const col = el('div', 'cd-col');
+            col.appendChild(el('div', 'micro', k.short));
             const opts = wUnit() === 'lb'
-              ? JUMP_LB_OPTS[k.key].map(([lb, kgv]) => [String(kgv), fmtKg(lb) + ' lb'])
-              : k.opts.map(o => [String(o), fmtKg(o) + ' kg']);
-            panel.appendChild(segToggle(
-              opts,
-              String(cur3),
-              v => {
-                pDraft.jumps = { ...(pDraft.jumps || {}) };
-                pDraft.jumps[k.key] = +v;
-                const val = r.querySelector('.pref-val');
-                if (val) val.textContent = JUMP_KINDS.map(x =>
-                  jumpLabel((pDraft.jumps || {})[x.key] > 0 ? +pDraft.jumps[x.key] : x.def).replace(' ' + wUnit(), '')).join(' · ');
-              }, 'you-seg'));
+              ? JUMP_LB_OPTS[k.key].map(([lb, kgv]) => ({ v: kgv, lbl: fmtKg(lb) }))
+              : k.opts.map(o => ({ v: o, lbl: fmtKg(o) }));
+            const cur3 = (pDraft.jumps || {})[k.key] > 0 ? +pDraft.jumps[k.key] : k.def;
+            /* a stored value the current unit's rack doesn't offer parks on
+               the nearest real option instead of nowhere */
+            let ix = opts.findIndex(o => o.v === cur3);
+            if (ix < 0) {
+              let bd = Infinity;
+              opts.forEach((o, i) => { const d = Math.abs(o.v - cur3); if (d < bd) { bd = d; ix = i; } });
+            }
+            col.appendChild(pickerWheel(opts.map(o => o.lbl + ' ' + wUnit()), ix, i => {
+              pDraft.jumps = { ...(pDraft.jumps || {}) };
+              pDraft.jumps[k.key] = opts[i].v;
+              paintVal();
+            }, 'short', null, null, null, k.label + ' jump'));
+            wheels.appendChild(col);
           });
+          panel.appendChild(wheels);
           list.appendChild(panel);
         }
         if (live === 'focus' && prefOpen === 'focus') {

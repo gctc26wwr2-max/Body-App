@@ -2173,3 +2173,14 @@ body { font-size: 0.8235rem; }
 .btn-cta:disabled { opacity: .35; pointer-events: none; }
 
 .wz [hidden] { display: none; }
+
+/* Weight-jump wheels — three equal columns, compact rows like pm-sets */
+.jump-wheels { margin-top: 10px; }
+.jump-wheels .cd-col:last-child { flex: 1; }
+.jump-wheels .pw { height: 8.2353rem; }
+.jump-wheels .pw-item { padding: 0 4px 0 8px; gap: 6px; }
+.jump-wheels .pw-slot { width: 12px; }
+.jump-wheels .pw-item i { width: 8px !important; }
+.jump-wheels .pw-item.sel i { width: 12px !important; }
+.jump-wheels .pw-ind { left: 8px; width: 12px; }
+.jump-wheels .pw-lbl { overflow: visible; text-overflow: clip; }
