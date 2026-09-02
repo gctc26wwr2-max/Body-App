@@ -403,13 +403,13 @@
         <circle cx="100" cy="15.5" r="5" fill="#101013" stroke="#8B8378" stroke-width="1.5"/>
         <circle cx="100" cy="15.5" r="2.9" fill="#EDE9E0"/>
       </g>
-      <path d="M100 10.5 L104.8 2.5 L95.2 2.5 Z" fill="#CE6B3D"/>
+      <path d="M100 10.5 L104.8 2.5 L95.2 2.5 Z" fill="${ACC}"/>
       <circle cx="100" cy="100" r="77.2" fill="none" stroke="#3A332C" stroke-width="1.3"/>
       <circle cx="100" cy="100" r="62" fill="#0E0B0A" stroke="#241E1A" stroke-width="1"/>
       <circle class="bz-track" cx="100" cy="100" r="${RA}" fill="none" stroke="#241E1A" stroke-width="3"/>
-      <circle class="bz-arc" cx="100" cy="100" r="${RA}" fill="none" stroke="#CE6B3D" stroke-width="3"
+      <circle class="bz-arc" cx="100" cy="100" r="${RA}" fill="none" stroke="${ACC}" stroke-width="3"
         stroke-linecap="round" stroke-dasharray="0 ${CA}" transform="rotate(-90 100 100)" display="none"/>
-      <g class="bz-sec" display="none"><circle cx="100" cy="${100 - RA}" r="3.4" fill="#CE6B3D"/></g>
+      <g class="bz-sec" display="none"><circle cx="100" cy="${100 - RA}" r="3.4" fill="${ACC}"/></g>
     </svg>`;
     const mid = el('div', 'wz-mid');
     const big = el('div', 'bz-min num', String(val));

@@ -358,7 +358,7 @@
       const a = Math.PI - i * (Math.PI / Math.max(1, total - 1));
       return [CX + R * Math.cos(a), CY - R * Math.sin(a)];
     };
-    const ramp = ['#8E5330', '#A05E36', '#B0663A', '#BF6E3E', '#CE6B3D'];
+    const ramp = [.31, .22, .15, .07, 0].map(t => mixHex(ACC, '#000000', t));
     let dots = '';
     for (let i = 0; i < total; i++) {
       const [x, y] = pt(i);
@@ -367,8 +367,8 @@
         const c = ramp[Math.min(ramp.length - 1, Math.floor(i / Math.max(1, total - 1) * ramp.length))];
         dots += `<circle cx="${X}" cy="${Y}" r="4" fill="${c}"/>`;
       } else if (i === doneCount) {
-        dots += `<circle cx="${X}" cy="${Y}" r="13" fill="#0B0908" stroke="#CE6B3D" stroke-width="2"/>`
-              + `<circle cx="${X}" cy="${Y}" r="6" fill="#CE6B3D"/>`;
+        dots += `<circle cx="${X}" cy="${Y}" r="13" fill="#0B0908" stroke="${ACC}" stroke-width="2"/>`
+              + `<circle cx="${X}" cy="${Y}" r="6" fill="${ACC}"/>`;
       } else {
         const op = Math.max(.10, .20 - (i - doneCount) * .015);
         dots += `<circle cx="${X}" cy="${Y}" r="3.5" fill="rgba(255,255,255,${op.toFixed(3)})"/>`;
@@ -376,7 +376,7 @@
     }
     const [px, py] = pt(Math.min(doneCount, total - 1));
     const prog = doneCount > 0
-      ? `<path d="M20 182 A150 150 0 0 1 ${px.toFixed(1)} ${py.toFixed(1)}" fill="none" stroke="#CE6B3D" stroke-width="2" stroke-linecap="round"/>`
+      ? `<path d="M20 182 A150 150 0 0 1 ${px.toFixed(1)} ${py.toFixed(1)}" fill="none" stroke="${ACC}" stroke-width="2" stroke-linecap="round"/>`
       : '';
     return `<svg viewBox="0 0 340 212" style="width:100%;height:auto;display:block" role="img" aria-label="Block progress">
       <path d="M20 182 A150 150 0 0 1 320 182" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5" stroke-dasharray="3 6"/>

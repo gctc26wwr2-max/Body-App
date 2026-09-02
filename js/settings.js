@@ -353,7 +353,7 @@
       ['kit', 'Equipment', 'kit'],
       ['aim', 'Muscle focus', 'focus'],
       ['plates', 'Weight jumps', 'jumps'],
-      ['theme', 'Theme'], ['units', 'Units', 'units'],
+      ['theme', 'Accent', 'accent'], ['units', 'Units', 'units'],
       ['cal', 'Week starts', 'wkstart']
     ] },
     { title: 'Apple', rows: [
@@ -384,7 +384,7 @@
     if (!pDraft) pDraft = { ...getProfile() };
     const saved = getProfile();
     const dirty = () => JSON.stringify(pDraft) !== JSON.stringify(saved);
-    const leave = () => { pDraft = null; show('profile'); renderTab(); };
+    const leave = () => { pDraft = null; applyAccent(); show('profile'); renderTab(); };
     /* the screen previews the draft, not what is stored */
     const dRest = () => { const v = +pDraft.restSec; return v >= 15 && v <= 900 ? v : 120; };
     const dSound = () => alertOf(pDraft.alertSound);
@@ -460,6 +460,16 @@
             !lbl2.length ? 'Balanced' : (lbl2.join(' · ').length <= 18 ? lbl2.join(' · ') : lbl2.length + ' picked')));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'focus' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'focus' ? null : 'focus'; renderPrefs(); };
+        } else if (live === 'accent') {
+          const cur = ACCENTS.find(x => x.key === pDraft.accent) || ACCENTS[0];
+          const val = el('span', 'pref-val');
+          const mini = el('i', 'acc-mini');
+          mini.style.background = cur.hex;
+          val.appendChild(mini);
+          val.appendChild(document.createTextNode(cur.label));
+          r.appendChild(val);
+          r.appendChild(el('span', 'pref-go' + (prefOpen === 'accent' ? ' open' : ''), '\u203a'));
+          r.onclick = () => { prefOpen = prefOpen === 'accent' ? null : 'accent'; renderPrefs(); };
         } else if (live === 'sound') {
           r.appendChild(el('span', 'pref-val', dSound().label));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'sound' ? ' open' : ''), '›'));
@@ -517,6 +527,26 @@
           panel.appendChild(el('div', 'ab-hint', off
             ? `${off} exercises need kit you have switched off`
             : 'Everything in the catalogue is available'));
+          list.appendChild(panel);
+        }
+        if (live === 'accent' && prefOpen === 'accent') {
+          const panel = el('div', 'pref-panel');
+          const rowEl = el('div', 'acc-row');
+          ACCENTS.forEach(a => {
+            const b = el('button', 'acc-dot' + ((pDraft.accent || 'clay') === a.key ? ' sel' : ''));
+            b.style.background = a.hex;
+            b.title = a.label;
+            b.setAttribute('aria-label', 'Accent ' + a.label);
+            b.onclick = () => {
+              pDraft.accent = a.key;
+              applyAccent(a.key);     /* live preview — leaving without Save snaps back */
+              haptic();
+              renderPrefs();
+            };
+            rowEl.appendChild(b);
+          });
+          panel.appendChild(rowEl);
+          panel.appendChild(el('div', 'ab-hint', 'Colours the whole app.'));
           list.appendChild(panel);
         }
         if (live === 'jumps' && prefOpen === 'jumps') {
