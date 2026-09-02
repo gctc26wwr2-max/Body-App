@@ -60,6 +60,7 @@ if (DB.persist) DB.persist = async () => {};
 <script src="js/profile.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/planmaker.js"></script>
+<script src="js/cardio.js"></script>
 <script src="js/ai.js"></script>
 
 <script>
@@ -261,6 +262,46 @@ t('restore: records without an id are skipped, valid ones kept', async () => {
   f.workouts = [{ notAnId: true }, null, { id: 'w1', date: '2026-01-01' }];
   await restoreData(backupBlob(f));
   eq((await DB.all('workouts')).map(w => w.id), ['w1']);
+});
+
+/* ---------------- guarded stored-state reads ---------------- */
+t('liveWorkout: corrupt or misshapen state is dropped, not thrown', () => {
+  for (const bad of ['{{{not json', '42', '[1,2]', '{"exs":"boom"}',
+    '{"exs":[{"sets":"x"}]}', '{"exs":[null]}', '"a string"']) {
+    localStorage.setItem('liveWorkout', bad);
+    eq(live.get(), null, 'get for ' + bad);
+    eq(localStorage.getItem('liveWorkout'), null, 'cleared for ' + bad);
+  }
+});
+t('liveWorkout: a real session round-trips', () => {
+  const lw = { planId: 'p1', dayIndex: 0, cur: 0, exs: [{ name: 'Squat', sets: [{ kg: 60, reps: 0 }] }] };
+  live.set(lw);
+  eq(live.get().exs[0].sets[0].kg, 60);
+  live.set(null);
+  eq(live.get(), null);
+});
+t('liveWorkout: a full save failure does not throw', () => {
+  const orig = localStorage.setItem;
+  localStorage.setItem = () => { throw new Error('QuotaExceededError'); };
+  try { live.set({ exs: [] }); } finally { localStorage.setItem = orig; }
+});
+t('liveCardio: paused sessions survive the shape check, garbage does not', () => {
+  localStorage.setItem('liveCardio', JSON.stringify({ act: 'Run', mins: 20, startedAt: null, acc: 300 }));
+  eq(liveCardio.get().acc, 300, 'paused kept');
+  localStorage.setItem('liveCardio', JSON.stringify({ act: 'Run', startedAt: Date.now() }));
+  eq(liveCardio.get(), null, 'no mins → dropped');
+  localStorage.setItem('liveCardio', '[[[');
+  eq(liveCardio.get(), null, 'corrupt → dropped');
+  eq(localStorage.getItem('liveCardio'), null, 'corrupt → cleared');
+});
+t('getProfile: non-object junk falls back to {}', () => {
+  for (const bad of ['"lb"', '[1,2]', '17', 'not json at all']) {
+    localStorage.setItem('profile', bad);
+    eq(getProfile(), {}, 'profile for ' + bad);
+  }
+  localStorage.setItem('profile', JSON.stringify({ units: 'lb' }));
+  eq(getProfile().units, 'lb');
+  localStorage.clear();
 });
 
 /* ---------------- runner ---------------- */
