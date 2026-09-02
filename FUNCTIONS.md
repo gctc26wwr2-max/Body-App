@@ -1,4 +1,4 @@
-# Rackside — function inventory (v313)
+# Rackside — function inventory (v325)
 
 Vanilla JS PWA, no build step. The old 8,300-line `js/app.js` is split into
 14 plain scripts loaded in order from `index.html`; classic scripts share one
@@ -31,11 +31,14 @@ lives in.
 | `js/plans.js` | Data: 57 ready-made training blocks (`window.READY_PLANS`) |
 | `sw.js` | Service worker: pre-cache app shell, cache-first fetch |
 | `index.html` | Static shell: views, sheets, forms |
+| `tests.html` | Framework-free unit suite (39 checks) — fakes localStorage and DB, safe to open anywhere |
 
 Storage: IndexedDB stores `exercises, plans, sessions, workouts, bodyweight,
-cardio, media`; localStorage holds `profile`, `equip`, `injuries(+On)`,
-`liveWorkout`, `liveCardio`, coach-mark flags, migration stamps
-(`equipV2`, `timedMig1`), `lastBackup`.
+cardio, media` (media only via the mediaStore seam); localStorage holds
+`profile` (units, goal, level, sex, birth, name, avatarId, accent, jumps,
+weekStart…), `equip`, `injuries(+On)`, `liveWorkout`, `liveCardio` (both
+shape-validated on read, cleared if corrupt), coach-mark flags, migration
+stamps (`equipV2`, `timedMig1`), `lastBackup`, `lastSeen`.
 
 ---
 
@@ -60,6 +63,14 @@ cardio, media`; localStorage holds `profile`, `equip`, `injuries(+On)`,
 - `wRound(kg)` — snap a weight to the rack's step
 - `weekStartDow / dowFrom / weekStripOff` — user-chosen week start (any weekday) → strip math
 - `hUnit / fmtH` — height units
+
+### Accent colour — `core.js`
+- `ACCENTS` — six preset swatches (clay default)
+- `ACC` — the live accent hex; JS-built SVGs draw from it
+- `hexRGB / mixHex / accRGB` — colour math
+- `hslHex(h,s,l) / hueOf(hex)` — the hue wheel's register (fixed S/L)
+- `applyAccent(sel?)` — repaints the --lime family, --acc-rgb and --clay-dim
+  from a preset key, a raw hex, or the saved profile; garbage → clay
 
 ### Accessibility & onboarding — `core.js`
 - `a11ySlider(wrap, o)` — retrofits slider role, aria-value*, tabIndex, Arrow-key stepping onto any custom drag control; returns a repaint fn
@@ -87,7 +98,9 @@ cardio, media`; localStorage holds `profile`, `equip`, `injuries(+On)`,
 - `blockNumber(plan)` — ordinal by creation
 
 ### Media & modals — `core.js`
-- `mediaURL(id)` — object URL for a stored photo/video
+- `mediaStore` — the ONLY door to the 'media' store (save/meta/remove);
+  the Capacitor seam — swap its backend to the native filesystem on wrap day
+- `mediaURL(id)` — object URL for a stored photo/video (cached, revoked on remove)
 - `demoEl / thumbFor / warmMark / animFor` — exercise imagery helpers
 - `appConfirm({...})` — promise-based confirm modal
 - `askOnClose({what, save, leave})` — Save / Discard / Keep editing on dirty close
@@ -97,8 +110,11 @@ cardio, media`; localStorage holds `profile`, `equip`, `injuries(+On)`,
 ### Navigation & Today — `core.js + today.js`
 - `show(view)` — switch views, manage tabbar
 - `renderTab()` — load DB, run one-time migrations (`timedMig1`), route to the active tab
-- `renderToday()` — Today tab: hero, week strip, day cards, empty states
-- `blockArcSVG(total, done, weeks)` — progress arc with week labels along the legs
+- `renderToday()` — Today tab: hero, week strip, day cards, empty states,
+  and the greeting ("Welcome back, <name>" after 6 h away, else time of day;
+  `greetPick` holds the choice for the visit)
+- `blockArcSVG(total, done, weeks)` — progress arc, week labels along the
+  legs; inputs coerced to bounded numbers (its string becomes innerHTML)
 - `resumePlan(plan)`
 - `weekStreak(workouts)`
 - `heroTop / heroStat / pairCard / sameWeek`
@@ -152,20 +168,33 @@ cardio, media`; localStorage holds `profile`, `equip`, `injuries(+On)`,
 - `renderPlanTab()` — block overview, week rows, queue, finish/abandon
 
 ### Profile, settings, about — `settings.js; renderProfile in profile.js`
-- `getProfile / setProfile`
+- `getProfile / setProfile` — non-object JSON falls back to {}
+- `ageYears(pr)` — live age from profile.birth ('YYYY-MM'); legacy age fallback
+- `MONTHS3` — month labels for the Born wheels
 - `goalOf()`
 - `navyBodyFat(pr)` — US Navy estimate
 - `dayMinutes(items)` — session length estimate
 - `openAbout / renderAbout` — About you (tape measures, goals)
-- `openPrefs / renderPrefs` — Settings: rest, sound, equipment count, focus, weight-jump wheels, units, week start; draft + save-on-close
-- `renderProfile()` — profile tab: identity, bodyweight card+graph, data & backup controls
+- `openPrefs / renderPrefs` — Settings: rest, sound, equipment count, focus,
+  weight-jump wheels, accent hue wheel + preset dots (live preview, reverts
+  on discard), units, week start; draft + save-on-close
+- About-you Born card — month + year pickerWheels writing profile.birth
+- `shrinkImg(file)` — cap an avatar photo at 512px JPEG before storage
+- `renderProfile()` — profile tab: identity card (avatar via mediaStore,
+  inline name editor, vitals with body-fat, training-since), lifetime
+  stats, bodyweight card+graph, data & backup controls
 - `smoothPath(P)` — Catmull-Rom-ish path
 - `bwGraphSVG(entries)`
 
 ### Reports, backup, reset — `profile.js`
 - `shareReport / trainingReport` — plain-text training summary for a Claude chat
 - `backupData()` — export JSON stamped `version: BACKUP_SCHEMA` + `appVersion`
-- `restoreData(fileBlob)` — validate, refuse newer-schema files, walk `BACKUP_MIGRATIONS` ladder (v5→6: machine-bucket split, timed reps→seconds), merge by id
+- `BACKUP_SCHEMA / BACKUP_MIGRATIONS` — versioned backup format + forward
+  migration ladder
+- `restoreData(fileBlob)` — validate, refuse newer-schema files, walk the
+  ladder (v5→6: machine-bucket split, timed reps→seconds), then scrub every
+  restored record to sane types (numbers bounded, names sliced) before
+  merging by id
 - `resetHistory()` — wipe sessions/workouts, keep exercises/blocks
 - `agoDays(ds)`
 
@@ -266,7 +295,7 @@ cardio, media`; localStorage holds `profile`, `equip`, `injuries(+On)`,
 - `READY_PLANS` — 57 ready blocks with cover art metadata
 
 ## sw.js
-- `install` — pre-cache `ASSETS` under `body-app-v313`
+- `install` — pre-cache `ASSETS` under `body-app-v325`
 - `activate` — drop old caches
 - `fetch` — cache-first, network fallback
 
@@ -284,3 +313,12 @@ cardio, media`; localStorage holds `profile`, `equip`, `injuries(+On)`,
    and INJURY-FLAGS-REVIEW.md.
 6. Backups: bump `BACKUP_SCHEMA` + add a `BACKUP_MIGRATIONS` step for any
    stored-shape change.
+7. Media blobs only move through `mediaStore` (the Capacitor seam).
+8. Imported text (AI replies, backups) never reaches innerHTML — names render
+   via el()/textContent, SVG builders coerce inputs to numbers, restore
+   scrubs types.
+9. Stored-state reads (`live`, `liveCardio`, `getProfile`, `getEquip`,
+   `getInjuries`) validate shape and fall back — corruption must never brick
+   boot.
+10. New behaviour in the ingestion paths or the training math gets a case in
+   tests.html (run it via Playwright; it fakes storage, so it is safe anywhere).

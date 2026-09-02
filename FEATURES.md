@@ -1,5 +1,5 @@
 # Rackside — every feature, in plain words
-*As of v279 · https://gctc26wwr2-max.github.io/Body-App/*
+*As of v325 · https://gctc26wwr2-max.github.io/Body-App/*
 
 Rackside is a training app that lives entirely on your phone. No account, no
 server, no subscription — everything is stored on the device, it works offline,
@@ -10,9 +10,16 @@ and you can install it to your home screen like any app.
 ## Today
 
 - **Home screen** with your current block drawn as an arc of days — what is
-  banked, what is next, where the deload falls.
+  banked, what is next, where the deload falls, week labels anchored under
+  the arc's feet.
+- **Greets you by name** — come back after six hours away and it opens with
+  "Welcome back, Amin"; within a visit it reads the clock (Good morning /
+  afternoon / evening, and "Still up" past midnight).
 - One tap starts today's training day.
 - A **floating rest pill** follows you to other tabs while a rest timer runs.
+- **First-run coach marks** — one hint each for the weight scale, the reps
+  strip and the rest pill, shown once, plus honest empty states before any
+  block exists (starter block, ready programs, build-your-own).
 
 ## Training (the live workout)
 
@@ -20,109 +27,124 @@ and you can install it to your home screen like any app.
   The active one expands; done ones dim; the line never draws through markers.
 - **Weight scale** — a sliding ruler under every set. Drag it like a real
   scale, with a haptic tick per notch. It is infinite (rebased mid-drag),
-  empty below zero, and steps in your equipment's real jumps:
-  dumbbells 1–2 kg, machines and cables 2.5, barbells 2.5 — all three
-  configurable per gym in Settings.
+  empty below zero, and steps in your equipment's real jumps — all three
+  kinds configurable per gym in Settings on picker wheels.
 - **Type a weight** — the pencil chip opens the app's own number pad (no
   system keyboard). A typed value becomes a real tick on the ruler, even
   off-grid (19 kg on a 2.5 machine stays 19).
-- Quick chips: **+2.5 / +5 / +10**, back-to-opening-weight, zero.
+- Quick chips: **+2.5 / +5 / +10**, back-to-opening-weight, zero — in lb
+  mode the chips, ruler ticks, advice and plate math all speak real lb
+  plates (5/10/25, 45 lb bar), never converted decimals.
+- **Plate math** — the bar loading spelled out per side, float-proof.
 - **Warm-up ramp** — with warm-up on, the first lift gets two lighter W sets
   (50% × 8, 75% × 5). They keep to themselves: changing a W weight never
   drags the working sets down, and they never trigger progression advice.
 - **Warm-up routine** — five easy minutes dealt from a pool: pulse work plus
-  two drills matched to the day (lower days loosen hips/knees, upper days
-  shoulders/trunk). The deal advances every banked day, so no two sessions
-  in a row warm up the same. Every step is photographed and watchable while
-  the timer counts.
-- **Timed sets** — holds (plank, carries…) run on the same ruler in seconds,
-  with a full-screen countdown you can read from the floor: 3-second lead-in,
-  per-side phases, pause, and Stop that records the time actually held.
-- **Reps logging** — tap the number, adjust on a strip; the row colours by
-  where you landed against the target range (under / in / above).
+  two drills matched to the day. The deal advances every banked day, so no
+  two sessions in a row warm up the same. Every step photographed.
+- **Timed sets** — 24 movements the app knows are measured in seconds
+  (planks, carries, sleds, dead hangs…) run on a seconds ruler with a
+  full-screen countdown: 3-second lead-in, per-side phases, pause, and Stop
+  that records the time actually held. The plan maker offers a seconds
+  wheel for them, and old rep-based plans were migrated once, honestly.
+- **Assisted machines count backwards** — on assisted pull-ups/dips, less
+  help is the achievement: advice says "drop the help", PRs are minimum
+  help, deloads add help, and trends read the right way up.
+- **Reps logging** — tap the number to type it, or adjust on a strip; the
+  row colours by where you landed against the target range.
 - **Rest timer** — starts on logging a set, adjustable ±15 s, skippable.
   When it ends, the next unfinished exercise expands and scrolls into view.
 - **Progression advice** — hit the top of the rep range and the app offers
-  "+2.5 kg on your remaining sets" (step sized to the equipment). One tap
-  applies it to the unlogged working sets.
-- **PR detection** — beat your best estimated 1RM and the session banks a PR.
-- **Pass** — can't face a movement today? Pass it (today only). Passed
-  exercises are stepped over by rest auto-advance and reported separately.
-- **Add mid-workout** — pull any exercise into the running session.
-- **Pause** — a full-screen overlay freezes everything; discard lives there.
-- **Live status line** — elapsed time, sets banked, and a live kcal estimate.
-- **One save** — finishing is a single confirmation, then a summary screen
-  with duration, volume, records, and a 5-star rating.
+  the next real jump for that equipment; one tap applies it to the
+  remaining working sets.
+- **PR detection** — beat your best estimated 1RM (or minimum help) and the
+  session banks a PR.
+- **Pass**, **add mid-workout**, **pause overlay**, live status line, and a
+  one-confirmation save into a summary with duration, volume, records and a
+  5-star rating.
 
 ## Blocks (programs)
 
-- **Build** — a block builder: name, weeks (with optional deload week),
-  training days, exercises via search, sets × rep-range per movement.
-  Exercises order themselves hardest-first; drag to reorder in the editor.
+- **Build** — a block builder on three picker wheels: sets · exercise ·
+  reps (or seconds), with search, kit- and injury-aware pool, difficulty
+  line that repaints per detent, hardest-first ordering, drag to reorder.
 - **Ready — 57 installable programs** (203 days, 970 exercises, every name
-  validated, every movement photographed). Browsable as picture-card shelves
-  grouped by days-per-week, filtered by audience (anyone / women / men) and
-  split (full body, upper/lower, PPL, push/pull, body part, home, muscle
-  focus). Each card's cover is a mosaic of its own exercises.
-  - **Start here** — one block picked for you from About-you answers
-    (experience, sex, muscle focus). A calves focus really does surface the
-    calves block.
-  - **Preview sheet** — every exercise with photo, sets and reps, day by
-    day; tap through to the full movement page. Kit gaps are called out.
-  - Install now, **queue after the current block**, or replace it.
-- **Ask AI** — the app writes a complete prompt for any chatbot: your
-  program, raw sessions, **trends per lift** (climbing / stalled / reps
-  under range), **often-skipped movements**, **real attendance vs plan**,
+  validated, every movement photographed), browsable as picture-card
+  shelves grouped by days-per-week, filtered by audience and split, with a
+  Start-here pick from your About-you answers, full preview sheets, kit-gap
+  callouts, and install / queue / replace.
+- **Ask AI** — the app writes a complete prompt for any chatbot: program,
+  raw sessions, trends per lift, often-skipped movements, real attendance,
   last PR, blocks already run, body data, injuries, kit — plus the exact
-  JSON shape to answer in and the catalogue of allowed exercise names
-  (pre-filtered by your equipment and injuries). Paste the reply back and
-  it becomes a block: fences, prose, curly quotes, trailing commas, wrong
-  names and silly numbers are all survived, with anything odd flagged
-  before you accept.
+  JSON shape and the allowed exercise names. Paste the reply back and it
+  becomes a block: fences, prose, curly quotes, trailing commas, bare
+  arrays, duplicate keys, wrong names, other alphabets and silly numbers
+  are all survived (unit-tested against garbage), with kit gaps tagged on
+  import.
 - **Library** — the full catalogue (183 movements) with photos, groups,
-  difficulty, form cues; add your own exercises with photos/videos;
-  premade ones can be hidden, yours can be edited.
-- **Deload weeks** — the last week of a block can run 2/3 of the sets at
-  ~60% load, automatically.
-- **Week gating** — you can't run ahead of the calendar or skip into next
-  week until this one is banked.
+  plain-words difficulty, form cues; add your own exercises with
+  photos/videos, a load-vs-assistance switch, and automatic seconds
+  detection.
+- **Deload weeks** and **week gating** as before.
 
 ## Cardio
 
-- **17 activities**, indoor and outdoor variants, each with honest MET
-  rates (a street run costs more than a treadmill).
-- **Programs per activity** — every activity has its own list with its own
-  clock (Run: easy/tempo/intervals/hill/long · Boxing: rounds like the
-  ring · Football: kickabout/5-a-side/the full ninety · Hiking up to two
-  hours…). Picking one spins the minutes wheel to match; touching the
-  minutes yourself hands the time back to you (program returns to None).
-- Live session timer with progress, kcal estimate from your body weight,
-  and a week summary line. History is editable (delete entries).
+- **17 activities** (Padel included), indoor and outdoor variants, honest
+  MET rates.
+- **Programs per activity** — each activity has its own list with its own
+  clock. Picking one turns the watch to match; turning the bezel yourself
+  hands the time back (program returns to None and the bezel winds home).
+- **The watch** — the timer is a dive-watch dial: a turnable outer bezel
+  with ratchet clicks sets the minutes (5-minute detents, centre-tap to
+  type instead), and while running an inner dial takes over with a minute
+  orbit dot and progress ring. Accidental grazes near the centre can't
+  reset it. Default is zero — Start stays off until you set a time.
+- Live session with pause, kcal from your body weight, week summary line,
+  editable history.
 
 ## Stats
 
-- Weekly volume, session history with per-set detail, personal records,
-  body-weight log with a ruler input, and trend charts.
+- Weekly volume, session history with per-set detail, personal records
+  (minimum-help for assisted machines), body-weight log with a ruler
+  input, and trend charts.
 
 ## Profile & Settings
 
-- **About you** — age, sex, height (cm/ft), goal, experience, session
-  length, all on rails and rulers; tape measurements (waist/neck) give a
-  body-fat estimate (Navy formula).
-- **Muscle focus** — tap up to three muscles on a body diagram (or chips);
-  biases the Ready pick and the AI prompt.
-- **Injuries** — toggle current issues; risky movements are filtered from
-  pickers, presets and AI suggestions, with substitutes requested instead.
-- **Equipment** — tick what your gym has; everything (pickers, ready
-  blocks, AI catalogue, warm-up drills) respects it.
-- **Weight jumps** — how big one notch is for dumbbells, machines,
-  barbells; used by rulers, chips and progression advice.
-- **Units** — kg/lb and cm/ft.
-- **Rest default**, warm-up on/off, and a settings draft that only commits
-  on Save.
-- **Backup / restore** — one JSON file out, same file back in. Files are stamped with a schema version; older files are migrated forward on restore, files from a newer app are refused with a clear message.
-  **Report for Claude** — the full training report as text.
+- **Your profile** — an identity card: photo (downscaled and stored
+  on-device), name typed inline, and a vitals line — age, height, latest
+  body weight, tape body-fat — plus "Training since …". The name powers
+  the Today greeting and leads the Claude report.
+- **About you** — birth month + year on wheels (the age computes itself and
+  never goes stale), sex, height (cm/ft), goal, experience, session
+  length, tape measurements for the Navy body-fat estimate.
+- **Accent colour** — a hue wheel: drag the ring for any colour (always at
+  the app's own saturation and lightness), six preset dots beneath, live
+  preview, Save to keep. Recolours everything, done-day dots included.
+- **Muscle focus**, **Injuries** (filter, not medical advice — the flag
+  table ships as a review pack for a physio, INJURY-FLAGS-REVIEW.md, with
+  desk-research citations), **Equipment** on photo rails with tick-all /
+  untick-all.
+- **Weight jumps** on three centred wheels (dumbbell / machine / barbell),
+  with micro-plates to stack pins and real lb options in lb mode.
+- **Units** (kg/lb, cm/ft), **week start day** (any weekday — every weekly
+  number moves with it), rest default, alert sound, warm-up switch; the
+  whole settings screen is a draft that commits on Save.
+- **Backup / restore** — one JSON file out, same file back in. Files are
+  stamped with a schema version; older files are migrated forward on
+  restore (kit split, reps→seconds), files from a newer app are refused
+  with a clear message, and everything restored is type-scrubbed so a
+  crafted file can't plant garbage or markup.
+- **Report for Claude** — the full training report as text.
 - **Reset history** with confirmation.
+
+## Accessibility
+
+- Every drag control — rulers, rails, wheels, the bezel, the hue wheel —
+  is a real slider to VoiceOver: labelled, valued, and steppable with
+  arrow keys.
+- Every gesture has a typing door: pencil chips, tappable readouts, the
+  watch's centre tap.
+- All text follows the system font size (Dynamic Type).
 
 ## The fabric
 
@@ -130,6 +152,15 @@ and you can install it to your home screen like any app.
   airplane mode; update lands on next open.
 - **All data local** — IndexedDB + localStorage. Nothing leaves the phone
   unless you share a backup or copy the AI prompt.
-- A **live session survives** a closed tab, a reload, even a phone restart.
-- **Clay design** — dark, warm palette; Archivo type; haptics on every
-  meaningful touch; built for one hand on a phone in a gym.
+- A **live session survives** a closed tab, a reload, a phone restart —
+  and corrupted stored state is dropped cleanly at boot instead of
+  bricking the app.
+- **Hardened edges** — the two untrusted inputs (AI replies, backup files)
+  are unit-tested against garbage and scrubbed; nothing imported reaches
+  the page as markup.
+- **Small files, no build** — 14 plain scripts sharing one namespace
+  (FUNCTIONS.md maps them), a browser test page (tests.html, 39 checks
+  against faked storage), and CLAUDE.md carrying the invariants.
+- **Clay by default, yours by choice** — dark, warm palette; Archivo type;
+  haptics and ratchet clicks on every meaningful touch; built for one hand
+  on a phone in a gym.
