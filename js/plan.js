@@ -82,7 +82,11 @@
       }
       const w = weekOf(plan) || 1;
       plan.completed = plan.completed || [];
-      plan.completed.push({ week: w, day: lw.dayIndex, date: todayStr(), duration: mins });
+      /* one ledger entry per (week, day) — repeating a day you already
+         banked is a fine workout, but it isn't new block progress, and a
+         duplicate here inflated "Session N of M" and filled the arc early */
+      if (!plan.completed.some(c => c.week === w && c.day === lw.dayIndex))
+        plan.completed.push({ week: w, day: lw.dayIndex, date: todayStr(), duration: mins });
       if (w >= (plan.weeks || 4)) {
         const doneFinal = new Set(plan.completed.filter(c => c.week >= (plan.weeks || 4)).map(c => c.day));
         if (doneFinal.size >= plan.days.length) plan.finishedAt = Date.now();

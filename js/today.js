@@ -192,7 +192,10 @@
       const dayIdx = mode === 'live' ? lwNow.dayIndex : (nextIdxArc >= 0 ? nextIdxArc : 0);
       const day = (plan.days && plan.days[dayIdx]) || { name: plan.name, items: [] };
       const totalSess = weeks * Math.max(1, (plan.days || []).length);
-      const doneSess = Math.min((plan.completed || []).length, totalSess);
+      /* unique (week, day) pairs — ledgers written before the duplicate
+         guard may carry repeats, and a repeat is not a second session */
+      const doneSess = Math.min(
+        new Set((plan.completed || []).map(c => c.week + ':' + c.day)).size, totalSess);
       const wrap = el('div', 'arc-wrap');
       wrap.innerHTML = blockArcSVG(totalSess, doneSess, weeks);
       const overlay = el('div', 'arc-title');
