@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v309';
+  const APP_VERSION = 'v310';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -4552,13 +4552,40 @@
   }
 
   /* ---------------- backup / restore / reset ---------------- */
+  /* Backup schema. Bump BACKUP_SCHEMA whenever the shape of exported data
+     changes, and add a step under the OLD number that rewrites a file of
+     that vintage into the next shape. Restore walks the ladder from the
+     file's stamped version up to current, so old files keep working.
+       1–4  prehistoric exports (same shape as 5 for our purposes)
+       5    pre-split kit ('machine' bucket) and timed movements still
+            carrying rep targets
+       6    machine bucket split into nine named machines; timed movements
+            measured in seconds */
+  const BACKUP_SCHEMA = 6;
+  const BACKUP_MIGRATIONS = {
+    5: data => {
+      if (Array.isArray(data.equip) && data.equip.includes('machine'))
+        data.equip = [...new Set([...data.equip,
+          'm-smith', 'm-hack', 'm-hip', 'm-fly', 'm-latr', 'm-arms', 'm-calf', 'm-abd', 'm-ghd'])];
+      const exById = new Map(
+        [...(exercises || []), ...(Array.isArray(data.exercises) ? data.exercises : [])]
+          .filter(e => e && e.id).map(e => [e.id, e]));
+      for (const pl of (data.plans || []))
+        for (const d of (pl.days || []))
+          for (const it of (d.items || [])) {
+            const ex2 = exById.get(it.exerciseId);
+            if (ex2 && isTimedEx(ex2) && (it.repHi || 0) <= 20) { it.repLo = 30; it.repHi = 45; }
+          }
+    }
+  };
+
   async function backupData() {
     const [exs, pls, sess, wks, bws, cds] = await Promise.all([
       DB.all('exercises'), DB.all('plans'), DB.all('sessions'), DB.all('workouts'),
       DB.all('bodyweight'), DB.all('cardio')
     ]);
     const payload = {
-      app: 'rackside', version: 5, exportedAt: new Date().toISOString(),
+      app: 'rackside', version: BACKUP_SCHEMA, appVersion: APP_VERSION, exportedAt: new Date().toISOString(),
       exercises: exs, plans: pls, sessions: sess, workouts: wks, bodyweight: bws, cardio: cds,
       injuries: [...getInjuries()], injuriesOn: injEnabled(), equip: [...getEquip()],
       profile: getProfile()
@@ -4582,7 +4609,16 @@
     let data;
     try { data = JSON.parse(await fileBlob.text()); } catch { alert('That file is not a Rackside backup.'); return; }
     if (!data || data.app !== 'rackside') { alert('That file is not a Rackside backup.'); return; }
+    const fileVer = Number(data.version) || 1;
+    if (fileVer > BACKUP_SCHEMA) {
+      alert('This backup comes from a newer version of Rackside. Update the app (reopen it online), then restore.');
+      return;
+    }
     if (!confirm('Restore this backup? Records with the same id are overwritten; nothing else is deleted.')) return;
+    for (let v = fileVer; v < BACKUP_SCHEMA; v++) {
+      const step = BACKUP_MIGRATIONS[v];
+      if (step) try { step(data); } catch (e) { console.error('backup migration ' + v, e); }
+    }
     let n = 0;
     for (const [store, key] of [['exercises', 'exercises'], ['plans', 'plans'], ['sessions', 'sessions'], ['workouts', 'workouts'], ['bodyweight', 'bodyweight'], ['cardio', 'cardio']]) {
       for (const rec of (data[key] || [])) {
@@ -4593,7 +4629,8 @@
     if (typeof data.injuriesOn === 'boolean') localStorage.setItem('injuriesOn', data.injuriesOn ? '1' : '0');
     if (Array.isArray(data.equip)) setEquip(new Set(data.equip));
     if (data.profile && typeof data.profile === 'object') localStorage.setItem('profile', JSON.stringify(data.profile));
-    alert(`Restored ${n} records from ${data.exportedAt ? data.exportedAt.slice(0, 10) : 'backup'}.`);
+    alert(`Restored ${n} records from ${data.exportedAt ? data.exportedAt.slice(0, 10) : 'backup'}.`
+      + (fileVer < BACKUP_SCHEMA ? ' Older backup — brought up to the current format on the way in.' : ''));
     renderTab();
   }
 

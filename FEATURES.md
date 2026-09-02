@@ -120,7 +120,7 @@ and you can install it to your home screen like any app.
 - **Units** — kg/lb and cm/ft.
 - **Rest default**, warm-up on/off, and a settings draft that only commits
   on Save.
-- **Backup / restore** — one JSON file out, same file back in.
+- **Backup / restore** — one JSON file out, same file back in. Files are stamped with a schema version; older files are migrated forward on restore, files from a newer app are refused with a clear message.
   **Report for Claude** — the full training report as text.
 - **Reset history** with confirmation.
 
