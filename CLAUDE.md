@@ -43,10 +43,24 @@ visible in every later file. Rules that follow from this:
    if live devices carry the old shape.
 7. Media blobs only move through `mediaStore` (core.js) — never touch the
    'media' IndexedDB store directly. This is the Capacitor seam: blobs in
-   IndexedDB inside WKWebView are the fragile piece on iOS, so on wrap day
-   the mediaStore backend moves to the native filesystem (file on disk,
-   {id, exerciseId, type, path} in the DB) plus a one-time migration over
-   DB.all('media'); every caller stays untouched.
+   IndexedDB inside WKWebView are the fragile piece on iOS. The read side
+   (mediaURL) already handles both {blob} and {path} records.
+
+## Capacitor wrap-day checklist (do DURING the wrap, not after)
+
+- **Move the media store first.** On first native launch, before anything
+  renders: run the migration sketched in migrate() (js/boot.js) — every
+  'media' record's blob becomes a file under Directory.Data/media/<id>,
+  the record keeps {id, exerciseId, type, path}, stamp 'mediaNative1'.
+  Give mediaStore.save/remove native branches the same day. Callers never
+  change.
+- **The update model flips.** "Update lands on next open" is the web
+  build's story; native releases go through App Store review (days, not
+  minutes). checkUpdate() is already gated on IS_NATIVE (core.js) so the
+  native build never prompts reloads that do nothing — keep it that way,
+  and bump the marketing version in the native shell instead.
+- IS_NATIVE also counts the wrap as "installed", so the Add-to-Home-Screen
+  hint stays hidden.
 
 ## UI rules (owner's standing preferences)
 

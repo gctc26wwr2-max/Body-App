@@ -4,7 +4,7 @@
    part loaded after this one. Load order is index.html's script order.
    Map of what lives where: FUNCTIONS.md */
 'use strict';
-  const APP_VERSION = 'v325';
+  const APP_VERSION = 'v326';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -32,6 +32,13 @@
   };
   const PLAY = 'M2.5 1.2 L10.8 6 L2.5 10.8 Z';
   const PAUSE = 'M2.5 1.5 h2.6 v9 h-2.6 Z M6.9 1.5 h2.6 v9 h-2.6 Z';
+
+  /* Running inside a Capacitor wrap? The web build must already know the
+     difference: native releases ship through App Store review, so the
+     self-update loop is meaningless there, and media lives on the native
+     filesystem instead of as blobs in a WKWebView's IndexedDB. */
+  const IS_NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform
+    && window.Capacitor.isNativePlatform());
 
   /* ---------------- state ---------------- */
   let exercises = [];
@@ -405,7 +412,14 @@
     if (mediaURLs.has(id)) return mediaURLs.get(id);
     const rec = await mediaStore.meta(id);
     if (!rec) return null;
-    const url = URL.createObjectURL(rec.blob);
+    /* two record shapes: {blob} is the web build; {path} is a file on the
+       native filesystem after the wrap-day migration — the read side is
+       ready for both, so moving the store is a write-side change only */
+    let url = null;
+    if (rec.blob) url = URL.createObjectURL(rec.blob);
+    else if (rec.path && window.Capacitor && window.Capacitor.convertFileSrc)
+      url = window.Capacitor.convertFileSrc(rec.path);
+    if (!url) return null;
     mediaURLs.set(id, url);
     return url;
   }
