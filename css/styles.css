@@ -2217,3 +2217,6 @@ body { font-size: 0.8235rem; }
   caret-color: var(--lime); outline: none; -webkit-appearance: none; appearance: none;
 }
 .id-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(206,107,61,.22); }
+
+/* Today greeting — the profile talking back */
+.t-title.greet { font-size: 1.4118rem; margin: 2px 0 10px; letter-spacing: -.02em; }

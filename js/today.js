@@ -6,6 +6,8 @@
   /* ============================================================
      TODAY
      ============================================================ */
+  let greetPick = null;   // the visit's greeting, chosen once
+
   async function renderToday() {
     const root = $('#view-today');
     root.innerHTML = '';
@@ -23,7 +25,23 @@
     stk.appendChild(el('span', 'v num', streakN + 'w'));
     head.appendChild(stk);
     root.appendChild(head);
-    if (!plan) root.appendChild(el('h1', 't-title', 'Rackside'));
+    /* the profile earns its keep: the app greets whoever created it.
+       A gap of six hours or more reads as coming back; anything shorter
+       gets the time of day. */
+    const nm = String(getProfile().name || '').trim().split(/\s+/)[0];
+    /* decided once per visit and held — the tab re-renders freely, but the
+       comeback reading is taken against the previous visit, not the render
+       two seconds ago */
+    const seen = +localStorage.getItem('lastSeen') || 0;
+    try { localStorage.setItem('lastSeen', String(Date.now())); } catch {}
+    if (!greetPick || Date.now() - greetPick.at > 6 * 3600e3)
+      greetPick = { at: Date.now(), back: !!seen && Date.now() - seen > 6 * 3600e3 };
+    if (nm) {
+      const h = now.getHours();
+      const greet = greetPick.back ? 'Welcome back'
+        : h < 5 ? 'Still up' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+      root.appendChild(el('h1', 't-title greet', greet + ', ' + nm));
+    } else if (!plan) root.appendChild(el('h1', 't-title', 'Rackside'));
 
     // running in the browser tab (not installed) — layout loses the bottom strip to Safari
     const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
