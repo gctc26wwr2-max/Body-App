@@ -41,6 +41,12 @@ visible in every later file. Rules that follow from this:
 6. Any change to stored data shape: bump `BACKUP_SCHEMA` and add a
    `BACKUP_MIGRATIONS` step (profile.js), plus an in-app one-time migration
    if live devices carry the old shape.
+7. Media blobs only move through `mediaStore` (core.js) — never touch the
+   'media' IndexedDB store directly. This is the Capacitor seam: blobs in
+   IndexedDB inside WKWebView are the fragile piece on iOS, so on wrap day
+   the mediaStore backend moves to the native filesystem (file on disk,
+   {id, exerciseId, type, path} in the DB) plus a one-time migration over
+   DB.all('media'); every caller stays untouched.
 
 ## UI rules (owner's standing preferences)
 

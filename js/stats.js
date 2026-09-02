@@ -346,7 +346,7 @@
       return;
     }
     if (mid) {
-      const rec = await DB.get('media', mid);
+      const rec = await mediaStore.meta(mid);
       const url = rec && await mediaURL(mid);
       if (url) {
         body.innerHTML = '';
