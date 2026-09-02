@@ -1,6 +1,6 @@
 # Injury-flag review pack
 
-*Generated from the live data (v307). For review by a physiotherapist or S&C coach.*
+*Generated from the live data (v308). For review by a physiotherapist or S&C coach.*
 
 ## What this system does
 
@@ -21,7 +21,7 @@ rehabbing user should probably keep? Mark the last column.
 | Lower back | spineload, hinge, spineflex, spinerot | 50 |
 | Shoulder | overhead, shoulder | 77 |
 | Knee | knee, impact | 52 |
-| Elbow | elbow | 45 |
+| Elbow | elbow, grip | 63 |
 | Wrist | wrist | 25 |
 | Neck | neck, spineflex | 20 |
 | Hip | hip, hinge | 70 |
@@ -33,7 +33,36 @@ spineload — axial/compressive spinal load · hinge — loaded hip hinge ·
 spineflex — repeated spinal flexion · spinerot — loaded rotation ·
 overhead — arms loaded overhead · shoulder — general shoulder stress ·
 knee — knee-dominant loading · impact — jumping/running impact ·
-elbow / wrist / neck / hip / ankle — joint-specific stress · grip — heavy grip demand (not filtered)
+elbow / wrist / neck / hip / ankle — joint-specific stress · grip — heavy grip demand (hidden for elbow)
+
+## Evidence notes (desk research, September 2026)
+
+Checked against published guidance per area. The model held up; one change was
+made (grip → elbow). Everything below still needs a professional eye — these are
+summaries of general guidance, not a clinical judgement about this table.
+
+- **Lower back** — modern reviews caution against *loaded* deep flexion, heavy axial
+  load and loaded twisting during symptomatic periods, while noting flexion is not
+  inherently injurious and hinges can be therapeutic. Matches our four tags; the
+  disclaimer carries the nuance. (MDPI narrative review on deadlifting & spine 2025;
+  PMC lifting-styles analysis.)
+- **Shoulder** — impingement guidance names overhead pressing, behind-neck work,
+  upright rows and deep dips as classic aggravators. All carry our overhead/shoulder
+  tags. (NSCA S&C Journal on the upright row; HSS; EmergeOrtho.)
+- **Knee (PFP)** — weighted open-chain leg extension and deep loaded flexion are the
+  named early-stage aggravators, plus downhill running. Leg Extension carries knee;
+  impact covers running. (Physiopedia PFPS; knee-extensor systematic review, PMC.)
+- **Elbow (epicondylitis)** — heavy gripping is the consistent aggravator across
+  guidance; light wrist curls are actually used in rehab. Change made: the elbow
+  area now also avoids grip-tagged movements (26). Reviewer: confirm or trim.
+  (InformedHealth/NCBI; Heiden Orthopedics.)
+- **Hip (FAI)** — deep flexion under load (deep squats, full-depth leg press, deep
+  lunges, rowing strokes) is the aggravating pattern. Leg press and squat family
+  carry hip; the rower carries hinge, which the hip area avoids. (Beacon Ortho;
+  E3 Rehab.)
+- **Ankle** — early-phase guidance avoids impact and unstable landings, with
+  progressive return. Matches ankle+impact. (Athletic Edge PT; plyometric-vs-
+  resistive RCT, ResearchGate.)
 
 ## The flag table — all 183 movements
 
@@ -84,23 +113,23 @@ elbow / wrist / neck / hip / ankle — joint-specific stress · grip — heavy g
 | Curtsy Lunge | knee, hip, spinerot | Lower back, Knee, Hip | |
 | Cycling | — | — | |
 | Dead Bug | — | — | |
-| Dead Hang | shoulder, grip, overhead | Shoulder | |
-| Deadlift | spineload, hinge, hip, grip | Lower back, Hip | |
+| Dead Hang | shoulder, grip, overhead | Shoulder, Elbow | |
+| Deadlift | spineload, hinge, hip, grip | Lower back, Elbow, Hip | |
 | Decline Barbell Bench Press | shoulder, elbow | Shoulder, Elbow | |
-| Deficit Deadlift | hinge, hip, knee, spineload, spineflex, grip | Lower back, Knee, Neck, Hip | |
+| Deficit Deadlift | hinge, hip, knee, spineload, spineflex, grip | Lower back, Knee, Elbow, Neck, Hip | |
 | Deficit Push-Up | shoulder, elbow | Shoulder, Elbow | |
 | Dumbbell Bench Press | shoulder, elbow | Shoulder, Elbow | |
 | Dumbbell Curl | elbow | Elbow | |
 | Dumbbell Fly | shoulder | Shoulder | |
-| Dumbbell Romanian Deadlift | hinge, hip, grip | Lower back, Hip | |
+| Dumbbell Romanian Deadlift | hinge, hip, grip | Lower back, Elbow, Hip | |
 | Dumbbell Row | — | — | |
 | Dumbbell Shoulder Press | overhead, shoulder, neck | Shoulder, Neck | |
-| Dumbbell Shrug | shoulder, grip | Shoulder | |
-| Dumbbell Squat | knee, hip, grip | Knee, Hip | |
+| Dumbbell Shrug | shoulder, grip | Shoulder, Elbow | |
+| Dumbbell Squat | knee, hip, grip | Knee, Elbow, Hip | |
 | Elliptical | — | — | |
 | EZ-Bar Curl | elbow | Elbow | |
 | Face Pull | — | — | |
-| Farmer’s Carry | grip | — | |
+| Farmer’s Carry | grip | Elbow | |
 | Floor Press | shoulder, elbow | Shoulder, Elbow | |
 | Front Rack Carry | shoulder, spineload, wrist | Lower back, Shoulder, Wrist | |
 | Front Raise | shoulder | Shoulder | |
@@ -113,7 +142,7 @@ elbow / wrist / neck / hip / ankle — joint-specific stress · grip — heavy g
 | Hammer Curl | elbow | Elbow | |
 | Handstand Push-Up | shoulder, elbow, wrist, overhead | Shoulder, Elbow, Wrist | |
 | Hang Clean | hip, knee, shoulder, wrist | Shoulder, Knee, Wrist, Hip | |
-| Hanging Leg Raise | spineflex, hip, overhead, shoulder, grip | Lower back, Shoulder, Neck, Hip | |
+| Hanging Leg Raise | spineflex, hip, overhead, shoulder, grip | Lower back, Shoulder, Elbow, Neck, Hip | |
 | HIIT Sprints | impact, knee, ankle, hip | Knee, Hip, Ankle | |
 | Hip Abduction Machine | hip | Hip | |
 | Hip Adduction Machine | hip | Hip | |
@@ -126,9 +155,9 @@ elbow / wrist / neck / hip / ankle — joint-specific stress · grip — heavy g
 | Incline Treadmill Walk | hip, ankle | Hip, Ankle | |
 | Inverted Row | shoulder, elbow, grip | Shoulder, Elbow | |
 | Jump Rope | impact, knee, ankle | Knee, Ankle | |
-| Kettlebell Clean | hip, shoulder, wrist, grip | Shoulder, Wrist, Hip | |
-| Kettlebell Snatch | hip, shoulder, overhead, grip | Shoulder, Hip | |
-| Kettlebell Swing | hinge, spineload, grip | Lower back, Hip | |
+| Kettlebell Clean | hip, shoulder, wrist, grip | Shoulder, Elbow, Wrist, Hip | |
+| Kettlebell Snatch | hip, shoulder, overhead, grip | Shoulder, Elbow, Hip | |
+| Kettlebell Swing | hinge, spineload, grip | Lower back, Elbow, Hip | |
 | Landmine Press | shoulder, elbow | Shoulder, Elbow | |
 | Lat Pulldown | overhead | Shoulder | |
 | Lateral Lunge | knee, hip | Knee, Hip | |
@@ -164,7 +193,7 @@ elbow / wrist / neck / hip / ankle — joint-specific stress · grip — heavy g
 | Pull-Up | overhead, shoulder, elbow, grip | Shoulder, Elbow | |
 | Push Press | shoulder, knee, overhead, spineload | Lower back, Shoulder, Knee | |
 | Push-Up | shoulder, wrist | Shoulder, Wrist | |
-| Rack Pull | hinge, hip, spineload, grip | Lower back, Hip | |
+| Rack Pull | hinge, hip, spineload, grip | Lower back, Elbow, Hip | |
 | Rear Delt Fly | — | — | |
 | Rear Delt Fly Machine | shoulder | Shoulder | |
 | Reverse Curl | elbow, wrist | Elbow, Wrist | |
@@ -185,7 +214,7 @@ elbow / wrist / neck / hip / ankle — joint-specific stress · grip — heavy g
 | Seated Leg Curl | knee | Knee | |
 | Seated Row Machine | shoulder, elbow | Shoulder, Elbow | |
 | Seated Z-Press | shoulder, overhead, hip | Shoulder, Hip | |
-| Shrug | neck, spineload, grip | Lower back, Neck | |
+| Shrug | neck, spineload, grip | Lower back, Elbow, Neck | |
 | Side Plank | wrist, shoulder | Shoulder, Wrist | |
 | Single-Arm Lat Pulldown | shoulder, elbow, overhead | Shoulder, Elbow | |
 | Single-Leg Press | knee, hip | Knee, Hip | |
@@ -202,23 +231,23 @@ elbow / wrist / neck / hip / ankle — joint-specific stress · grip — heavy g
 | Squat | knee, hip, spineload | Lower back, Knee, Hip | |
 | Stair Climber | knee, hip | Knee, Hip | |
 | Step-Up | knee, hip | Knee, Hip | |
-| Stiff-Leg Deadlift | hinge, hip, spineload, spineflex, grip | Lower back, Neck, Hip | |
+| Stiff-Leg Deadlift | hinge, hip, spineload, spineflex, grip | Lower back, Elbow, Neck, Hip | |
 | Straight-Arm Pulldown | shoulder, overhead | Shoulder | |
-| Suitcase Carry | shoulder, grip | Shoulder | |
-| Sumo Deadlift | spineload, hinge, hip, grip | Lower back, Hip | |
+| Suitcase Carry | shoulder, grip | Shoulder, Elbow | |
+| Sumo Deadlift | spineload, hinge, hip, grip | Lower back, Elbow, Hip | |
 | Suspension Trainer Row | shoulder, elbow, grip | Shoulder, Elbow | |
 | Swimming | overhead, shoulder | Shoulder | |
 | T-Bar Row | hinge, spineload | Lower back, Hip | |
 | Thruster | overhead, shoulder, spineload, knee, wrist | Lower back, Shoulder, Knee, Wrist | |
 | Tibialis Raise | ankle | Ankle | |
-| Trap Bar Deadlift | hinge, hip, knee, spineload, grip | Lower back, Knee, Hip | |
+| Trap Bar Deadlift | hinge, hip, knee, spineload, grip | Lower back, Knee, Elbow, Hip | |
 | Treadmill Run | impact, knee, ankle | Knee, Ankle | |
 | Triceps Extension Machine | elbow | Elbow | |
 | Triceps Kickback | elbow, spineflex | Lower back, Elbow, Neck | |
 | Triceps Pushdown | elbow | Elbow | |
 | Turkish Get-Up | shoulder, hip, knee, wrist, overhead | Shoulder, Knee, Wrist, Hip | |
 | Upright Row | shoulder, neck | Shoulder, Neck | |
-| Walking Lunge | knee, hip, ankle, grip | Knee, Hip, Ankle | |
+| Walking Lunge | knee, hip, ankle, grip | Knee, Elbow, Hip, Ankle | |
 | Wall Ball | overhead, shoulder, knee | Shoulder, Knee | |
 | Wall Sit | knee | Knee | |
 | Wrist Curl | wrist, elbow | Elbow, Wrist | |
@@ -226,7 +255,7 @@ elbow / wrist / neck / hip / ankle — joint-specific stress · grip — heavy g
 ## Open questions from the in-house audit
 
 1. Dumbbell / Single-Leg RDL carry `hinge` (hidden for back and hip) but not `spineload` — is hinge alone the right call for lighter unilateral hinges?
-2. `grip` is tagged on 26 movements but no injury area uses it — add a hand/forearm area, or drop the tag?
+2. `grip` now hides its 26 movements for the elbow area (evidence: heavy grip loads the epicondyles) — confirm, or trim the grip list.
 3. Neck area avoids `neck` and `spineflex` — should it also avoid `overhead`?
 4. Wrist curls were given `elbow` in this pass (medial epicondyle stress) — confirm.
 5. Are any rehab-appropriate movements being hidden that a recovering user should keep (e.g. Cable External Rotation is deliberately NOT hidden for shoulder)? Please scan the kept-vs-hidden split per area, not only the hidden list.
