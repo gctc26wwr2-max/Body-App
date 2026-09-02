@@ -178,6 +178,25 @@
        side (mediaURL) already understands path records, and mediaStore.save/
        remove grow native branches the same day. checkUpdate is already
        IS_NATIVE-gated. */
+    /* one-time: ledgers written before the duplicate guard can carry the
+       same (week, day) twice — a repeated day counted as two sessions and
+       filled the arc early. Keep the first entry of each pair. */
+    if (!localStorage.getItem('dedupeCompleted1')) {
+      for (const pl of await DB.all('plans')) {
+        const seen = new Set();
+        const uniq = (pl.completed || []).filter(c => {
+          const k = (c && c.week) + ':' + (c && c.day);
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+        if (uniq.length !== (pl.completed || []).length) {
+          pl.completed = uniq;
+          await DB.put('plans', pl);
+        }
+      }
+      localStorage.setItem('dedupeCompleted1', '1');
+    }
     // plans: items -> days; reps -> repLo/repHi
     const allPlans = await DB.all('plans');
     for (const p of allPlans) {
