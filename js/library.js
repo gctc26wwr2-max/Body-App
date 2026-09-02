@@ -608,8 +608,8 @@ window.MOVEMENTS = {
   "Rope Climb": ["vpull","shoulder","elbow","grip","overhead"],
   "Medicine Ball Slam": ["cardio","shoulder","overhead","spineflex"],
   "Rotational Med Ball Throw": ["corerot","spinerot"],
-  "Wrist Curl": ["curl","wrist"],
-  "Reverse Wrist Curl": ["curl","wrist"],
+  "Wrist Curl": ["curl","wrist","elbow"],
+  "Reverse Wrist Curl": ["curl","wrist","elbow"],
   "Dead Hang": ["curl","shoulder","grip","overhead"],
   "Neck Extension": ["corebrace","neck"],
   "Neck Flexion": ["corebrace","neck"]
