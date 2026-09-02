@@ -4,7 +4,7 @@
    part loaded after this one. Load order is index.html's script order.
    Map of what lives where: FUNCTIONS.md */
 'use strict';
-  const APP_VERSION = 'v318';
+  const APP_VERSION = 'v319';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -318,10 +318,33 @@
     }
   };
 
-  /* ---------------- media ---------------- */
+  /* ---------------- media store ----------------
+     Every photo/video blob goes through this seam — nothing else touches the
+     'media' store directly. Today the backend is IndexedDB. When the app is
+     wrapped in Capacitor, blobs in IndexedDB inside WKWebView are the one
+     piece of this storage known to be fragile on iOS, so the wrap-day job is
+     contained here: reimplement these four functions over the native
+     filesystem (write the file, keep {id, exerciseId, type, path} in the
+     DB), plus a one-time migration that walks DB.all('media') and moves
+     each blob out. Callers only ever see an id, a {type} record, and a
+     displayable URL. */
+  const mediaStore = {
+    /* the stored record — callers may read .type; .blob is backend detail */
+    meta: id => DB.get('media', id),
+    async save(exerciseId, file) {
+      const id = DB.uid();
+      await DB.put('media', { id, exerciseId, type: file.type, blob: file });
+      return id;
+    },
+    async remove(id) {
+      const url = mediaURLs.get(id);
+      if (url) { URL.revokeObjectURL(url); mediaURLs.delete(id); }
+      await DB.del('media', id);
+    }
+  };
   async function mediaURL(id) {
     if (mediaURLs.has(id)) return mediaURLs.get(id);
-    const rec = await DB.get('media', id);
+    const rec = await mediaStore.meta(id);
     if (!rec) return null;
     const url = URL.createObjectURL(rec.blob);
     mediaURLs.set(id, url);

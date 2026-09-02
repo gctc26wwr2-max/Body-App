@@ -242,7 +242,7 @@
     if (ex.mediaIds && ex.mediaIds.length) {
       const strip = el('div', 'media-strip');
       for (const mid of ex.mediaIds) {
-        const rec = await DB.get('media', mid);
+        const rec = await mediaStore.meta(mid);
         if (!rec) continue;
         const url = await mediaURL(mid);
         let m;
@@ -292,7 +292,7 @@
                   : 'It stays in the library — add it again any time.'),
         ok: mine ? 'Delete' : 'Remove', cancel: 'Keep it', warn: true
       })) return;
-      for (const mid of (ex.mediaIds || [])) await DB.del('media', mid);
+      for (const mid of (ex.mediaIds || [])) await mediaStore.remove(mid);
       for (const s of sessions) await DB.del('sessions', s.id);
       for (const p of usedIn) {
         for (const d of p.days) d.items = d.items.filter(it => it.exerciseId !== ex.id);
@@ -369,7 +369,7 @@
         if (!item.url) item.url = URL.createObjectURL(item.file);
         url = item.url;
       } else {
-        const rec = await DB.get('media', item.existingId);
+        const rec = await mediaStore.meta(item.existingId);
         if (!rec) continue;
         type = rec.type;
         url = await mediaURL(rec.id);
@@ -415,14 +415,12 @@
     }
     const kept = pendingMedia.filter(m => m.existingId).map(m => m.existingId);
     for (const oldId of (ex.mediaIds || [])) {
-      if (!kept.includes(oldId)) await DB.del('media', oldId);
+      if (!kept.includes(oldId)) await mediaStore.remove(oldId);
     }
     const ids = [];
     for (const m of pendingMedia) {
       if (m.existingId) { ids.push(m.existingId); continue; }
-      const id = DB.uid();
-      await DB.put('media', { id, exerciseId: ex.id, type: m.file.type, blob: m.file });
-      ids.push(id);
+      ids.push(await mediaStore.save(ex.id, m.file));
     }
     ex.mediaIds = ids;
     await DB.put('exercises', ex);

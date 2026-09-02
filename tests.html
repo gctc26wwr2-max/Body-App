@@ -304,6 +304,20 @@ t('getProfile: non-object junk falls back to {}', () => {
   localStorage.clear();
 });
 
+/* ---------------- mediaStore seam ---------------- */
+t('mediaStore: save → meta/url → remove round-trip', async () => {
+  const f = new File(['x'.repeat(64)], 'clip.mp4', { type: 'video/mp4' });
+  const id = await mediaStore.save('ex1', f);
+  const rec = await mediaStore.meta(id);
+  eq(rec.type, 'video/mp4'); eq(rec.exerciseId, 'ex1');
+  const url = await mediaURL(id);
+  eq(url.startsWith('blob:'), true, 'url');
+  eq(await mediaURL(id), url, 'url cached');
+  await mediaStore.remove(id);
+  eq(await mediaStore.meta(id), undefined, 'gone');
+  eq(await mediaURL(id), null, 'url gone');
+});
+
 /* ---------------- ageYears (birth date → current age) ---------------- */
 t('ageYears counts a birthday-month as passed', () => {
   const now = new Date(); const y = now.getFullYear(), m = now.getMonth() + 1;
