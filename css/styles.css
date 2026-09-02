@@ -2182,3 +2182,26 @@ body { font-size: 0.8235rem; }
 .jump-wheels .pw-item { padding: 0 4px; justify-content: center; }
 .jump-wheels .pw-lbl { flex: 0 1 auto; text-align: center; overflow: visible; text-overflow: clip; }
 .jump-wheels .micro { text-align: center; }
+
+/* Profile identity card — a face, a name, the vitals */
+.id-card { display: flex; align-items: center; gap: 14px; }
+.id-ava {
+  flex: 0 0 auto; width: 3.5294rem; height: 3.5294rem; border-radius: 50%;
+  overflow: hidden; background: var(--sunken); border: 1px solid var(--hair);
+  display: flex; align-items: center; justify-content: center; color: var(--t6); padding: 0;
+}
+.id-ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.id-ava.empty { border-style: dashed; }
+.id-txt { flex: 1; min-width: 0; }
+.id-name {
+  display: block; width: 100%; text-align: left; background: none; border: none; padding: 0;
+  font-size: 1.0588rem; font-weight: 800; color: var(--t1); letter-spacing: -.015em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.id-name.unset { color: var(--t6); font-weight: 700; }
+.id-sub { font-size: 0.7059rem; color: var(--t6); margin-top: 2px; }
+.id-input {
+  display: block; width: 100%; background: var(--sunken); border: 1px solid var(--hair);
+  border-radius: 10px; padding: 4px 8px; color: var(--t1);
+  font-size: 1.0000rem; font-weight: 800; letter-spacing: -.015em;
+}
