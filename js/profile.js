@@ -6,6 +6,23 @@
   /* ============================================================
      PROFILE (overview + data controls)
      ============================================================ */
+  /* an avatar does not need the camera's twelve megapixels — cap the long
+     edge at 512px before it goes anywhere near storage */
+  const shrinkImg = file => new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, 512 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.width * s));
+      c.height = Math.max(1, Math.round(img.height * s));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      c.toBlob(b => res(b || file), 'image/jpeg', 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(img.src); res(file); };
+    img.src = URL.createObjectURL(file);
+  });
+
   async function renderProfile() {
     const root = $('#view-profile');
     root.innerHTML = '';
@@ -36,6 +53,72 @@
     acts.appendChild(gear);
     head.appendChild(acts);
     root.appendChild(head);
+
+    // ---- identity: the profile itself — a face, a name, the vitals ----
+    const pr = getProfile();
+    const idCard = el('div', 'card id-card');
+    const ava = el('button', 'id-ava');
+    ava.title = pr.avatarId ? 'Change photo' : 'Add a photo';
+    let avaImg = null;
+    if (pr.avatarId) {
+      const u = await mediaURL(pr.avatarId);
+      if (u) { avaImg = document.createElement('img'); avaImg.src = u; avaImg.alt = ''; ava.appendChild(avaImg); }
+    }
+    if (!avaImg) {
+      ava.classList.add('empty');
+      ava.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" '
+        + 'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
+        + '<path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg>';
+    }
+    const avaIn = document.createElement('input');
+    avaIn.type = 'file'; avaIn.accept = 'image/*'; avaIn.style.display = 'none';
+    ava.onclick = () => avaIn.click();
+    avaIn.onchange = async () => {
+      const f = avaIn.files[0]; avaIn.value = '';
+      if (!f) return;
+      const small = await shrinkImg(f);
+      if (pr.avatarId) await mediaStore.remove(pr.avatarId).catch(() => {});
+      const nid = await mediaStore.save('avatar',
+        new File([small], 'avatar.jpg', { type: small.type || 'image/jpeg' }));
+      setProfile({ avatarId: nid });
+      haptic();
+      renderTab();
+    };
+    const idTxt = el('div', 'id-txt');
+    const nameEl = el('button', 'id-name' + (pr.name ? '' : ' unset'), pr.name || 'Create your profile');
+    const vitals = [];
+    const yrs2 = ageYears(pr);
+    if (yrs2 != null) vitals.push(yrs2 + ' yrs');
+    if (pr.heightCm) vitals.push(fmtH(pr.heightCm));
+    const bwsAll = (await DB.all('bodyweight')).sort((a, b) => b.ts - a.ts);
+    if (bwsAll[0]) vitals.push(fmtW(bwsAll[0].kg));
+    const subEl = el('div', 'id-sub', pr.name
+      ? (vitals.join(' · ') || 'Fill in About you for the details')
+      : 'Your name and photo — tap to add');
+    const editName = () => {
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.maxLength = 30; inp.className = 'id-input';
+      inp.value = pr.name || ''; inp.placeholder = 'Your name';
+      inp.autocapitalize = 'words'; inp.autocomplete = 'name';
+      nameEl.replaceWith(inp);
+      inp.focus();
+      let done = false;
+      const commit = () => {
+        if (done) return; done = true;
+        const v = inp.value.trim().slice(0, 30);
+        setProfile({ name: v || undefined });
+        renderTab();
+      };
+      inp.onblur = commit;
+      inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } };
+    };
+    nameEl.onclick = editName;
+    idTxt.appendChild(nameEl);
+    idTxt.appendChild(subEl);
+    idCard.appendChild(ava);
+    idCard.appendChild(idTxt);
+    idCard.appendChild(avaIn);
+    root.appendChild(idCard);
 
     // lifetime stats
     const totVol = workouts.reduce((a, w) => a + (w.volume || 0), 0);
@@ -418,6 +501,7 @@
       const pr = getProfile();
       const g = GOALS.find(x => x.key === pr.goal), lv = LEVELS.find(x => x.key === pr.level);
       const bits = [];
+      if (pr.name) bits.push(pr.name);
       if (g) bits.push('goal: ' + g.label.toLowerCase());
       if (lv) bits.push('training ' + lv.label.toLowerCase());
       if (pr.sessionMins) bits.push(pr.sessionMins + ' min per session');
