@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v308';
+  const APP_VERSION = 'v309';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -124,6 +124,35 @@
     const inch = Math.round(cm / 2.54);
     return `${Math.floor(inch / 12)}'${inch % 12}"`;
   };
+
+  /* ---------------- accessibility ----------------
+     Every drag control also answers to a screen reader and a keyboard:
+     role=slider, a spoken value, and arrow keys stepping the exact same
+     commit the drag makes. The gesture stays; it stops being the only
+     door in. */
+  function a11ySlider(wrap, o) {
+    wrap.tabIndex = 0;
+    wrap.setAttribute('role', 'slider');
+    wrap.setAttribute('aria-label', o.label || 'value');
+    if (o.min != null) wrap.setAttribute('aria-valuemin', o.min);
+    if (o.max != null) wrap.setAttribute('aria-valuemax', o.max);
+    wrap.setAttribute('aria-orientation', o.orient || 'horizontal');
+    const paint = () => {
+      wrap.setAttribute('aria-valuenow', o.now());
+      wrap.setAttribute('aria-valuetext', o.text());
+    };
+    paint();
+    wrap.addEventListener('keydown', e => {
+      let d = 0;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') d = 1;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') d = -1;
+      else return;
+      e.preventDefault();
+      o.step(d);
+      paint();
+    });
+    return paint;
+  }
 
   /* ---------------- coach marks ----------------
      A control you built explains itself to you; to a stranger it is
@@ -2431,13 +2460,22 @@
       /* read the value off the needle's final position — the start point is
          meaningless once the strip has rebased mid-drag */
       setVal(st.base + (Math.round(idxAt(so + dx)) - opts.span) * opts.step, true);
+      wrap.setAttribute('aria-valuenow', st.val);
+      wrap.setAttribute('aria-valuetext', fmt(st.val) + (opts.unit ? ' ' + opts.unit : ''));
     };
     wrap.addEventListener('pointerup', endDrag);
     wrap.addEventListener('pointercancel', () => { if (sx !== null) { sx = null; slide(false); } });
 
     build();
     slide(false);
-    return { el: wrap, setVal: v => setVal(v, true), get: () => st.val };
+    const a11y = a11ySlider(wrap, {
+      label: opts.label || 'scale',
+      min: opts.min ?? 0,
+      now: () => st.val,
+      text: () => fmt(st.val) + (opts.unit ? ' ' + opts.unit : ''),
+      step: d => setVal(st.val + d * opts.step, true)
+    });
+    return { el: wrap, setVal: v => { setVal(v, true); a11y(); }, get: () => st.val };
   }
 
   /* The weight scale — expands inside the set row. The ruler runs in whatever
@@ -2540,6 +2578,7 @@
     };
     const ruler = rulerScale({
       value: +toW(set.kg).toFixed(1), step: jumpW(cur), tickW: 30, span: 14, min: 0,
+      label: 'Weight', unit: wUnit(),
       labelEvery: 2, majorEvery: 2, onChange: commit
     });
     box.appendChild(ruler.el);
@@ -2598,6 +2637,7 @@
       paintReadout(big, fmtClock(set.reps));
     };
     const ruler = rulerScale({
+      label: 'Seconds', unit: 's',
       value: set.reps, step: 5, tickW: 30, span: 14, min: 5,
       labelEvery: 2, majorEvery: 2, fmt: v => fmtClock(v), onChange: commit
     });
@@ -2636,11 +2676,16 @@
     const box = el('div', 'rep-scale');
 
     const top = el('div', 'ks-top');
-    const big = el('div', 'ks-val num', String(set.reps));
+    const big = el('div', 'ks-val num tappable', String(set.reps));
     big.appendChild(el('small', null, ' reps'));
     top.appendChild(big);
     top.appendChild(el('div', 'ks-delta', `Target ${fmtRange(cur.repLo, cur.repHi)}`));
     box.appendChild(top);
+    paintReadout(big, String(set.reps));
+    big.onclick = () => openNumPad({
+      title: 'Reps', value: set.reps, decimals: false, min: 0, max: 500,
+      apply: v => setVal(Math.round(v), true)
+    });
 
     const wrap = el('div', 'vs-ruler');
     wrap.appendChild(el('i', 'vs-ind'));
@@ -3350,7 +3395,7 @@
   }
   /* Horizontal option rail — the ruler language applied to a short list of
      choices. Swipe it or tap an option; it snaps to the nearest and ticks. */
-  function optionRail(labels, index, onChange, tickW, clicky) {
+  function optionRail(labels, index, onChange, tickW, clicky, ariaLabel) {
     const notch = () => { haptic(); if (clicky) bezelClick(); };
     // short labels (plain numbers) want a tighter tick so more of the range
     // is on screen at once; word labels keep the roomy default
@@ -3461,14 +3506,23 @@
     });
 
     mark(); slide(false);
+    const a11yRail = a11ySlider(wrap, {
+      label: ariaLabel || 'options',
+      min: 0, max: labels.length - 1,
+      now: () => val,
+      text: () => labels[val],
+      step: d => setVal(val + d, true)
+    });
     /* turned by code rather than a thumb — no onChange, so a control that
        drives another does not look like the user touched it */
     wrap.spinTo = i => {
       i = clampI(i);
       if (i === val) return;
       cancelAnimationFrame(raf);
-      val = i; mark(); slide(true);
+      val = i; mark(); slide(true); a11yRail();
     };
+    const upA = () => setTimeout(a11yRail, 0);
+    wrap.addEventListener('pointerup', upA);
     return wrap;
   }
 
@@ -4116,8 +4170,13 @@
 
     let bwv = lastBw ? lastBw.kg : 80;          // always kilos underneath
     const read = el('div', 'bwv-read');
-    const rv = el('div', 'bwv-val num', toW(bwv).toFixed(1));
+    const rv = el('div', 'bwv-val num tappable', toW(bwv).toFixed(1));
     rv.appendChild(el('small', null, ' ' + wUnit()));
+    rv.onclick = () => openNumPad({
+      title: 'Body weight', value: +toW(bwv).toFixed(1), unit: wUnit(),
+      min: toW(20), max: toW(400),
+      apply: v => { commitBw(+(+v).toFixed(1)); bwRuler.setVal(+(+v).toFixed(1)); }
+    });
     read.appendChild(rv);
     const dEl = el('div', 'bwv-delta num');
     read.appendChild(dEl);
@@ -4141,6 +4200,7 @@
     // the scale runs in your unit; a notch is 0.5 kg or 1 lb
     const bwRuler = rulerScale({
       value: +toW(bwv).toFixed(1), step: wStep(), tickW: 30, span: 14, min: toW(20),
+      label: 'Body weight', unit: wUnit(),
       labelEvery: 2, majorEvery: 2, decimals: 1, cls: 'fine',
       dragOnly: true, onChange: commitBw
     });
@@ -5197,7 +5257,8 @@
     c1.appendChild(el('div', 'micro', 'Sets'));
     c1.appendChild(pickerWheel(PM_SETS.map(String), PM_SETS.indexOf(pmSets),
       i => { pmSets = PM_SETS[i]; }, null,
-      i => (PM_SETS[i] % 5 === 0 ? 'w20' : (PM_SETS[i] % 2 ? 'w11' : 'w15'))));
+      i => (PM_SETS[i] % 5 === 0 ? 'w20' : (PM_SETS[i] % 2 ? 'w11' : 'w15')),
+      null, null, 'Sets'));
     wheels.appendChild(c1);
     const c2 = el('div', 'cd-col pm-exx');
     const exLbl = el('div', 'micro', 'Exercise');
@@ -5215,7 +5276,7 @@
     const exWheel = () => pickerWheel(shown.map(x => x.name), pmEx, i => { pmEx = i; paintHard(); }, 'wide',
       i => (i % 5 === 0 ? 'w20' : (i % 2 ? 'w11' : 'w15')),
       () => showMove(shown[pmEx]),
-      i => paintHard(i));
+      i => paintHard(i), 'Exercise');
     exBox.appendChild(exWheel());
     exBox.appendChild(play);
     c2.appendChild(exBox);
@@ -5252,9 +5313,9 @@
       repLbl.textContent = t ? 'Seconds' : 'Reps';
       const wheel = t
         ? pickerWheel(PM_SECS.map(r => r.label), pmSecs, i => { pmSecs = i; }, null,
-          i => (i % 2 ? 'w11' : 'w15'))
+          i => (i % 2 ? 'w11' : 'w15'), null, null, 'Seconds')
         : pickerWheel(PM_REPS.map(r => r.label), pmReps, i => { pmReps = i; }, null,
-          i => (i % 2 ? 'w11' : 'w15'));
+          i => (i % 2 ? 'w11' : 'w15'), null, null, 'Reps');
       if (c3.children.length > 1) c3.replaceChild(wheel, c3.lastChild);
       else c3.appendChild(wheel);
     };
@@ -5572,7 +5633,7 @@
      tick lines running down a dial with a fixed clay indicator.
      tickFor(i) returns 'w20' | 'w15' | 'w11' for the mark's length.
      onTap(i), if given, fires when the centred row is tapped. */
-  function pickerWheel(labels, index, onChange, cls, tickFor, onTap, onDetent) {
+  function pickerWheel(labels, index, onChange, cls, tickFor, onTap, onDetent, ariaLabel) {
     const TICK = 40;
     let val = Math.max(0, Math.min(labels.length - 1, index));
     const wrap = el('div', 'pw' + (cls ? ' ' + cls : ''));
@@ -5707,6 +5768,17 @@
       mark();
       slide(true);
     };
+    {
+      const a11yPW = a11ySlider(wrap, {
+        label: ariaLabel || 'picker',
+        min: 0, max: labels.length - 1,
+        orient: 'vertical',
+        now: () => val,
+        text: () => String(labels[val]),
+        step: d => setVal(val + d, true)
+      });
+      wrap.addEventListener('pointerup', () => setTimeout(a11yPW, 0));
+    }
     return wrap;
   }
 
@@ -5861,8 +5933,36 @@
       if (v === val) return;
       val = v;
       paint(true);
+      a11yDial();
     };
     wrap.get = () => val;
+    const a11yDial = a11ySlider(wrap, {
+      label: 'Minutes',
+      min: MINV, max: MAXV,
+      now: () => val,
+      text: () => val + ' minutes',
+      step: d => {
+        if (opts.locked) return;
+        const v = Math.max(MINV, Math.min(MAXV, val + d * STEP));
+        if (v === val) return;
+        val = v; haptic(); paint(true); opts.onChange(val);
+      }
+    });
+    wrap.addEventListener('pointerup', () => setTimeout(a11yDial, 0));
+    /* the dead middle is the typing door: tap the number, get the pad —
+       the same pencil idea the weight scale uses */
+    wrap.addEventListener('click', e => {
+      if (opts.locked) return;
+      if (polar(e).rad >= 0.55) return;
+      openNumPad({
+        title: 'Minutes', value: val, decimals: false, min: MINV, max: MAXV,
+        apply: v => {
+          v = Math.max(MINV, Math.min(MAXV, Math.round(v / STEP) * STEP));
+          if (v === val) return;
+          val = v; paint(true); a11yDial(); opts.onChange(val);
+        }
+      });
+    });
     return wrap;
   }
 
@@ -5956,7 +6056,7 @@
       upd();
       clearTimeout(renderCardio._t);
       renderCardio._t = setTimeout(renderCardio, 380);
-    }, 118, true));
+    }, 118, true, 'Activity'));
 
     const progVal = el('div', 'cd-row-val', shownProg);
     const progRail = optionRail(progLabels, pi, i => {
@@ -5970,7 +6070,7 @@
       }
       paintNote();
       upd();
-    }, 104, true);
+    }, 104, true, 'Program');
     const progRow = row('Program', progVal, progRail);
 
     const dial = bezelDial({
