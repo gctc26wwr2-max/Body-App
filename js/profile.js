@@ -30,9 +30,7 @@
 
     const head = el('header', 't-head');
     const hl = el('div');
-    hl.appendChild(el('div', 't-date', (workouts.length
-      ? 'Training since ' + dateOf(workouts[0].date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-      : 'Rackside') + ' · ' + APP_VERSION));
+    hl.appendChild(el('div', 't-date', 'Rackside · ' + APP_VERSION));
     hl.appendChild(el('h1', 't-title', 'Profile'));
     head.appendChild(hl);
     const acts = el('div', 'head-acts');
@@ -66,10 +64,16 @@
     }
     if (!avaImg) {
       ava.classList.add('empty');
-      ava.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" '
+      ava.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" '
         + 'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
-        + '<path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg>';
+        + '<circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 20a7.4 7.4 0 0 1 14.8 0"/></svg>';
     }
+    /* the camera badge says "this is changeable" without a word */
+    const badge = el('span', 'id-badge');
+    badge.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" '
+      + 'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+      + '<path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg>';
+    ava.appendChild(badge);
     const avaIn = document.createElement('input');
     avaIn.type = 'file'; avaIn.accept = 'image/*'; avaIn.style.display = 'none';
     ava.onclick = () => avaIn.click();
@@ -85,21 +89,34 @@
       renderTab();
     };
     const idTxt = el('div', 'id-txt');
-    const nameEl = el('button', 'id-name' + (pr.name ? '' : ' unset'), pr.name || 'Create your profile');
+    const nameEl = el('button', 'id-name' + (pr.name ? '' : ' unset'));
+    nameEl.appendChild(el('span', 'id-name-t', pr.name || 'Create your profile'));
+    const pen = el('span', 'id-pen');
+    pen.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" '
+      + 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+      + '<path d="M17 3.5l3.5 3.5L8 19.5 3.5 20.5 4.5 16z"/></svg>';
+    nameEl.appendChild(pen);
     const vitals = [];
     const yrs2 = ageYears(pr);
     if (yrs2 != null) vitals.push(yrs2 + ' yrs');
     if (pr.heightCm) vitals.push(fmtH(pr.heightCm));
     const bwsAll = (await DB.all('bodyweight')).sort((a, b) => b.ts - a.ts);
     if (bwsAll[0]) vitals.push(fmtW(bwsAll[0].kg));
+    const bf2 = navyBodyFat(pr);
+    if (bf2) vitals.push('~' + bf2 + '% fat');
     const subEl = el('div', 'id-sub', pr.name
       ? (vitals.join(' · ') || 'Fill in About you for the details')
       : 'Your name and photo — tap to add');
+    const sinceEl = workouts.length
+      ? el('div', 'id-since', 'Training since '
+        + dateOf(workouts[0].date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }))
+      : null;
     const editName = () => {
       const inp = document.createElement('input');
       inp.type = 'text'; inp.maxLength = 30; inp.className = 'id-input';
       inp.value = pr.name || ''; inp.placeholder = 'Your name';
       inp.autocapitalize = 'words'; inp.autocomplete = 'name';
+      inp.enterKeyHint = 'done';
       nameEl.replaceWith(inp);
       inp.focus();
       let done = false;
@@ -115,6 +132,7 @@
     nameEl.onclick = editName;
     idTxt.appendChild(nameEl);
     idTxt.appendChild(subEl);
+    if (sinceEl) idTxt.appendChild(sinceEl);
     idCard.appendChild(ava);
     idCard.appendChild(idTxt);
     idCard.appendChild(avaIn);
