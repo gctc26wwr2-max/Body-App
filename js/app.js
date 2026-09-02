@@ -1,7 +1,7 @@
 /* RACKSIDE — strength training app. All data on-device (IndexedDB). */
 (() => {
   'use strict';
-  const APP_VERSION = 'v306';
+  const APP_VERSION = 'v307';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -5085,6 +5085,9 @@
     };
     injHead.appendChild(master);
     root.appendChild(injHead);
+    if (injLive) root.appendChild(el('div', 'ab-hint',
+      'This hides movements that commonly stress the area. It is a filter, '
+      + 'not medical advice \u2014 follow your clinician.'));
     /* with the switch off there is nothing to choose, so the dial is not
        there at all — turning it on brings the wheel out */
     if (injLive) {
