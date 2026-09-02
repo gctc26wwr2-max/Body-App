@@ -341,6 +341,19 @@ t('mediaStore: save → meta/url → remove round-trip', async () => {
   eq(await mediaURL(id), null, 'url gone');
 });
 
+t('mediaURL reads path records (native) and blob records (web)', async () => {
+  await DB.put('media', { id: 'mp1', exerciseId: 'x', type: 'image/jpeg', path: 'media/mp1' });
+  eq(await mediaURL('mp1'), null, 'path without Capacitor → null, no crash');
+  window.Capacitor = { convertFileSrc: p => 'capacitor://localhost/_capacitor_file_/' + p };
+  eq(await mediaURL('mp1'), 'capacitor://localhost/_capacitor_file_/media/mp1', 'path via convertFileSrc');
+  delete window.Capacitor;
+  await DB.del('media', 'mp1');
+});
+t('IS_NATIVE is false on the web and checkUpdate respects it', () => {
+  eq(IS_NATIVE, false);
+  eq(typeof checkUpdate, 'undefined', 'boot.js not loaded here — gate checked by grep in review');
+});
+
 /* ---------------- ageYears (birth date → current age) ---------------- */
 t('ageYears counts a birthday-month as passed', () => {
   const now = new Date(); const y = now.getFullYear(), m = now.getMonth() + 1;

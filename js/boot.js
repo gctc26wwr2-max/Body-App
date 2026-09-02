@@ -169,6 +169,15 @@
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   async function migrate() {
+    /* WRAP DAY (Capacitor), first native launch, before anything renders:
+       move media out of IndexedDB — the one WKWebView storage resident that
+       historically misbehaves. For each DB.all('media') record carrying a
+       .blob: write the bytes to the native filesystem (Directory.Data,
+       media/<id>), then DB.put the record back as {id, exerciseId, type,
+       path} with the blob dropped; stamp 'mediaNative1' when done. The read
+       side (mediaURL) already understands path records, and mediaStore.save/
+       remove grow native branches the same day. checkUpdate is already
+       IS_NATIVE-gated. */
     // plans: items -> days; reps -> repLo/repHi
     const allPlans = await DB.all('plans');
     for (const p of allPlans) {
@@ -269,6 +278,9 @@
      up — on launch and whenever the app returns to the foreground. Never
      mid-workout. */
   async function checkUpdate() {
+    /* native builds update through the App Store, days not minutes —
+       polling version.json there would prompt reloads that change nothing */
+    if (IS_NATIVE) return;
     try {
       /* never reload mid-set, but a paused session is not mid-set — and it
          survives a reload intact, so holding back only strands you on an old

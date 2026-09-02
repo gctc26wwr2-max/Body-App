@@ -44,7 +44,8 @@
     } else if (!plan) root.appendChild(el('h1', 't-title', 'Rackside'));
 
     // running in the browser tab (not installed) — layout loses the bottom strip to Safari
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+      || navigator.standalone || IS_NATIVE;   // a wrapped app IS the installed app
     if (!standalone) {
       const hint = el('div', 'coach-note');
       hint.innerHTML = '<b>Install ·</b> You are in the browser, so Safari keeps a strip at the bottom. Tap <b>Share</b> → <b>Add to Home Screen</b> and open Rackside from the icon for true fullscreen.';
