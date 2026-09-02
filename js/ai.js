@@ -168,7 +168,12 @@
   function matchExercise(name) {
     const pool = pmExerciseList();
     const want = aiNorm(name);
-    if (!want) return null;
+    /* a name that normalises to nothing can still be a real movement written
+       in another alphabet — keep it as a custom exercise, don't drop it */
+    if (!want) {
+      const raw = String(name || '').trim();
+      return raw ? { rec: { name: raw.slice(0, 60), group: 'Other', notes: '', custom: true }, how: 'new' } : null;
+    }
     let hit = pool.find(x => aiNorm(x.name) === want);
     if (hit) return { rec: hit, how: 'exact' };
     /* A word the app has and the AI did not ask for is a qualifier — decline,
@@ -203,8 +208,10 @@
      if there is one, otherwise the first balanced object in the text. */
   function aiCarveJSON(text) {
     const fence = text.match(/```[a-z]*\s*([\s\S]*?)```/i);
-    if (fence && fence[1].includes('{')) return fence[1];
-    const start = text.indexOf('{');
+    if (fence && /[{[]/.test(fence[1])) return fence[1];
+    /* the block may be an object or a bare array — carve whichever opens first */
+    const io = text.indexOf('{'), ia = text.indexOf('[');
+    const start = io < 0 ? ia : (ia < 0 ? io : Math.min(io, ia));
     if (start < 0) return null;
     let depth = 0, inStr = false, esc = false;
     for (let i = start; i < text.length; i++) {
@@ -214,8 +221,8 @@
         else if (c === '\\') esc = true;
         else if (c === '"') inStr = false;
       } else if (c === '"') inStr = true;
-      else if (c === '{') depth++;
-      else if (c === '}' && --depth === 0) return text.slice(start, i + 1);
+      else if (c === '{' || c === '[') depth++;
+      else if ((c === '}' || c === ']') && --depth === 0) return text.slice(start, i + 1);
     }
     return null;
   }

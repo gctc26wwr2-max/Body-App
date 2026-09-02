@@ -53,15 +53,20 @@ visible in every later file. Rules that follow from this:
 
 1. Bump `APP_VERSION` in `js/core.js`, cache name in `sw.js`
    (`body-app-vNNN`), and `version.json` — all three, same number.
-2. Verify headlessly: Playwright, chromium at `/opt/pw-browsers/chromium`,
+2. Run the unit suite: open `tests.html` (headless: load it in Playwright
+   and read `window.__results`). It covers the untrusted-input paths
+   (parseBlockReply, restoreData + the migration ladder) and the training
+   math; it fakes localStorage and DB, so it never touches real data. Add
+   cases there when touching those functions.
+3. Verify UI headlessly: Playwright, chromium at `/opt/pw-browsers/chromium`,
    iPhone 13 profile, local server on :8899. Test scripts live in the
    session scratchpad; seed state via `DB.put` in `page.evaluate`, not UI
    clicking. Known pitfalls: settings hides the tabbar (leave via
    `#view-prefs .w-chip`); prefs commit via the Save modal on close;
    dialogs need a handler.
-3. Commit to branch `claude/training-practices-tracker-rwcbe5` ONLY; never
+4. Commit to branch `claude/training-practices-tracker-rwcbe5` ONLY; never
    create PRs unless asked.
-4. Deploy: copy changed files into the gh-pages clone (/tmp/ghp), push
+5. Deploy: copy changed files into the gh-pages clone (/tmp/ghp), push
    gh-pages, then poll
    `https://gctc26wwr2-max.github.io/Body-App/version.json` until it
    serves the new version (background until-loop; plain `sleep` chains are

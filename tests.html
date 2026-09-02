@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rackside tests</title>
+<style>
+  body { background:#111; color:#ddd; font:14px/1.5 -apple-system,system-ui,sans-serif; padding:16px; }
+  .pass { color:#9c4; } .fail { color:#f66; } h1 { font-size:18px; }
+  pre { white-space:pre-wrap; color:#f99; margin:2px 0 8px 16px; }
+</style>
+</head>
+<body>
+<h1>Rackside tests</h1>
+<div id="out">running…</div>
+
+<!-- the app files below need these to exist at load time -->
+<div id="sheet-backdrop" hidden></div>
+<div id="media-viewer" hidden><div id="media-viewer-body"></div></div>
+<button id="media-viewer-close" hidden></button>
+
+<script>
+/* Isolation FIRST, before any app file loads: this page must never touch a
+   real user's data, even opened on an installed device. localStorage is
+   replaced with an in-memory fake, and DB is patched right after db.js. */
+'use strict';
+const __ls = new Map();
+Object.defineProperty(window, 'localStorage', { value: {
+  getItem: k => __ls.has(k) ? __ls.get(k) : null,
+  setItem: (k, v) => __ls.set(k, String(v)),
+  removeItem: k => __ls.delete(k),
+  clear: () => __ls.clear(),
+  key: i => [...__ls.keys()][i] ?? null,
+  get length() { return __ls.size; }
+} });
+const __alerts = [];
+let __confirmAnswer = true;
+window.alert = m => __alerts.push(String(m));
+window.confirm = () => __confirmAnswer;
+</script>
+
+<script src="js/db.js"></script>
+<script>
+/* swap IndexedDB for an in-memory store — same API, zero persistence */
+'use strict';
+const __db = new Map();
+const __tbl = s => { if (!__db.has(s)) __db.set(s, new Map()); return __db.get(s); };
+DB.all = async s => [...__tbl(s).values()];
+DB.get = async (s, id) => __tbl(s).get(id);
+DB.put = async (s, rec) => { __tbl(s).set(rec.id, rec); return rec; };
+DB.del = async (s, id) => { __tbl(s).delete(id); };
+if (DB.persist) DB.persist = async () => {};
+</script>
+
+<script src="js/library.js"></script>
+<script src="js/plans.js"></script>
+<script src="js/core.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/planmaker.js"></script>
+<script src="js/ai.js"></script>
+
+<script>
+'use strict';
+/* restoreData ends by re-rendering the app; there is no app here */
+renderTab = async () => {};
+
+const T = [];
+const t = (name, fn) => T.push({ name, fn });
+const eq = (got, want, what) => {
+  const g = JSON.stringify(got), w = JSON.stringify(want);
+  if (g !== w) throw new Error(`${what || 'value'}: got ${g}, want ${w}`);
+};
+const near = (got, want, eps, what) => {
+  if (Math.abs(got - want) > (eps ?? 0.01)) throw new Error(`${what || 'value'}: got ${got}, want ≈${want}`);
+};
+const setUnits = u => localStorage.setItem('profile', JSON.stringify({ units: u }));
+
+/* ---------------- training math ---------------- */
+t('est1RM Epley', () => { near(est1RM(100, 5), 116.67); near(est1RM(60, 1), 62); });
+t('est1RM zero reps is zero', () => eq(est1RM(100, 0), 0));
+
+t('plateMath loads a plain bar (greedy, biggest first)', () => {
+  eq(plateMath(100, 20), [25, 15]);
+  eq(plateMath(102.5, 20), [25, 15, 1.25]);
+});
+t('plateMath empty at or under the bar', () => { eq(plateMath(20, 20), []); eq(plateMath(10, 20), []); });
+t('plateMath survives float dust', () => {
+  const side = 49.999999999999; // unit round-trip residue: must still load 2×25
+  const out = plateMath(20 + 2 * side, 20);
+  eq(out, [25, 25], 'plates');
+  near(out.reduce((a, b) => a + b, 0), 50, 0.02, 'side total');
+});
+
+t('wRound in kg snaps to 2.5 and floors at one step', () => {
+  setUnits('kg');
+  eq(wRound(41.3), 42.5); eq(wRound(1), 2.5); eq(wRound(0), 0);
+});
+t('wRound in lb lands on real 5 lb plates', () => {
+  setUnits('lb');
+  const kg = wRound(41.3);
+  const lb = toW(kg);
+  near(lb % 5, 0, 0.001, 'multiple of 5 lb');
+  near(lb, 90, 0.01, 'nearest 5 lb to 91.05');
+  setUnits('kg');
+});
+
+/* ---------------- parseBlockReply — feed it garbage ---------------- */
+const P = raw => parseBlockReply(raw);
+const errOf = r => (r && r.error) || null;
+
+t('empty / null / whitespace ask for a paste', () => {
+  for (const bad of ['', null, undefined, '   \n  ']) {
+    if (!/Paste the reply/.test(errOf(P(bad)))) throw new Error('no paste error for ' + JSON.stringify(bad));
+  }
+});
+t('prose with no JSON is refused', () => {
+  if (!/No block found/.test(errOf(P('Sure! Here is a great plan for you. Enjoy.')))) throw new Error('missed');
+});
+t('truncated JSON is a clean error, not a crash', () => {
+  const r = P('{"name":"X","days":[{"name":"A","items":[{"exercise":"Squat"');
+  if (!errOf(r) || r.block) throw new Error('no clean error: ' + JSON.stringify(r));
+});
+t('a real fenced reply parses', () => {
+  const r = P('Here you go:\n```json\n{"name":"Push Pull","weeks":6,"days":[' +
+    '{"name":"Push","items":[{"exercise":"Bench Press","sets":4,"reps":"6-10"}]},' +
+    '{"name":"Pull","items":[{"exercise":"Barbell Row","sets":3,"reps":8}]}]}\n```\nEnjoy!');
+  eq(errOf(r), null, 'error');
+  eq(r.block.name, 'Push Pull'); eq(r.block.weeks, 6);
+  eq(r.block.days.length, 2);
+  eq(r.block.days[0].items[0].name, 'Bench Press');
+  eq(r.block.days[0].items[0].repLo, 6); eq(r.block.days[0].items[0].repHi, 10);
+});
+t('smart quotes and trailing commas are tolerated', () => {
+  const r = P('{“name”:“Q”,"days":[{"items":[{"exercise":"Squat","sets":3,},],},]}');
+  eq(errOf(r), null, 'error'); eq(r.block.days[0].items[0].name, 'Squat');
+});
+t('duplicated keys do not crash (last one wins)', () => {
+  const r = P('{"name":"A","name":"B","days":[{"items":["Squat"]}]}');
+  eq(errOf(r), null, 'error'); eq(r.block.name, 'B');
+});
+t('400 items and 10 days are capped at 12×6', () => {
+  const item = '{"exercise":"Squat","sets":3}';
+  const day = `{"items":[${Array(400).fill(item).join(',')}]}`;
+  const r = P(`{"days":[${Array(10).fill(day).join(',')}]}`);
+  eq(errOf(r), null, 'error');
+  eq(r.block.days.length, 6, 'days capped');
+  eq(r.block.days[0].items.length, 12, 'items capped');
+});
+t('Russian names become custom exercises, not crashes', () => {
+  const r = P('{"days":[{"items":[{"exercise":"Приседания со штангой","sets":3}]}]}');
+  eq(errOf(r), null, 'error');
+  const it = r.block.days[0].items[0];
+  eq(it.how, 'new'); eq(it.name, 'Приседания со штангой');
+});
+t('rep and set garbage is clamped sanely', () => {
+  const r = P('{"days":[{"items":[' +
+    '{"exercise":"Squat","reps":"8 to 12","sets":4},' +
+    '{"exercise":"Bench Press","reps":400,"sets":99},' +
+    '{"exercise":"Deadlift","reps":"12-8","sets":-3}]}]}');
+  const [a, b, c] = r.block.days[0].items;
+  eq([a.repLo, a.repHi, a.sets], [8, 12, 4], '"8 to 12"');
+  eq([b.repLo, b.repHi, b.sets], [100, 100, 10], 'reps 400 / sets 99');
+  eq([c.repLo, c.repHi, c.sets], [8, 12, 1], 'backwards range / sets -3');
+});
+t('a bare top-level array of days works', () => {
+  const r = P('[["Squat","Deadlift"]]');
+  eq(errOf(r), null, 'error');
+  eq(r.block.days[0].items.map(i => i.name), ['Squat', 'Deadlift']);
+});
+t('days that are not an array are refused', () => {
+  if (!/no training days/.test(errOf(P('{"days":"Monday and Friday"}')))) throw new Error('missed');
+});
+t('weeks garbage clamps to 2–12, default 4', () => {
+  const day = '{"items":["Squat"]}';
+  eq(P(`{"weeks":"abc","days":[${day}]}`).block.weeks, 4);
+  eq(P(`{"weeks":50,"days":[${day}]}`).block.weeks, 12);
+  eq(P(`{"weeks":1,"days":[${day}]}`).block.weeks, 2);
+});
+t('a 300-char block name is sliced to 60', () => {
+  const r = P(`{"name":"${'x'.repeat(300)}","days":[{"items":["Squat"]}]}`);
+  eq(r.block.name.length, 60);
+});
+
+/* ---------------- restoreData — the migration ladder ---------------- */
+const backupBlob = obj => new Blob([typeof obj === 'string' ? obj : JSON.stringify(obj)]);
+const resetWorld = () => { __db.clear(); __ls.clear(); __alerts.length = 0; __confirmAnswer = true; };
+const v5file = () => ({
+  app: 'rackside', version: 5, exportedAt: '2026-01-15T10:00:00.000Z',
+  exercises: [{ id: 'wsx1', name: 'Wall Sit', group: 'Legs', notes: '' }],
+  plans: [{ id: 'pOld', name: 'Old block', weeks: 4, completed: [], startDate: null,
+    days: [{ name: 'Day A', items: [{ exerciseId: 'wsx1', sets: 2, repLo: 8, repHi: 10, kg: 0 }] }] }],
+  sessions: [], workouts: [], bodyweight: [], cardio: [],
+  equip: ['bodyweight', 'barbell', 'machine'], injuries: [], injuriesOn: false, profile: {}
+});
+
+t('restore: not JSON → refused, nothing written', async () => {
+  resetWorld();
+  await restoreData(backupBlob('this is not json'));
+  if (!/not a Rackside backup/.test(__alerts[0] || '')) throw new Error('no refusal: ' + __alerts);
+  eq((await DB.all('plans')).length, 0, 'plans written');
+});
+t('restore: wrong app field → refused', async () => {
+  resetWorld();
+  await restoreData(backupBlob({ app: 'other', version: 5, plans: [{ id: 'x' }] }));
+  if (!/not a Rackside backup/.test(__alerts[0] || '')) throw new Error('no refusal');
+  eq((await DB.all('plans')).length, 0, 'plans written');
+});
+t('restore: file from the future → refused before confirm', async () => {
+  resetWorld();
+  await restoreData(backupBlob({ app: 'rackside', version: 99, plans: [{ id: 'pF' }] }));
+  if (!/newer version/.test(__alerts[0] || '')) throw new Error('no refusal: ' + __alerts);
+  eq(await DB.get('plans', 'pF'), undefined, 'future plan restored');
+});
+t('restore: user says no → nothing written', async () => {
+  resetWorld(); __confirmAnswer = false;
+  await restoreData(backupBlob(v5file()));
+  eq((await DB.all('plans')).length, 0, 'plans written');
+  eq(__alerts.length, 0, 'alerts');
+});
+t('restore: v5 ladder — kit split + reps→seconds, records land', async () => {
+  resetWorld();
+  await restoreData(backupBlob(v5file()));
+  const eq5 = new Set(JSON.parse(localStorage.getItem('equip')));
+  for (const k of ['machine', 'm-smith', 'm-ghd']) if (!eq5.has(k)) throw new Error('equip missing ' + k);
+  const pl = await DB.get('plans', 'pOld');
+  eq([pl.days[0].items[0].repLo, pl.days[0].items[0].repHi], [30, 45], 'Wall Sit seconds');
+  eq((await DB.get('exercises', 'wsx1')).name, 'Wall Sit', 'exercise record');
+  if (!/brought up to the current format/.test(__alerts.join(' '))) throw new Error('no migration note');
+});
+t('restore: unstamped file is treated as v1 and still migrated', async () => {
+  resetWorld();
+  const f = v5file(); delete f.version;
+  await restoreData(backupBlob(f));
+  const eq1 = new Set(JSON.parse(localStorage.getItem('equip')));
+  if (!eq1.has('m-hack')) throw new Error('kit not split');
+  eq((await DB.get('plans', 'pOld')).days[0].items[0].repLo, 30, 'seconds');
+});
+t('restore: records without an id are skipped, valid ones kept', async () => {
+  resetWorld();
+  const f = v5file();
+  f.workouts = [{ notAnId: true }, null, { id: 'w1', date: '2026-01-01' }];
+  await restoreData(backupBlob(f));
+  eq((await DB.all('workouts')).map(w => w.id), ['w1']);
+});
+
+/* ---------------- runner ---------------- */
+(async () => {
+  exercises = []; plans = [];
+  const out = document.getElementById('out');
+  out.textContent = '';
+  let pass = 0; const failures = [];
+  for (const { name, fn } of T) {
+    try { await fn(); pass++; out.insertAdjacentHTML('beforeend', `<div class="pass">✓ ${name}</div>`); }
+    catch (e) {
+      failures.push(name + ': ' + e.message);
+      out.insertAdjacentHTML('beforeend', `<div class="fail">✗ ${name}</div><pre></pre>`);
+      out.lastElementChild.textContent = e.message;
+    }
+  }
+  out.insertAdjacentHTML('beforeend', `<div><b>${pass}/${T.length} passed</b></div>`);
+  window.__results = { pass, total: T.length, failures };
+})();
+</script>
+</body>
+</html>
