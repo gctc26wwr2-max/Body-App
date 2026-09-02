@@ -617,6 +617,10 @@
         cardioMins = pr3.mins;
         dial.set(pr3.mins);            // the ring turns in front of you
         progRow.classList.remove('off');
+      } else {
+        cardioMins = 0;                // back to None: the bezel winds home
+        dial.set(0);
+        progRow.classList.add('off');
       }
       paintNote();
       upd();
