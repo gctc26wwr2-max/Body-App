@@ -313,6 +313,8 @@ t('mixHex blends and applyAccent repaints the vars', () => {
   eq(document.documentElement.style.getPropertyValue('--lime'), '#4E9FA8');
   localStorage.setItem('profile', JSON.stringify({ accent: '#7B3FA0' }));
   eq(applyAccent(), '#7B3FA0', 'raw wheel hex');
+  eq(document.documentElement.style.getPropertyValue('--clay-dim'),
+    mixHex('#7B3FA0', '#0B0908', .5), 'done-day marker follows the accent');
   localStorage.setItem('profile', JSON.stringify({ accent: 'javascript:alert(1)' }));
   eq(applyAccent(), '#CE6B3D', 'garbage falls back to clay');
   localStorage.clear();

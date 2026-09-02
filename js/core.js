@@ -4,7 +4,7 @@
    part loaded after this one. Load order is index.html's script order.
    Map of what lives where: FUNCTIONS.md */
 'use strict';
-  const APP_VERSION = 'v324';
+  const APP_VERSION = 'v325';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -161,6 +161,9 @@
     s.setProperty('--lime-border', `rgba(${accRGB()},.30)`);
     s.setProperty('--lime-dim', mixHex(ACC, '#000000', .15));
     s.setProperty('--lime-pale', mixHex(ACC, '#FFFFFF', .18));
+    /* the accent at half strength, flattened onto the canvas — done-day
+       markers on the plan rail */
+    s.setProperty('--clay-dim', mixHex(ACC, '#0B0908', .5));
     return ACC;
   }
 
