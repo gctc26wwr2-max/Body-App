@@ -461,12 +461,15 @@
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'focus' ? ' open' : ''), '›'));
           r.onclick = () => { prefOpen = prefOpen === 'focus' ? null : 'focus'; renderPrefs(); };
         } else if (live === 'accent') {
-          const cur = ACCENTS.find(x => x.key === pDraft.accent) || ACCENTS[0];
+          const curHex = /^#/.test(String(pDraft.accent || ''))
+            ? String(pDraft.accent).toUpperCase()
+            : (ACCENTS.find(x => x.key === pDraft.accent) || ACCENTS[0]).hex;
+          const cur = ACCENTS.find(x => x.hex === curHex);
           const val = el('span', 'pref-val');
           const mini = el('i', 'acc-mini');
-          mini.style.background = cur.hex;
+          mini.style.background = curHex;
           val.appendChild(mini);
-          val.appendChild(document.createTextNode(cur.label));
+          val.appendChild(document.createTextNode(cur ? cur.label : 'Custom'));
           r.appendChild(val);
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'accent' ? ' open' : ''), '\u203a'));
           r.onclick = () => { prefOpen = prefOpen === 'accent' ? null : 'accent'; renderPrefs(); };
@@ -531,22 +534,73 @@
         }
         if (live === 'accent' && prefOpen === 'accent') {
           const panel = el('div', 'pref-panel');
+          /* the wheel: drag around the ring for any hue — every pick lands
+             at the palette's own saturation and lightness, so nothing you
+             choose can fall out of the app's register */
+          const AS = 58, AL = 53;
+          const startHex = /^#/.test(String(pDraft.accent || ''))
+            ? String(pDraft.accent).toUpperCase()
+            : (ACCENTS.find(x => x.key === pDraft.accent) || ACCENTS[0]).hex;
+          let hue = hueOf(startHex);
+          const wrap2 = el('div', 'hue-wrap');
+          wrap2.appendChild(el('div', 'hue-ring'));
+          const knob = el('i', 'hue-knob');
+          const core2 = el('i', 'hue-core');
+          wrap2.appendChild(knob);
+          wrap2.appendChild(core2);
+          const pick = () => {
+            const hex = hslHex(hue, AS, AL);
+            pDraft.accent = hex;
+            applyAccent(hex);      /* live preview — leaving without Save snaps back */
+            const mv = r.querySelector('.acc-mini');
+            if (mv) mv.style.background = hex;
+            const tn = r.querySelector('.pref-val');
+            if (tn) tn.lastChild.textContent = (ACCENTS.find(x => x.hex === hex) || { label: 'Custom' }).label;
+            rowEl.querySelectorAll('.acc-dot').forEach(dd => dd.classList.toggle('sel', dd.dataset.hex === hex));
+          };
+          const paintWheel = () => {
+            knob.style.transform = `translate(-50%,-50%) rotate(${hue}deg) translateY(-4.5rem)`;
+            knob.style.background = hslHex(hue, AS, AL);
+            core2.style.background = hslHex(hue, AS, AL);
+          };
+          let wid = null;
+          const hueAt = e => {
+            const b = wrap2.getBoundingClientRect();
+            return Math.round((Math.atan2(e.clientX - b.left - b.width / 2,
+              -(e.clientY - b.top - b.height / 2)) * 180 / Math.PI + 360) % 360);
+          };
+          wrap2.addEventListener('pointerdown', e => {
+            wid = e.pointerId; wrap2.setPointerCapture(wid);
+            hue = hueAt(e); paintWheel(); pick(); haptic();
+          });
+          wrap2.addEventListener('pointermove', e => {
+            if (e.pointerId !== wid) return;
+            hue = hueAt(e); paintWheel(); pick();
+          });
+          wrap2.addEventListener('pointerup', e => { if (e.pointerId === wid) wid = null; });
+          a11ySlider(wrap2, { label: 'Accent hue', min: 0, max: 359,
+            now: () => hue, text: () => hslHex(hue, AS, AL),
+            step: dd => { hue = (hue + dd * 5 + 360) % 360; paintWheel(); pick(); } });
+          paintWheel();
+          panel.appendChild(wrap2);
           const rowEl = el('div', 'acc-row');
           ACCENTS.forEach(a => {
-            const b = el('button', 'acc-dot' + ((pDraft.accent || 'clay') === a.key ? ' sel' : ''));
+            const b = el('button', 'acc-dot' + (startHex === a.hex ? ' sel' : ''));
             b.style.background = a.hex;
+            b.dataset.hex = a.hex;
             b.title = a.label;
             b.setAttribute('aria-label', 'Accent ' + a.label);
             b.onclick = () => {
-              pDraft.accent = a.key;
-              applyAccent(a.key);     /* live preview — leaving without Save snaps back */
+              hue = hueOf(a.hex);
+              pDraft.accent = a.hex;
+              applyAccent(a.hex);
               haptic();
               renderPrefs();
             };
             rowEl.appendChild(b);
           });
           panel.appendChild(rowEl);
-          panel.appendChild(el('div', 'ab-hint', 'Colours the whole app.'));
+          panel.appendChild(el('div', 'ab-hint', 'Turn the wheel or tap a preset — colours the whole app.'));
           list.appendChild(panel);
         }
         if (live === 'jumps' && prefOpen === 'jumps') {

@@ -4,7 +4,7 @@
    part loaded after this one. Load order is index.html's script order.
    Map of what lives where: FUNCTIONS.md */
 'use strict';
-  const APP_VERSION = 'v323';
+  const APP_VERSION = 'v324';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -128,9 +128,32 @@
     return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
   };
   const accRGB = () => hexRGB(ACC).join(',');
-  function applyAccent(key) {
-    const a = ACCENTS.find(x => x.key === (key ?? getProfile().accent)) || ACCENTS[0];
-    ACC = a.hex;
+  /* hue in, hex out — the wheel works in HSL at the palette's fixed
+     saturation and lightness, so every pick sits in the app's register */
+  const hslHex = (h, s, l) => {
+    s /= 100; l /= 100;
+    const f = n => {
+      const k = (n + h / 30) % 12;
+      const c = l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+      return Math.round(255 * c).toString(16).padStart(2, '0');
+    };
+    return ('#' + f(0) + f(8) + f(4)).toUpperCase();
+  };
+  const hueOf = hex => {
+    const [r, g, b] = hexRGB(hex).map(v => v / 255);
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    if (mx === mn) return 0;
+    const d = mx - mn;
+    let h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return Math.round(h * 60) % 360;
+  };
+  /* accepts a preset key ('sea'), a raw hex from the wheel, or nothing —
+     nothing means follow whatever the saved profile says */
+  function applyAccent(sel) {
+    const v = sel ?? getProfile().accent;
+    ACC = /^#[0-9A-Fa-f]{6}$/.test(String(v || ''))
+      ? String(v).toUpperCase()
+      : (ACCENTS.find(x => x.key === v) || ACCENTS[0]).hex;
     const s = document.documentElement.style;
     s.setProperty('--lime', ACC);
     s.setProperty('--acc-rgb', accRGB());
@@ -138,7 +161,7 @@
     s.setProperty('--lime-border', `rgba(${accRGB()},.30)`);
     s.setProperty('--lime-dim', mixHex(ACC, '#000000', .15));
     s.setProperty('--lime-pale', mixHex(ACC, '#FFFFFF', .18));
-    return a;
+    return ACC;
   }
 
   const wRound = kg => {

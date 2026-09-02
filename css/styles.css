@@ -2233,3 +2233,28 @@ body { font-size: 0.8235rem; }
   display: inline-block; width: 0.5882rem; height: 0.5882rem; border-radius: 50%;
   margin-right: 6px; vertical-align: 0;
 }
+
+/* Accent hue wheel */
+.hue-wrap { position: relative; width: 10.5882rem; height: 10.5882rem; margin: 12px auto 6px; touch-action: none; border-radius: 50%; }
+.hue-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(
+    hsl(0 58% 53%), hsl(30 58% 53%), hsl(60 58% 53%), hsl(90 58% 53%),
+    hsl(120 58% 53%), hsl(150 58% 53%), hsl(180 58% 53%), hsl(210 58% 53%),
+    hsl(240 58% 53%), hsl(270 58% 53%), hsl(300 58% 53%), hsl(330 58% 53%), hsl(360 58% 53%));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.7rem), #000 calc(100% - 1.6rem));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 1.7rem), #000 calc(100% - 1.6rem));
+}
+.hue-knob {
+  position: absolute; left: 50%; top: 50%; width: 1.5294rem; height: 1.5294rem;
+  border-radius: 50%; border: 3px solid #F3EFE9; box-shadow: 0 1px 7px rgba(0,0,0,.55);
+  pointer-events: none;
+}
+.hue-core {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+  width: 3.7647rem; height: 3.7647rem; border-radius: 50%;
+  border: 1px solid var(--hair); box-shadow: inset 0 0 12px rgba(0,0,0,.25);
+  pointer-events: none;
+}
+.hue-wrap { outline: none; }
+.hue-wrap:focus-visible { box-shadow: 0 0 0 3px rgba(var(--acc-rgb),.35); }

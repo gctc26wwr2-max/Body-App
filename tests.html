@@ -309,11 +309,20 @@ t('mixHex blends and applyAccent repaints the vars', () => {
   eq(mixHex('#000000', '#ffffff', .5), '#808080');
   eq(mixHex('#CE6B3D', '#000000', 0), '#ce6b3d');
   localStorage.setItem('profile', JSON.stringify({ accent: 'sea' }));
-  const a = applyAccent();
-  eq(a.key, 'sea');
+  eq(applyAccent(), '#4E9FA8', 'legacy preset key');
   eq(document.documentElement.style.getPropertyValue('--lime'), '#4E9FA8');
+  localStorage.setItem('profile', JSON.stringify({ accent: '#7B3FA0' }));
+  eq(applyAccent(), '#7B3FA0', 'raw wheel hex');
+  localStorage.setItem('profile', JSON.stringify({ accent: 'javascript:alert(1)' }));
+  eq(applyAccent(), '#CE6B3D', 'garbage falls back to clay');
   localStorage.clear();
-  eq(applyAccent().key, 'clay', 'default');
+  eq(applyAccent(), '#CE6B3D', 'default');
+});
+t('hue round-trip: hslHex and hueOf agree', () => {
+  for (const h of [0, 19, 90, 180, 270, 345]) {
+    const got = hueOf(hslHex(h, 58, 53));
+    if (Math.abs(got - h) > 1 && Math.abs(got - h) < 359) throw new Error(h + ' → ' + got);
+  }
 });
 
 /* ---------------- mediaStore seam ---------------- */
