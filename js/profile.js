@@ -543,6 +543,28 @@
       const step = BACKUP_MIGRATIONS[v];
       if (step) try { step(data); } catch (e) { console.error('backup migration ' + v, e); }
     }
+    /* a backup is untrusted input: fields the UI later renders or computes
+       with must come out of here in the right type. Honest values pass
+       through unchanged; garbage is coerced, never trusted. */
+    const num = (v, d) => { v = Math.round(+v); return Number.isFinite(v) ? v : d; };
+    for (const pl of (Array.isArray(data.plans) ? data.plans : [])) {
+      if (!pl || typeof pl !== 'object') continue;
+      pl.name = String(pl.name || '').slice(0, 60);
+      pl.weeks = Math.max(1, Math.min(52, num(pl.weeks, 4)));
+      for (const d of (Array.isArray(pl.days) ? pl.days : [])) {
+        if (!d || typeof d !== 'object') continue;
+        d.name = String(d.name || '').slice(0, 60);
+        for (const it of (Array.isArray(d.items) ? d.items : [])) {
+          if (!it || typeof it !== 'object') continue;
+          it.sets = Math.max(1, Math.min(10, num(it.sets, 3)));
+          it.repLo = Math.max(0, Math.min(600, num(it.repLo, 8)));
+          it.repHi = Math.max(it.repLo, Math.min(600, num(it.repHi, 12)));
+          it.kg = Number.isFinite(+it.kg) ? +it.kg : 0;
+        }
+      }
+    }
+    for (const ex of (Array.isArray(data.exercises) ? data.exercises : []))
+      if (ex && typeof ex === 'object') ex.name = String(ex.name || '').slice(0, 120);
     let n = 0;
     for (const [store, key] of [['exercises', 'exercises'], ['plans', 'plans'], ['sessions', 'sessions'], ['workouts', 'workouts'], ['bodyweight', 'bodyweight'], ['cardio', 'cardio']]) {
       for (const rec of (data[key] || [])) {

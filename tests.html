@@ -55,6 +55,7 @@ if (DB.persist) DB.persist = async () => {};
 <script src="js/library.js"></script>
 <script src="js/plans.js"></script>
 <script src="js/core.js"></script>
+<script src="js/today.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/stats.js"></script>
@@ -236,6 +237,23 @@ t('restore: unstamped file is treated as v1 and still migrated', async () => {
   const eq1 = new Set(JSON.parse(localStorage.getItem('equip')));
   if (!eq1.has('m-hack')) throw new Error('kit not split');
   eq((await DB.get('plans', 'pOld')).days[0].items[0].repLo, 30, 'seconds');
+});
+t('restore: markup in stored fields is coerced, never kept', async () => {
+  resetWorld();
+  const f = v5file();
+  f.plans[0].weeks = '<img src=x onerror=alert(1)>';
+  f.plans[0].name = '<script>alert(1)<' + '/script>' + 'x'.repeat(200);
+  f.plans[0].days[0].items[0].sets = '"><svg onload=alert(1)>';
+  await restoreData(backupBlob(f));
+  const pl = await DB.get('plans', 'pOld');
+  eq(pl.weeks, 4, 'weeks coerced');
+  eq(pl.days[0].items[0].sets, 3, 'sets coerced');
+  eq(pl.name.length <= 60, true, 'name sliced to 60');
+});
+t('blockArcSVG never emits attacker markup', () => {
+  const svg = blockArcSVG(12, '<b>3</b>', '<img src=x onerror=alert(1)>');
+  if (/<img|onerror|<b>/.test(svg)) throw new Error('markup leaked: ' + svg.slice(0, 120));
+  if (!/W4</.test(svg)) throw new Error('week label wrong');
 });
 t('restore: records without an id are skipped, valid ones kept', async () => {
   resetWorld();
