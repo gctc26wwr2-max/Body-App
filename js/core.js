@@ -4,7 +4,7 @@
    part loaded after this one. Load order is index.html's script order.
    Map of what lives where: FUNCTIONS.md */
 'use strict';
-  const APP_VERSION = 'v328';
+  const APP_VERSION = 'v329';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
