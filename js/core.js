@@ -4,7 +4,7 @@
    part loaded after this one. Load order is index.html's script order.
    Map of what lives where: FUNCTIONS.md */
 'use strict';
-  const APP_VERSION = 'v330';
+  const APP_VERSION = 'v331';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -555,6 +555,9 @@
   /* ---------------- navigation ---------------- */
   const VIEWS = ['today', 'plan', 'cardio', 'stats', 'library', 'profile', 'workout', 'summary', 'detail', 'planmaker', 'about', 'prefs'];
   function show(view) {
+    /* Blocks folded into Plan: every old caller that opened the library
+       lands on the Plan tab, on whichever segment masterTab names */
+    if (view === 'library') { view = 'plan'; if (masterTab === 'block') masterTab = 'ready'; }
     VIEWS.forEach(v => $('#view-' + v).hidden = v !== view);
     const isTab = ['today', 'plan', 'cardio', 'stats', 'library', 'profile'].includes(view);
     $('#tabbar').hidden = !isTab;
