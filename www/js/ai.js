@@ -530,7 +530,7 @@
       const hd = el('div', 'eqs-head');
       hd.appendChild(el('div', 'micro', sec));
       const tools = el('div', 'eqs-tools');
-      tools.appendChild(el('div', 'eqs-n num', have === items.length ? 'all' : have + ' of ' + items.length));
+      if (have !== items.length) tools.appendChild(el('div', 'eqs-n num', have + ' of ' + items.length));
       const mini = (label, fn) => {
         const b = el('button', 'eqs-mini', label);
         b.onclick = () => { fn(); haptic(); after(); };

@@ -69,6 +69,17 @@ visible in every later file. Rules that follow from this:
 - IS_NATIVE also counts the wrap as "installed", so the Add-to-Home-Screen
   hint stays hidden.
 
+## Design review (v6) — the standing layout decisions
+
+- Today: one hero. Eyebrow (date · greeting · streak) → arc with the day
+  name inside → Start → exercise list → weekday strip → install hint last.
+  No block card; the greeting never takes the title slot.
+- Five tabs. Blocks is folded into Plan as segments (`masterTab`); keep
+  `show('library')` aliased to Plan.
+- Stats compares full weeks only; the running week is 'so far' and hollow.
+- Never render a table header without rows; pluralise counts.
+- Faint text that carries words is #857C73, not #6A625A.
+
 ## UI rules (owner's standing preferences)
 
 - Minimum text; it's a phone app — space is scarce; check text size always.

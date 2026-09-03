@@ -1,5 +1,5 @@
 # Rackside — every feature, in plain words
-*As of v325 · https://gctc26wwr2-max.github.io/Body-App/*
+*As of v333 · https://gctc26wwr2-max.github.io/Body-App/*
 
 Rackside is a training app that lives entirely on your phone. No account, no
 server, no subscription — everything is stored on the device, it works offline,
@@ -12,10 +12,11 @@ and you can install it to your home screen like any app.
 - **Home screen** with your current block drawn as an arc of days — what is
   banked, what is next, where the deload falls, week labels anchored under
   the arc's feet.
-- **Greets you by name** — come back after six hours away and it opens with
-  "Welcome back, Amin"; within a visit it reads the clock (Good morning /
-  afternoon / evening, and "Still up" past midnight).
-- One tap starts today's training day.
+- **One hero, Start above the fold** — the eyebrow line carries the date,
+  a greeting by name ("Welcome back, Amin" after six hours away, else the
+  time of day) and the streak; the arc with today's day name inside it is
+  the only hero; a single Start button sits right under it, then the
+  exercise list, then the quiet weekday strip.
 - A **floating rest pill** follows you to other tabs while a rest timer runs.
 - **First-run coach marks** — one hint each for the weight scale, the reps
   strip and the rest pill, shown once, plus honest empty states before any
@@ -63,7 +64,12 @@ and you can install it to your home screen like any app.
   one-confirmation save into a summary with duration, volume, records and a
   5-star rating.
 
-## Blocks (programs)
+## Plan (your block, and where blocks come from)
+
+Five tabs, not six: a block *is* the plan, so Ready · Build · Ask AI ·
+Library live as segments under the Plan header, with your running block as
+the default. Done days carry their own summary (Mon · 3,760 kg · 14 sets ·
+46 min); past sessions delete by swipe, not a permanent ✕.
 
 - **Build** — a block builder on three picker wheels: sets · exercise ·
   reps (or seconds), with search, kit- and injury-aware pool, difficulty
@@ -81,8 +87,9 @@ and you can install it to your home screen like any app.
   arrays, duplicate keys, wrong names, other alphabets and silly numbers
   are all survived (unit-tested against garbage), with kit gaps tagged on
   import.
-- **Library** — the full catalogue (183 movements) with photos, groups,
-  plain-words difficulty, form cues; add your own exercises with
+- **Library** — the full catalogue (183 movements): the photo sits in the
+  palette (desaturated under a gradient) with the name on it, level chip,
+  two-line "what it is for" with more, form cues; add your own exercises with
   photos/videos, a load-vs-assistance switch, and automatic seconds
   detection.
 - **Deload weeks** and **week gating** as before.
@@ -104,9 +111,12 @@ and you can install it to your home screen like any app.
 
 ## Stats
 
-- Weekly volume, session history with per-set detail, personal records
-  (minimum-help for assisted machines), body-weight log with a ruler
-  input, and trend charts.
+- **Honest weeks** — the running week is incomplete, so headline numbers
+  are the **last full week** with its delta, this week shows as "so far",
+  and sparklines draw it as a hollow point off the line. Consistency dots
+  (target × per week, current week hollow) sit at the top.
+- Session history with per-set detail, last-vs-previous for the same day,
+  personal records (minimum-help for assisted machines), body-weight trend.
 
 ## Profile & Settings
 
@@ -122,7 +132,7 @@ and you can install it to your home screen like any app.
   preview, Save to keep. Recolours everything, done-day dots included.
 - **Muscle focus**, **Injuries** (filter, not medical advice — the flag
   table ships as a review pack for a physio, INJURY-FLAGS-REVIEW.md, with
-  desk-research citations), **Equipment** on photo rails with tick-all /
+  desk-research citations), **Equipment** on a photo grid with All /
   untick-all.
 - **Weight jumps** on three centred wheels (dumbbell / machine / barbell),
   with micro-plates to stack pins and real lb options in lb mode.
