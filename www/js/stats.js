@@ -50,55 +50,6 @@
     base.appendChild(bs(String(totPRs), totPRs === 1 ? 'Record' : 'Records', 'earn'));
     root.appendChild(base);
 
-    // ---- four summary graphs: volume, time, sets, body weight ----
-    {
-      const weeksN = 8;
-      const nowD = new Date();
-      const dow0 = dowFrom(nowD);
-      const mon = new Date(nowD); mon.setDate(nowD.getDate() - dow0); mon.setHours(0, 0, 0, 0);
-      const wk = Array.from({ length: weeksN }, (_, i) => {
-        const ws = new Date(mon.getTime() - (weeksN - 1 - i) * 7 * 86400000);
-        const we = new Date(ws.getTime() + 7 * 86400000);
-        const inWk = workouts.filter(w => { const d = dateOf(w.date); return d >= ws && d < we; });
-        return {
-          vol: inWk.reduce((a, w) => a + (w.volume || 0), 0),
-          min: inWk.reduce((a, w) => a + (w.duration || 0), 0),
-          sets: inWk.reduce((a, w) => a + (w.sets || 0), 0)
-        };
-      });
-      const tile = (label, series, val, delta) => {
-        const cell = el('div', 'sg-cell');
-        cell.appendChild(el('div', 'sg-name', label));
-        const row = el('div', 'sg-valrow');
-        row.appendChild(el('span', 'sg-val num', val));
-        if (delta) row.appendChild(el('span', 'sg-d num' + (delta.startsWith('+') ? ' up' : ' down'), delta));
-        cell.appendChild(row);
-        const g = el('div', 'sg-graph');
-        g.innerHTML = sparkSVG(series, 150, 54);
-        cell.appendChild(g);
-        return cell;
-      };
-      const dTxt = (cur, prev, unit) => {
-        const d = Math.round((cur - prev) * 10) / 10;
-        return prev > 0 && d !== 0 ? `${d > 0 ? '+' : '−'}${Math.abs(d)}${unit}` : '';
-      };
-      const grid = el('div', 'stat-graphs');
-      const cur = wk[weeksN - 1], prev = wk[weeksN - 2];
-      grid.appendChild(tile('Volume · ' + wUnit() + ' / week', wk.map(x => toW(x.vol)), fmtWn(cur.vol), dTxt(cur.vol, prev.vol, '')));
-      const hoursTot = Math.round(workouts.reduce((a, w) => a + (w.duration || 0), 0) / 6) / 10;
-      grid.appendChild(tile(`Time · ${hoursTot} h total`, wk.map(x => x.min), cur.min + ' min', dTxt(cur.min, prev.min, 'm')));
-      grid.appendChild(tile('Sets · per week', wk.map(x => x.sets), String(cur.sets), dTxt(cur.sets, prev.sets, '')));
-      if (bw.length >= 2) {
-        const sorted = [...bw].sort((a, b) => a.ts - b.ts);
-        const last = sorted[sorted.length - 1];
-        const past = sorted.filter(x => last.ts - x.ts >= 25 * 86400000).pop() || sorted[0];
-        grid.appendChild(tile('Body weight · ' + wUnit(), sorted.slice(-12).map(x => x.kg),
-          toW(last.kg).toFixed(1), dTxt(toW(last.kg), toW(past.kg), '')));
-      }
-      root.appendChild(el('div', 'micro', 'Last 8 weeks'));
-      root.appendChild(grid);
-    }
-
     // ---- consistency: last 8 weeks vs the plan ----
     const target = plan && plan.days ? plan.days.length : 3;
     const now = new Date();
@@ -123,6 +74,66 @@
       cg.appendChild(col);
     });
     root.appendChild(cg);
+
+    // ---- four summary graphs: volume, time, sets, body weight ----
+    {
+      const weeksN = 8;
+      const nowD = new Date();
+      const dow0 = dowFrom(nowD);
+      const mon = new Date(nowD); mon.setDate(nowD.getDate() - dow0); mon.setHours(0, 0, 0, 0);
+      const wk = Array.from({ length: weeksN }, (_, i) => {
+        const ws = new Date(mon.getTime() - (weeksN - 1 - i) * 7 * 86400000);
+        const we = new Date(ws.getTime() + 7 * 86400000);
+        const inWk = workouts.filter(w => { const d = dateOf(w.date); return d >= ws && d < we; });
+        return {
+          vol: inWk.reduce((a, w) => a + (w.volume || 0), 0),
+          min: inWk.reduce((a, w) => a + (w.duration || 0), 0),
+          sets: inWk.reduce((a, w) => a + (w.sets || 0), 0)
+        };
+      });
+      const tile = (label, series, val, delta, pending, note) => {
+        const cell = el('div', 'sg-cell');
+        cell.appendChild(el('div', 'sg-name', label));
+        const row = el('div', 'sg-valrow');
+        row.appendChild(el('span', 'sg-val num', val));
+        if (delta) row.appendChild(el('span', 'sg-d num' + (delta.startsWith('+') ? ' up' : ' down'), delta));
+        cell.appendChild(row);
+        const g = el('div', 'sg-graph');
+        g.innerHTML = sparkSVG(series, 150, 54, pending);
+        cell.appendChild(g);
+        if (note) cell.appendChild(el('div', 'sg-note', note));
+        return cell;
+      };
+      const dTxt = (cur, prev, unit) => {
+        const d = Math.round((cur - prev) * 10) / 10;
+        return prev > 0 && d !== 0 ? `${d > 0 ? '+' : '−'}${Math.abs(d)}${unit}` : '';
+      };
+      const grid = el('div', 'stat-graphs');
+      /* the running week is incomplete — a Thursday against seven full days
+         reads as a collapse. Headline the last FULL week and show this week
+         as "so far", drawn as a hollow point off the line. */
+      const full = wk.slice(0, weeksN - 1);
+      const cur = full[full.length - 1], prev = full[full.length - 2] || { vol: 0, min: 0, sets: 0 };
+      const sofar = wk[weeksN - 1];
+      const dayN = nowD.toLocaleDateString('en-GB', { weekday: 'short' });
+      grid.appendChild(tile('Volume · last full week', full.map(x => toW(x.vol)), fmtWn(cur.vol), dTxt(cur.vol, prev.vol, ''),
+        toW(sofar.vol), `${dayN} · ${fmtWn(sofar.vol)} so far`));
+      const hoursTot = Math.round(workouts.reduce((a, w) => a + (w.duration || 0), 0) / 6) / 10;
+      grid.appendChild(tile(`Time · ${hoursTot} h total`, full.map(x => x.min), cur.min + ' min', dTxt(cur.min, prev.min, 'm'),
+        sofar.min, `${sofar.min} min so far`));
+      grid.appendChild(tile('Sets · last full week', full.map(x => x.sets), String(cur.sets), dTxt(cur.sets, prev.sets, ''),
+        sofar.sets, `${sofar.sets} so far`));
+      if (bw.length >= 2) {
+        const sorted = [...bw].sort((a, b) => a.ts - b.ts);
+        const last = sorted[sorted.length - 1];
+        const past = sorted.filter(x => last.ts - x.ts >= 25 * 86400000).pop() || sorted[0];
+        grid.appendChild(tile('Body weight · ' + wUnit(), sorted.slice(-12).map(x => x.kg),
+          toW(last.kg).toFixed(1), dTxt(toW(last.kg), toW(past.kg), '')));
+      }
+      root.appendChild(el('div', 'micro', 'Last 8 weeks · hollow = in progress'));
+      root.appendChild(grid);
+    }
+
 
     // ---- last session vs the one before ----
     if (workouts.length >= 2) {
@@ -176,20 +187,37 @@
   }
 
   /* compact trend graph for the stat tiles */
-  function sparkSVG(vals, w = 68, h = 24) {
-    if (vals.length < 2) {
+  function sparkSVG(vals, w = 68, h = 24, pending = null) {
+    /* pending = the week still in progress: a hollow point after the line,
+       joined by a dash — never part of the line, so a Thursday can't read
+       as a cliff */
+    const hasP = pending != null && Number.isFinite(+pending);
+    const all = hasP ? [...vals, +pending] : vals;
+    if (all.length < 2) {
       return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">` +
         `<circle cx="${w - 6}" cy="${h / 2}" r="3" fill="${ACC}"/></svg>`;
     }
-    const lo = Math.min(...vals), hi = Math.max(...vals);
-    const X = i => 3 + i / (vals.length - 1) * (w - 10);
+    const lo = Math.min(...all), hi = Math.max(...all);
+    const N = all.length;
+    const X = i => 3 + i / (N - 1) * (w - 10);
     const Y = v => hi === lo ? h / 2 : 4 + (hi - v) / (hi - lo) * (h - 10);
-    const d = smoothPath(vals.map((v, i) => [X(i), Y(v)]));
-    const area = d + ` L${X(vals.length - 1).toFixed(1)} ${h - 2} L${X(0).toFixed(1)} ${h - 2} Z`;
-    return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">` +
-      `<path d="${area}" fill="rgba(${accRGB()},.12)"/>` +
-      `<path d="${d}" fill="none" stroke="${ACC}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` +
-      `<circle cx="${X(vals.length - 1).toFixed(1)}" cy="${Y(vals[vals.length - 1]).toFixed(1)}" r="3" fill="${ACC}" stroke="#151110" stroke-width="1.5"/></svg>`;
+    const n = vals.length;
+    let line = '', area = '';
+    if (n >= 2) {
+      const d = smoothPath(vals.map((v, i) => [X(i), Y(v)]));
+      area = `<path d="${d} L${X(n - 1).toFixed(1)} ${h - 2} L${X(0).toFixed(1)} ${h - 2} Z" fill="rgba(${accRGB()},.12)"/>`;
+      line = `<path d="${d}" fill="none" stroke="${ACC}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` +
+        `<circle cx="${X(n - 1).toFixed(1)}" cy="${Y(vals[n - 1]).toFixed(1)}" r="3" fill="${ACC}" stroke="#151110" stroke-width="1.5"/>`;
+    } else if (n === 1) {
+      line = `<circle cx="${X(0).toFixed(1)}" cy="${Y(vals[0]).toFixed(1)}" r="3" fill="${ACC}"/>`;
+    }
+    let pend = '';
+    if (hasP) {
+      const px = X(N - 1).toFixed(1), py = Y(+pending).toFixed(1);
+      if (n >= 1) pend += `<path d="M${X(n - 1).toFixed(1)} ${Y(vals[n - 1]).toFixed(1)} L${px} ${py}" fill="none" stroke="${ACC}" stroke-width="1.5" stroke-dasharray="2 3" opacity=".7"/>`;
+      pend += `<circle cx="${px}" cy="${py}" r="3.2" fill="#151110" stroke="${ACC}" stroke-width="1.8"/>`;
+    }
+    return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">${area}${line}${pend}</svg>`;
   }
 
   /* ============================================================

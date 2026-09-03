@@ -160,33 +160,43 @@
     const back = el('button', 'det-back', '‹');
     back.onclick = goBackFromDetail;
     hero.appendChild(back);
+    /* the title sits ON the photo, over a gradient into the canvas — a stock
+       gym wall is desaturated so it sits in the palette instead of fighting it */
+    const ov = el('div', 'det-hero-ov');
+    const eyebrow = [ex.group, isBarbell(ex) ? 'Barbell' : null].filter(Boolean).join(' · ');
+    if (eyebrow) ov.appendChild(el('div', 'det-eyebrow', eyebrow));
+    ov.appendChild(el('div', 'det-title', ex.name));
+    hero.appendChild(ov);
     root.appendChild(hero);
 
     const body = el('div', 'det-body');
-    body.appendChild(el('div', 'det-title', ex.name));
-    /* how hard it is sits directly under the name, above everything else the
-       page has to say — it decides whether the rest is even relevant to you */
+    /* how hard it is: the chip alone on its line — the sentence that used
+       to trail it belongs with the copy below */
     await loadContent();
-    const hardLine = el('div', 'det-hard');
     const hchip = hardChip(ex, 'big');
+    const hardNote = hchip ? hardshipOf(ex).note : '';
     if (hchip) {
+      const hardLine = el('div', 'det-hard');
       hardLine.appendChild(hchip);
-      hardLine.appendChild(el('span', 'det-hard-note', hardshipOf(ex).note));
+      if (ex.rest) hardLine.appendChild(el('span', 'det-rest num', 'Rest ' + fmtClock(ex.rest)));
       body.appendChild(hardLine);
     }
-    const tags = el('div', 'tag-row');
-    if (ex.group) tags.appendChild(el('span', 'hl', ex.group));
-    if (isBarbell(ex)) tags.appendChild(el('span', null, 'Barbell'));
-    if (ex.rest) tags.appendChild(el('span', null, 'Rest ' + fmtClock(ex.rest)));
-    body.appendChild(tags);
 
-    /* the written entry, if this movement has one — what it is for, and which
-       muscles it actually works */
+    /* the written entry, if this movement has one — clamped to two lines
+       with a "more": at the rack the rep target and your last sets matter,
+       not seven lines of prose */
     const con = await contentForDetail(ex);
-    if (con && con.description) {
+    if ((con && con.description) || hardNote) {
       const d = el('div', 'det-sec');
       d.appendChild(el('div', 'micro', 'What it is for'));
-      d.appendChild(el('div', 'det-desc', con.description));
+      if (hardNote) d.appendChild(el('div', 'det-hard-note', hardNote));
+      if (con && con.description) {
+        const desc = el('div', 'det-desc clamp', con.description);
+        d.appendChild(desc);
+        const more = el('button', 'det-more', 'more');
+        more.onclick = () => { const open = desc.classList.toggle('clamp'); more.textContent = open ? 'more' : 'less'; };
+        d.appendChild(more);
+      }
       body.appendChild(d);
     }
     const muscles = musclePanel(ex, con);

@@ -2278,3 +2278,23 @@ body { font-size: 0.8235rem; }
 /* Plan segments (Blocks folded in) */
 .plan-seg { margin: 4px 0 14px; }
 .plan-seg button { font-size: 0.6471rem; letter-spacing: .06em; padding-left: 4px; padding-right: 4px; }
+
+/* Exercise detail — the photo sits in the palette, the title sits on it */
+.det-hero .demo-anim img, .det-hero img, .det-hero video { filter: saturate(.75) contrast(1.05); }
+.det-hero::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 64%;
+  background: linear-gradient(to bottom, rgba(11,9,8,0), #0B0908); pointer-events: none;
+}
+.det-hero .det-back { z-index: 3; }
+.det-hero-ov { position: absolute; left: 20px; right: 20px; bottom: 16px; z-index: 2; }
+.det-eyebrow { font-size: 0.5882rem; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--lime); margin-bottom: 4px; }
+.det-hero-ov .det-title { margin: 0; line-height: .95; }
+.det-hard { display: flex; align-items: center; gap: 12px; }
+.det-rest { font-size: 0.7059rem; color: #857C73; font-weight: 600; }
+.det-hard-note { font-size: 0.7647rem; color: #857C73; margin: 0 0 6px; }
+.det-desc.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.det-more { background: none; border: none; padding: 4px 0 0; color: var(--lime); font-weight: 700; font-size: 0.7059rem; }
+/* Stats — the running week is a hollow point, and past weeks on the plan bar are one dim colour */
+.sg-note { font-size: 0.6176rem; color: #857C73; margin-top: 4px; }
+.cons-col.cur .cons-dots i.on { background: transparent; border: 1.5px solid var(--lime); box-sizing: border-box; }
+.plan-block .ex-progress span.done { background: var(--clay-dim); }
