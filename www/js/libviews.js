@@ -131,7 +131,7 @@
 
   /* Block Master — building a block, the exercises it can draw on, and the
      kit you actually have, all in one place because they decide each other. */
-  let masterTab = 'new';
+  let masterTab = 'block';   // Plan tab segment: block · ready · new · ai · exercises
 
   function renderLibrary() {
     const root = $('#view-library');

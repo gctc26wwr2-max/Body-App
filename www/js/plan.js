@@ -130,7 +130,7 @@
     grid.appendChild(sumCard(w.duration + ' min', 'Duration'));
     grid.appendChild(sumCard(fmtW(w.volume), 'Volume'));
     grid.appendChild(sumCard(String(w.sets), 'Sets logged'));
-    const prC = sumCard(String(w.prs.length), 'Records');
+    const prC = sumCard(String(w.prs.length), w.prs.length === 1 ? 'Record' : 'Records');
     prC.classList.add('hl');
     grid.appendChild(prC);
     /* energy last and full width — it is an estimate off the clock, not a
@@ -198,13 +198,32 @@
 
     const head = el('header', 't-head');
     const hl = el('div');
-    hl.appendChild(el('div', 't-date', `${workouts.length} session${workouts.length === 1 ? '' : 's'}${plan ? ' · Block ' + blockNumber(plan) : ''}`));
+    hl.appendChild(el('div', 't-date', plan
+      ? `${plan.name} · Block ${blockNumber(plan)}`
+      : `${workouts.length} session${workouts.length === 1 ? '' : 's'}`));
     hl.appendChild(el('h1', 't-title', 'Plan'));
     head.appendChild(hl);
     root.appendChild(head);
 
-    // installable starter block (until a copy of it exists)
-    if (window.STARTER_BLOCK && !plans.some(p => p.name === window.STARTER_BLOCK.name)) {
+    /* A block IS the plan, so the old Blocks tab lives here as segments:
+       your running block first, then the ways to get another one. */
+    if (!['block', 'ready', 'new', 'ai', 'exercises'].includes(masterTab)) masterTab = 'block';
+    root.appendChild(segToggle(
+      [['block', 'Block'], ['ready', 'Ready'], ['new', 'Build'], ['ai', 'Ask AI'], ['exercises', 'Library']],
+      masterTab, k => { masterTab = k; renderTab(); }, 'master-seg plan-seg'));
+    if (masterTab !== 'block') {
+      const panel = el('div', 'master-panel');
+      if (masterTab === 'new') renderMasterNew(panel);
+      else if (masterTab === 'ready') renderMasterReady(panel);
+      else if (masterTab === 'ai') renderMasterAI(panel);
+      else renderMasterLib(panel);
+      root.appendChild(panel);
+      return;
+    }
+
+    // installable starter block — only while there is no running block;
+    // with one running, the user's week is the content and Ready has the rest
+    if (!plan && window.STARTER_BLOCK && !plans.some(p => p.name === window.STARTER_BLOCK.name)) {
       const sb = window.STARTER_BLOCK;
       const c = el('div', 'compare-card');
       const h = el('div', 'cmp-head');
@@ -253,16 +272,20 @@
         node.appendChild(el('i'));
         r.appendChild(node);
         r.appendChild(el('div', 'pd-name', day.name));
-        r.appendChild(el('div', 'pd-meta num', done ? 'done ✓' : day.items.length + (day.items.length === 1 ? ' exercise ▾' : ' exercises ▾')));
-        const go = el('button', 'pd-go');
-        if (done) {
-          go.textContent = '✓';
-          go.disabled = true;
-        } else {
+        /* a banked day carries its own summary; the checkmark said "done"
+           twice and its button did nothing */
+        const wDone = done ? workouts.find(w => w.planId === plan.id && w.dayIndex === i && sameWeek(w.date)) : null;
+        const doneTxt = wDone
+          ? [dateOf(wDone.date).toLocaleDateString('en-GB', { weekday: 'short' }), fmtW(wDone.volume),
+             Number.isFinite(wDone.sets) ? wDone.sets + ' sets' : null, wDone.duration + ' min'].filter(Boolean).join(' · ')
+          : 'done';
+        r.appendChild(el('div', 'pd-meta num', done ? doneTxt : day.items.length + (day.items.length === 1 ? ' exercise ▾' : ' exercises ▾')));
+        if (!done) {
+          const go = el('button', 'pd-go');
           go.appendChild(svgIcon(PLAY, 10));
           go.onclick = e => { e.stopPropagation(); startWorkout(plan, i); };
+          r.appendChild(go);
         }
-        r.appendChild(go);
         dRail.appendChild(r);
 
         // tap the day to preview the exercises you'll go through
@@ -314,10 +337,9 @@
       meta.appendChild(document.createTextNode(' ▾'));
       c.appendChild(meta);
       r.appendChild(c);
-      const del = el('button', 'hist-del', '✕');
-      del.title = 'Delete this session';
-      del.onclick = async e => {
-        e.stopPropagation();
+      /* delete lives behind a swipe — a permanent ✕ on every past session
+         was heavy and one slip from a loss */
+      const delFn = async () => {
         if (!confirm(`Delete the ${w.name} session from ${w.date}? Its logged sets are removed too.`)) return;
         const sess = await DB.all('sessions');
         for (const s of sess) {
@@ -332,7 +354,7 @@
         await DB.del('workouts', w.id);
         renderTab();
       };
-      r.appendChild(del);
+      swipeToRemove(r, delFn);
 
       // tap a past session to see exactly what was logged
       const det2 = el('div', 'hist-detail');

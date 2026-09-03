@@ -79,7 +79,7 @@
       empty.appendChild(el('p', null, 'Or start another way:'));
       const nReady = (window.READY_PLANS || []).length;
       const b1 = el('button', 'btn-ghost', nReady ? `Browse ${nReady} ready programs` : 'Browse ready programs');
-      b1.onclick = () => { masterTab = 'ready'; show('library'); renderTab(); };
+      b1.onclick = () => { masterTab = 'ready'; show('plan'); renderTab(); };
       empty.appendChild(b1);
       const b2 = el('button', 'btn-ghost', 'Build your own block');
       b2.onclick = () => openPlanForm(null);

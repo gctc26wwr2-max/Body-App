@@ -95,8 +95,9 @@ fs.mkdirSync(OUT, { recursive: true });
   await shot('09-stats', 'Stats · volume, trends, records, body weight');
 
   // ---------- blocks / library ----------
-  await tab('Blocks');
-  await shot('10-blocks', 'Blocks · ready-program shelves / start a block');
+  await p.evaluate(() => { masterTab = 'ready'; show('plan'); renderTab(); }); await p.waitForTimeout(900);
+  await shot('10-blocks', 'Plan · Ready segment — program shelves');
+  await p.evaluate(() => { masterTab = 'block'; });
 
   // ---------- exercise detail ----------
   await p.evaluate(() => { openDetail('e1', 'library'); });
