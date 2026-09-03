@@ -1,0 +1,70 @@
+[
+  [
+    "01-today-empty",
+    "Today · first run — starter block + empty-state doors"
+  ],
+  [
+    "02-today-block",
+    "Today · greeting, week strip, progress arc, next session"
+  ],
+  [
+    "03-workout-live",
+    "Live workout · exercise rail, weight ruler, reps strip"
+  ],
+  [
+    "04-workout-pause",
+    "Pause · freeze or discard"
+  ],
+  [
+    "05-cardio-idle",
+    "Cardio · activity + program rails, the watch at zero"
+  ],
+  [
+    "06-cardio-program",
+    "Cardio · program picked — bezel turned to its minutes"
+  ],
+  [
+    "07-cardio-running",
+    "Cardio · running — inner dial, orbit dot, progress ring"
+  ],
+  [
+    "08-plan",
+    "Plan · the block on one rail — days and history share it"
+  ],
+  [
+    "09-stats",
+    "Stats · volume, trends, records, body weight"
+  ],
+  [
+    "10-blocks",
+    "Blocks · ready-program shelves / start a block"
+  ],
+  [
+    "11-detail",
+    "Exercise detail · demo, history, PRs, muscle panel"
+  ],
+  [
+    "12-profile",
+    "Profile · identity card, lifetime stats, body weight"
+  ],
+  [
+    "13-about",
+    "About you · goal, level, born wheels, tape measures"
+  ],
+  [
+    "14-settings",
+    "Settings · one page, drafts commit on Save"
+  ],
+  [
+    "15-settings-jumps",
+    "Weight jumps · three wheels, real rack steps"
+  ],
+  [
+    "16-settings-accent",
+    "Accent · hue wheel + presets, recolours everything live"
+  ],
+  [
+    "17-settings-equipment",
+    "Equipment · photo rails, tick all / untick all"
+  ]
+]

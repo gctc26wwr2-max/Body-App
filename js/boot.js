@@ -166,7 +166,10 @@
      BOOT
      ============================================================ */
   DB.persist();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  /* native builds are served from local files — a service worker adds
+     nothing there and can serve stale caches over fresh App Store updates */
+  if ('serviceWorker' in navigator && !IS_NATIVE)
+    navigator.serviceWorker.register('sw.js').catch(() => {});
 
   async function migrate() {
     /* WRAP DAY (Capacitor), first native launch, before anything renders:
