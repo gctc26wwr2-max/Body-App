@@ -1,0 +1,25 @@
+{
+  "name": "body-app",
+  "version": "1.0.0",
+  "description": "A mobile training tracker you install straight from the browser (PWA — no App Store needed).",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gctc26wwr2-max/Body-App.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gctc26wwr2-max/Body-App/issues"
+  },
+  "homepage": "https://github.com/gctc26wwr2-max/Body-App#readme",
+  "dependencies": {
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1"
+  }
+}

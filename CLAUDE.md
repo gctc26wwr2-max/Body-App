@@ -3,13 +3,20 @@
 Vanilla-JS training PWA, no build step, everything on-device. Live at
 https://gctc26wwr2-max.github.io/Body-App/ (case-sensitive URL).
 
+Repo layout since the Capacitor scaffold: the web app lives in `www/`
+(everything GitHub Pages serves); `ios/` is the generated Xcode shell
+(`ios/App/App/public` is gitignored — `npx cap sync ios` regenerates it);
+`capacitor.config.json` pins appId com.rackside.training and webDir www;
+`codemagic.yaml` builds and uploads to TestFlight on Codemagic's Macs, so
+no local Mac is needed. Docs stay at repo root.
+
 **Read FUNCTIONS.md first** — it maps every function to its file and states
 the app's structure. Keep both documents updated when code moves or a new
 area appears.
 
 ## How the code is organized
 
-The app is 14 plain scripts in `js/`, loaded in order by `index.html`
+The app is 14 plain scripts in `www/js/`, loaded in order by `index.html`
 (core → today → workout → controls → plan → settings → profile → stats →
 planmaker → cardio → libviews → ai → detail → boot). Classic scripts share
 one global scope: top-level `const`/`let`/`function` in an earlier file are
@@ -71,22 +78,23 @@ visible in every later file. Rules that follow from this:
 
 ## Ship loop (every change)
 
-1. Bump `APP_VERSION` in `js/core.js`, cache name in `sw.js`
-   (`body-app-vNNN`), and `version.json` — all three, same number.
-2. Run the unit suite: open `tests.html` (headless: load it in Playwright
+1. Bump `APP_VERSION` in `www/js/core.js`, cache name in `www/sw.js`
+   (`body-app-vNNN`), and `www/version.json` — all three, same number.
+2. Run the unit suite: open `www/tests.html` (headless: load it in Playwright
    and read `window.__results`). It covers the untrusted-input paths
    (parseBlockReply, restoreData + the migration ladder) and the training
    math; it fakes localStorage and DB, so it never touches real data. Add
    cases there when touching those functions.
 3. Verify UI headlessly: Playwright, chromium at `/opt/pw-browsers/chromium`,
-   iPhone 13 profile, local server on :8899. Test scripts live in the
+   iPhone 13 profile, local server on :8899 rooted at `www/`. Test scripts live in the
    session scratchpad; seed state via `DB.put` in `page.evaluate`, not UI
    clicking. Known pitfalls: settings hides the tabbar (leave via
    `#view-prefs .w-chip`); prefs commit via the Save modal on close;
    dialogs need a handler.
 4. Commit to branch `claude/training-practices-tracker-rwcbe5` ONLY; never
    create PRs unless asked.
-5. Deploy: copy changed files into the gh-pages clone (/tmp/ghp), push
+5. Deploy: copy changed files FROM `www/` into the gh-pages clone
+   (/tmp/ghp — Pages keeps the old flat layout), push
    gh-pages, then poll
    `https://gctc26wwr2-max.github.io/Body-App/version.json` until it
    serves the new version (background until-loop; plain `sleep` chains are

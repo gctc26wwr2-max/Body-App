@@ -1,0 +1,8 @@
+{
+  "appId": "com.rackside.training",
+  "appName": "Rackside",
+  "webDir": "www",
+  "ios": {
+    "backgroundColor": "#0B0908"
+  }
+}

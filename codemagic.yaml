@@ -1,0 +1,46 @@
+# Rackside — iOS build + TestFlight upload, no local Mac needed.
+# One-time setup in the Codemagic UI:
+#   1. Connect this GitHub repo.
+#   2. Teams > integrations > Developer Portal: add an App Store Connect
+#      API key (App Manager role) — name it "rackside_asc".
+#   3. First build registers the bundle id and manages signing automatically.
+workflows:
+  ios-testflight:
+    name: Rackside iOS → TestFlight
+    max_build_duration: 45
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: rackside_asc
+    environment:
+      vars:
+        BUNDLE_ID: com.rackside.training
+        XCODE_SCHEME: App
+      node: 20
+      xcode: latest
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: claude/training-practices-tracker-rwcbe5
+          include: true
+    scripts:
+      - name: Install Capacitor tooling
+        script: npm ci || npm install
+      - name: Copy web app into the iOS shell
+        script: npx cap sync ios
+      - name: Set up signing
+        script: |
+          xcode-project use-profiles --project ios/App/App.xcodeproj || true
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          xcode-project use-profiles
+      - name: Build the archive
+        script: |
+          xcode-project build-ipa \
+            --project ios/App/App.xcodeproj \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
