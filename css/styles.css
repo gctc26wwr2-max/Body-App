@@ -2115,13 +2115,9 @@ body { font-size: 0.8235rem; }
 .eqs-tools { display: flex; align-items: baseline; gap: 10px; }
 .eqs-mini { font-size: 0.6176rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
   color: var(--lime); background: none; border: none; padding: 2px 2px; }
-.eqw-rail { display: flex; gap: 10px; overflow-x: auto;
-  padding: 6px calc(50% - 44px) 8px;
-  scroll-snap-type: x mandatory; scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%);
-  mask-image: linear-gradient(90deg, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%); }
-.eqw-rail::-webkit-scrollbar { display: none; }
-.eqw-tile { flex: 0 0 88px; scroll-snap-align: center; background: none; border: none;
+/* a filled three-column grid, left-aligned — tiles no longer float mid-row */
+.eqw-rail { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 6px 0 8px; }
+.eqw-tile { background: none; border: none; min-width: 0;
   padding: 0; text-align: center; color: inherit; will-change: transform, opacity; }
 .eqw-tile:active .eqw-ph { transform: scale(.94); }
 .eqw-ph { position: relative; width: 88px; height: 68px; border-radius: 14px; overflow: hidden;
@@ -2298,3 +2294,8 @@ body { font-size: 0.8235rem; }
 .sg-note { font-size: 0.6176rem; color: #857C73; margin-top: 4px; }
 .cons-col.cur .cons-dots i.on { background: transparent; border: 1.5px solid var(--lime); box-sizing: border-box; }
 .plan-block .ex-progress span.done { background: var(--clay-dim); }
+
+/* cardio rails: the selected value is centred on the rail already — the
+   header copy stays for screen readers only */
+.cd-row-val { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.eqs-mini + .eqs-mini::before { content: '· '; color: var(--t6); margin-right: 2px; }

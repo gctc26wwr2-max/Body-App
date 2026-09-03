@@ -1,4 +1,4 @@
-# Rackside — function inventory (v325)
+# Rackside — function inventory (v333)
 
 Vanilla JS PWA, no build step. The old 8,300-line `js/app.js` is split into
 14 plain scripts loaded in order from `index.html`; classic scripts share one
@@ -16,13 +16,13 @@ lives in.
 | `js/today.js` | Today tab, progress arc, hero cards |
 | `js/workout.js` | Live session, hold timer, audio, rest timer |
 | `js/controls.js` | Faces/stars, drag/swipe, ruler, numpad, weight/time/rep scales, dial picker |
-| `js/plan.js` | Finish workout, summary, Plan tab, optionRail |
+| `js/plan.js` | Finish workout, summary, Plan tab (block + Ready/Build/AI/Library segments), optionRail |
 | `js/settings.js` | Profile getters, About you, Settings (prefs) |
 | `js/profile.js` | Profile tab, bodyweight graph, reports, backup/restore |
 | `js/stats.js` | Stats tab, injuries + equipment filters, substitutions |
 | `js/planmaker.js` | Plan-maker wheels flow |
 | `js/cardio.js` | Cardio tab, pickerWheel, bezelDial watch |
-| `js/libviews.js` | Library shell, coaching content, ready-made blocks |
+| `js/libviews.js` | Segment renderers (renderMaster*), coaching content, ready-made blocks; `masterTab` = Plan segment |
 | `js/ai.js` | AI import flow, segToggle, equipment picker, starter |
 | `js/detail.js` | Exercise detail, muscle panel, exercise form/media |
 | `js/boot.js` | Plan form editor, migrate(), boot sequence |
@@ -108,11 +108,12 @@ stamps (`equipV2`, `timedMig1`), `lastBackup`, `lastSeen`.
 - `openSheet / closeSheets / dismissSheet` — bottom sheets
 
 ### Navigation & Today — `core.js + today.js`
-- `show(view)` — switch views, manage tabbar
+- `show(view)` — switch views, manage tabbar; `'library'` is aliased to the Plan tab (Blocks folded in)
 - `renderTab()` — load DB, run one-time migrations (`timedMig1`), route to the active tab
-- `renderToday()` — Today tab: hero, week strip, day cards, empty states,
-  and the greeting ("Welcome back, <name>" after 6 h away, else time of day;
-  `greetPick` holds the choice for the visit)
+- `renderToday()` — Today tab in v6 order: eyebrow (date · greeting ·
+  streak; `greetPick` holds the greeting for the visit) → arc hero → Start →
+  exercise index → weekday strip → stats row → one-line dismissible install
+  hint (`installHintDismissed`)
 - `blockArcSVG(total, done, weeks)` — progress arc, week labels along the
   legs; inputs coerced to bounded numbers (its string becomes innerHTML)
 - `resumePlan(plan)`
@@ -165,7 +166,7 @@ stamps (`equipV2`, `timedMig1`), `lastBackup`, `lastSeen`.
 - `sumCard(v, l)`
 
 ### Plan tab — `plan.js`
-- `renderPlanTab()` — block overview, week rows, queue, finish/abandon
+- `renderPlanTab()` — Plan header + segments; 'block' renders the running block (done days summarised, swipe-to-delete history), other segments delegate to renderMaster*
 
 ### Profile, settings, about — `settings.js; renderProfile in profile.js`
 - `getProfile / setProfile` — non-object JSON falls back to {}
@@ -199,8 +200,8 @@ stamps (`equipV2`, `timedMig1`), `lastBackup`, `lastSeen`.
 - `agoDays(ds)`
 
 ### Stats — `stats.js`
-- `renderStats()` — trends, PRs (min-help for assisted), attendance
-- `sparkSVG(vals, w, h)`
+- `renderStats()` — consistency dots first, then tiles headlining the last FULL week (this week as 'so far', hollow on the sparkline), last-vs-previous (only with rows), PRs
+- `sparkSVG(vals, w, h, pending)` — line over completed points; `pending` drawn hollow, off the line
 
 ### Injuries & equipment filters — `stats.js`
 - `getInjuries / setInjuries / injEnabled`
@@ -234,7 +235,7 @@ stamps (`equipV2`, `timedMig1`), `lastBackup`, `lastSeen`.
 - `renderMasterNew(root)` — "start a block" chooser
 - `contentForDetail / muscleSets / musclePanel` — muscle-map panel
 - `blockMembership(ex)` — which blocks use this move
-- `openDetail(exId, from)` — exercise detail: history, PRs, demo, media
+- `openDetail(exId, from)` — exercise detail: treated hero with eyebrow + title on the photo, level chip, 2-line clamped copy with more, history, PRs, media
 - `detStat / goBackFromDetail`
 - `openExerciseForm(ex)` — custom exercise form (incl. assisted flag, timed detection)
 - `renderMediaPreview()` — attach photos/videos

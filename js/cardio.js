@@ -374,9 +374,8 @@
       const a = deg * Math.PI / 180;
       const x = (100 + 84.5 * Math.sin(a)).toFixed(1);
       const y = (100 - 84.5 * Math.cos(a)).toFixed(1);
-      nums += `<text x="${x}" y="${y}" dy="4.2" text-anchor="middle" fill="#F0ECE4"`
-        + ` font-size="12.5" font-weight="800" font-family="Archivo, sans-serif"`
-        + ` transform="rotate(${deg} ${x} ${y})">${m}</text>`;
+      nums += `<text class="bz-num" data-x="${x}" data-y="${y}" x="${x}" y="${y}" dy="4.2" text-anchor="middle" fill="#F0ECE4"`
+        + ` font-size="12.5" font-weight="800" font-family="Archivo, sans-serif">${m}</text>`;
     }
     /* two dials in one case: the outer ring sets the time, the inner one
        runs it — a sweep arc and an orbiting second under the same glass */
@@ -428,9 +427,14 @@
       secEl.setAttribute('transform', `rotate(${(sec % 60) * 6} 100 100)`);
     };
     const ring = wrap.querySelector('.bz-ring');
+    const numEls = [...wrap.querySelectorAll('.bz-num')];
     const paint = anim => {
+      const rot = -(val / MAXV) * 360;
       ring.style.transition = anim ? 'transform .3s ease-out' : 'none';
-      ring.style.transform = `rotate(${-(val / MAXV) * 360}deg)`;
+      ring.style.transform = `rotate(${rot}deg)`;
+      /* the numerals ride the bezel but counter-rotate so they always read
+         upright — 60 at six o'clock is 60, not 09 */
+      numEls.forEach(t => t.setAttribute('transform', `rotate(${-rot} ${t.dataset.x} ${t.dataset.y})`));
       big.textContent = String(val);
     };
     paint(false);
