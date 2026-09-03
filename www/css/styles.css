@@ -2299,3 +2299,7 @@ body { font-size: 0.8235rem; }
    header copy stays for screen readers only */
 .cd-row-val { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .eqs-mini + .eqs-mini::before { content: '· '; color: var(--t6); margin-right: 2px; }
+/* the rail's centre falloff (inline scale/opacity per tile) is meaningless on
+   a grid — every tile is the same size and fully lit */
+.eqw-rail .eqw-tile { transform: none !important; opacity: 1 !important; }
+.eqw-rail .eqw-ph { transform: none !important; }
