@@ -47,7 +47,7 @@
     base.appendChild(bs(String(workouts.length), 'Sessions'));
     base.appendChild(bs(fmtWn(totVol), wUnit() + ' lifted'));
     base.appendChild(bs(weekStreak(workouts) + 'w', 'Streak'));
-    base.appendChild(bs(String(totPRs), 'Records', 'earn'));
+    base.appendChild(bs(String(totPRs), totPRs === 1 ? 'Record' : 'Records', 'earn'));
     root.appendChild(base);
 
     // ---- four summary graphs: volume, time, sets, body weight ----
@@ -127,14 +127,16 @@
     // ---- last session vs the one before ----
     if (workouts.length >= 2) {
       const last = workouts[0];
-      const prev = workouts.find(x => x.name === last.name && x.id !== last.id);
-      if (prev) {
+      const prev = last.name ? workouts.find(x => x.name === last.name && x.id !== last.id) : null;
+      const lastSess = prev ? sessions.filter(s2 => s2.date === last.date && s2.planId === last.planId) : [];
+      /* never render a table header with no rows — needs a named day AND a
+         matching earlier day AND set data on this one */
+      if (prev && lastSess.length) {
+        const prevSess = sessions.filter(s2 => s2.date === prev.date && s2.planId === prev.planId);
         root.appendChild(el('div', 'micro', `Last ${last.name} vs previous`));
         const c2 = el('div', 'cmp-flat');
         const g = el('div', 'cmp-grid');
         ['Exercise', 'Best set', 'Volume', 'Δ'].forEach(t => g.appendChild(el('div', 'h', t)));
-        const lastSess = sessions.filter(s2 => s2.date === last.date && s2.planId === last.planId);
-        const prevSess = sessions.filter(s2 => s2.date === prev.date && s2.planId === prev.planId);
         for (const s2 of lastSess.slice(0, 6)) {
           const ex = exercises.find(e => e.id === s2.exerciseId);
           const best = s2.sets.reduce((a, x) => (x.weight || 0) > (a.weight || 0) ? x : a, s2.sets[0]);

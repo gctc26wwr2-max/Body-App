@@ -15,23 +15,15 @@
     const workouts = (await DB.all('workouts')).sort((a, b) => b.ts - a.ts);
     const cardio = await DB.all('cardio');
 
-    // meta row: date left, streak right
+    // eyebrow row: date left · greeting centre · streak right — one quiet
+    // line, so the arc below it is the only hero on the screen
     const head = el('header', 'meta-row');
     const now = new Date();
     head.appendChild(el('div', 'date', now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })));
-    const stk = el('div', 'streak');
-    const streakN = weekStreak(workouts);
-    stk.appendChild(el('span', 'l', 'Streak'));
-    stk.appendChild(el('span', 'v num', streakN + 'w'));
-    head.appendChild(stk);
-    root.appendChild(head);
-    /* the profile earns its keep: the app greets whoever created it.
-       A gap of six hours or more reads as coming back; anything shorter
-       gets the time of day. */
+    /* the profile earns its keep: the app greets whoever created it, but at
+       eyebrow size, never competing with the arc's day name. A gap of six
+       hours or more reads as coming back; anything shorter gets the clock. */
     const nm = String(getProfile().name || '').trim().split(/\s+/)[0];
-    /* decided once per visit and held — the tab re-renders freely, but the
-       comeback reading is taken against the previous visit, not the render
-       two seconds ago */
     const seen = +localStorage.getItem('lastSeen') || 0;
     try { localStorage.setItem('lastSeen', String(Date.now())); } catch {}
     if (!greetPick || Date.now() - greetPick.at > 6 * 3600e3)
@@ -40,17 +32,33 @@
       const h = now.getHours();
       const greet = greetPick.back ? 'Welcome back'
         : h < 5 ? 'Still up' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
-      root.appendChild(el('h1', 't-title greet', greet + ', ' + nm));
-    } else if (!plan) root.appendChild(el('h1', 't-title', 'Rackside'));
+      head.appendChild(el('div', 'greet-eyebrow', greet + ', ' + nm));
+    }
+    const stk = el('div', 'streak');
+    const streakN = weekStreak(workouts);
+    stk.appendChild(el('span', 'l', 'Streak'));
+    stk.appendChild(el('span', 'v num', streakN + 'w'));
+    head.appendChild(stk);
+    root.appendChild(head);
+    if (!nm && !plan) root.appendChild(el('h1', 't-title', 'Rackside'));
 
-    // running in the browser tab (not installed) — layout loses the bottom strip to Safari
+    // Install hint — one dismissible line, deferred to the very bottom of the
+    // page (built here, appended last) so a note about Safari is never the
+    // loudest thing on the screen.
     const standalone = window.matchMedia('(display-mode: standalone)').matches
       || navigator.standalone || IS_NATIVE;   // a wrapped app IS the installed app
-    if (!standalone) {
-      const hint = el('div', 'coach-note');
-      hint.innerHTML = '<b>Install ·</b> You are in the browser, so Safari keeps a strip at the bottom. Tap <b>Share</b> → <b>Add to Home Screen</b> and open Rackside from the icon for true fullscreen.';
-      root.appendChild(hint);
+    let installHint = null;
+    if (!standalone && localStorage.getItem('installHintDismissed') !== '1') {
+      installHint = el('div', 'install-hint');
+      installHint.appendChild(el('span', null, 'Add to Home Screen for fullscreen · '));
+      const howBtn = el('button', 'ih-how', 'How');
+      howBtn.onclick = () => alert('Tap the Share button in Safari, then "Add to Home Screen". Open Rackside from its icon for true fullscreen.');
+      installHint.appendChild(howBtn);
+      const x = el('button', 'ih-x', '✕');
+      x.onclick = () => { try { localStorage.setItem('installHintDismissed', '1'); } catch {} installHint.remove(); };
+      installHint.appendChild(x);
     }
+    const dropInstallHint = () => { if (installHint) root.appendChild(installHint); };
 
     if (!plan) {
       // ready-made starter program
@@ -77,6 +85,7 @@
       b2.onclick = () => openPlanForm(null);
       empty.appendChild(b2);
       root.appendChild(empty);
+      dropInstallHint();
       return;
     }
 
@@ -98,39 +107,9 @@
     else if (trainedToday) mode = 'banked';
     else if (nextIdxArc < 0) mode = 'weekdone';
 
-    if (behind && !plan.pausedAt) {
-    // ---- block card ----
-    const bc = el('div', 'card');
-    const bh = el('div', 'block-head');
-    bh.appendChild(el('div', 'micro', `${weeks}-week block`));
-    bh.appendChild(finished
-      ? el('div', 'block-note final', 'BLOCK COMPLETE')
-      : (behind
-        ? el('div', 'block-note', `Finish week ${curWeek} to unlock week ${Math.min(curWeek + 1, weeks)}`)
-        : (started && curWeek === weeks
-          ? el('div', 'block-note final', 'FINAL WEEK')
-          : el('div', 'block-note', started ? `${weeks - curWeek} week${weeks - curWeek === 1 ? '' : 's'} left in Block ${blockNumber(plan)}` : 'Not started'))));
-    bc.appendChild(bh);
-    const seg = el('div', 'week-seg');
-    for (let i = 1; i <= weeks; i++) {
-      const dl = isDeloadWeek(plan, i);
-      const b = el('button',
-        (i < curWeek ? 'past' : (i === curWeek ? 'current' : '')) + (dl ? ' deload' : ''),
-        dl ? 'DL' : 'W' + i);
-      if (dl) b.title = 'Deload week — lighter, fewer sets';
-      b.type = 'button';
-      b.onclick = async () => {
-        const d = new Date(Date.now() - (i - 1) * 7 * 86400000);
-        plan.startDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-        plan.finishedAt = null;
-        await DB.put('plans', plan);
-        renderTab();
-      };
-      seg.appendChild(b);
-    }
-    bc.appendChild(seg);
-    root.appendChild(bc);
-    }
+    /* the 4-week block card is gone: the arc already encodes the weeks
+       (W1…W4 under its feet) and every session; the week gate reads as the
+       arc's subline when it applies */
 
     // ---- renewal card (final week or finished) ----
     if (finished || (started && curWeek === weeks)) {
@@ -185,7 +164,7 @@
       cell.appendChild(el('i'));
       strip.appendChild(cell);
     }
-    root.appendChild(strip);
+    /* appended below the session — it is context, not the hero */
 
     // ---- the v5 arc layout, in every state ----
     {
@@ -216,6 +195,7 @@
         const totalSets = day.items.reduce((a, it) => a + (it.sets || 3), 0);
         const due = prefD.length && doneThisWk < prefD.filter(x => x <= todayIdx).length;
         meta = `${day.items.length} exercise${day.items.length === 1 ? '' : 's'} · ~${lastDoneC ? lastDoneC.duration : Math.round(totalSets * 2.5)} min${due ? ' · due today' : ''}`;
+        if (behind) meta += ` · finish week ${curWeek || 1} to unlock week ${Math.min((curWeek || 1) + 1, weeks)}`;
       } else if (mode === 'live') {
         meta = (lwNow.pausedAt ? 'Paused · ' : 'In progress · ')
           + `${fmtClock(wElapsed(lwNow))} elapsed`;
@@ -246,6 +226,34 @@
       wrap.appendChild(overlay);
       root.appendChild(wrap);
 
+      // primary CTA per state + text links
+      if (mode === 'next') {
+        /* the payoff, above the fold: one tap starts today's day */
+        const cta = el('button', 'btn-cta big');
+        cta.appendChild(svgIcon(PLAY, 13));
+        cta.appendChild(document.createTextNode(' Start ' + day.name));
+        cta.onclick = () => startWorkout(plan, dayIdx);
+        root.appendChild(cta);
+      } else if (mode === 'live') {
+        const cta = el('button', 'btn-cta big');
+        cta.appendChild(svgIcon(PLAY, 13));
+        cta.appendChild(document.createTextNode(
+          (lwNow.pausedAt ? ' Start ' : ' Resume ') + day.name + (lwNow.pausedAt ? ' again' : '')));
+        cta.onclick = () => {
+          if (lwNow.pausedAt) { resumeWorkout(); return; }
+          show('workout'); renderWorkout();
+        };
+        root.appendChild(cta);
+      } else if (mode === 'complete') {
+        const cta = el('button', 'btn-cta big', 'Build Block ' + (blockNumber(plan) + 1));
+        cta.onclick = () => openPlanForm(null, plan);
+        root.appendChild(cta);
+      } else if (mode === 'paused') {
+        const cta = el('button', 'btn-cta big', 'Resume training');
+        cta.onclick = async () => { await resumePlan(plan); renderTab(); };
+        root.appendChild(cta);
+      }
+
       // numbered exercise index — today's session, or a preview of the next one
       let idxDay = null, idxLabel = '';
       if ((mode === 'next' || mode === 'live') && day.items.length) {
@@ -275,6 +283,8 @@
         });
         root.appendChild(idx);
       }
+
+      root.appendChild(strip);
 
       // stats baseline row
       const base = el('div', 'base-row');
@@ -307,31 +317,6 @@
         root.appendChild(line);
       }
 
-      // primary CTA per state + text links
-      if (mode === 'next') {
-        /* no Start here — every day has its own play button on the Plan tab,
-           and this one only ever offered the same first day */
-        root.appendChild(el('div', 'coach-note',
-          `${day.name} is next — start it from the Plan tab.`));
-      } else if (mode === 'live') {
-        const cta = el('button', 'btn-cta big');
-        cta.appendChild(svgIcon(PLAY, 13));
-        cta.appendChild(document.createTextNode(
-          (lwNow.pausedAt ? ' Start ' : ' Resume ') + day.name + (lwNow.pausedAt ? ' again' : '')));
-        cta.onclick = () => {
-          if (lwNow.pausedAt) { resumeWorkout(); return; }
-          show('workout'); renderWorkout();
-        };
-        root.appendChild(cta);
-      } else if (mode === 'complete') {
-        const cta = el('button', 'btn-cta big', 'Build Block ' + (blockNumber(plan) + 1));
-        cta.onclick = () => openPlanForm(null, plan);
-        root.appendChild(cta);
-      } else if (mode === 'paused') {
-        const cta = el('button', 'btn-cta big', 'Resume training');
-        cta.onclick = async () => { await resumePlan(plan); renderTab(); };
-        root.appendChild(cta);
-      }
     }
 
     // ---- monthly backup reminder ----
@@ -345,6 +330,7 @@
       note.appendChild(b);
       root.appendChild(note);
     }
+    dropInstallHint();
   }
 
   /* Block arc — N session dots on a semicircle, today at the crest (v5 handoff).

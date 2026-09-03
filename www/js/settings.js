@@ -410,9 +410,6 @@
     head.appendChild(close);
     root.appendChild(head);
 
-    root.appendChild(el('div', 'coach-note',
-      'The top rows work. The rest are placeholders.'));
-
     PREF_GROUPS.forEach(g => {
       root.appendChild(el('div', 'month-label', g.title));
       const list = el('div', 'pref-list');
