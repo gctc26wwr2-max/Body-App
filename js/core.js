@@ -4,7 +4,7 @@
    part loaded after this one. Load order is index.html's script order.
    Map of what lives where: FUNCTIONS.md */
 'use strict';
-  const APP_VERSION = 'v329';
+  const APP_VERSION = 'v330';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -374,7 +374,7 @@
       let v = null;
       try { v = JSON.parse(raw); } catch {}
       const ok = v && typeof v === 'object' && !Array.isArray(v)
-        && Array.isArray(v.exs) && v.exs.every(x => x && typeof x === 'object' && Array.isArray(x.sets));
+        && Array.isArray(v.exercises) && v.exercises.every(x => x && typeof x === 'object' && Array.isArray(x.sets));
       if (!ok) { try { localStorage.removeItem('liveWorkout'); } catch {} return null; }
       return v;
     },

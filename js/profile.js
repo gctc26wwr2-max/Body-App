@@ -146,7 +146,7 @@
     grid.appendChild(sumCard(String(workouts.length), 'Sessions'));
     grid.appendChild(sumCard(fmtW(totVol), 'Lifetime volume'));
     grid.appendChild(sumCard(totMin + ' min', 'Time trained'));
-    const prC = sumCard(String(totPRs), 'Records');
+    const prC = sumCard(String(totPRs), totPRs === 1 ? 'Record' : 'Records');
     prC.classList.add('hl');
     grid.appendChild(prC);
     root.appendChild(grid);

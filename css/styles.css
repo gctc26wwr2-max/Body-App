@@ -2220,7 +2220,23 @@ body { font-size: 0.8235rem; }
 .id-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(var(--acc-rgb),.22); }
 
 /* Today greeting — the profile talking back */
-.t-title.greet { font-size: 1.4118rem; margin: 2px 0 10px; letter-spacing: -.02em; }
+/* greeting lives in the eyebrow, never at title size — one hero per screen */
+.meta-row { gap: 10px; }
+.meta-row .greet-eyebrow {
+  flex: 1; min-width: 0; text-align: center; font-size: 0.5882rem; font-weight: 800;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--t4, #B8B0A6);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* install hint — one quiet dismissible line at the foot of Today */
+.install-hint {
+  display: flex; align-items: center; gap: 6px; margin-top: 14px; padding: 8px 0 0;
+  font-size: 0.6471rem; color: var(--t6); border-top: 1px solid var(--hair);
+}
+.install-hint span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.install-hint .ih-how { background: none; border: none; padding: 0; color: var(--lime); font-weight: 700; font-size: inherit; }
+.install-hint .ih-x { background: none; border: none; padding: 0 2px; color: var(--t6); font-size: 0.7059rem; }
+/* faint text lifted — #6A625A on the canvas was ~3.4:1, too low for words */
+.pday-row.done .pd-name, .pd-meta, .hrow-meta, .ab-hint, .or-rail .or-lbl { color: #857C73; }
 
 /* Accent picker — six swatches, tap to try on */
 .acc-row { display: flex; gap: 13px; justify-content: center; padding: 12px 0 6px; }

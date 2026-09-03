@@ -300,7 +300,10 @@
       const nm = el('div', 'hrow-name', w.name);
       if (w.prs && w.prs.length) nm.appendChild(el('span', 'pr-chip', w.prs.length + ' PR'));
       c.appendChild(nm);
-      const meta = el('div', 'hrow-meta num', `${fmtW(w.volume)} · ${w.sets} sets`);
+      /* older sessions predate the saved set count — show volume alone rather
+         than "undefined sets" */
+      const meta = el('div', 'hrow-meta num',
+        fmtW(w.volume) + (Number.isFinite(w.sets) ? ` · ${w.sets} sets` : ''));
       if (w.stars) {
         meta.appendChild(document.createTextNode(' ·'));
         const st = el('span', 'hrow-stars');

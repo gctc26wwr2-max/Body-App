@@ -266,24 +266,24 @@ t('restore: records without an id are skipped, valid ones kept', async () => {
 
 /* ---------------- guarded stored-state reads ---------------- */
 t('liveWorkout: corrupt or misshapen state is dropped, not thrown', () => {
-  for (const bad of ['{{{not json', '42', '[1,2]', '{"exs":"boom"}',
-    '{"exs":[{"sets":"x"}]}', '{"exs":[null]}', '"a string"']) {
+  for (const bad of ['{{{not json', '42', '[1,2]', '{"exercises":"boom"}',
+    '{"exercises":[{"sets":"x"}]}', '{"exercises":[null]}', '{"exs":[{"sets":[]}]}', '"a string"']) {
     localStorage.setItem('liveWorkout', bad);
     eq(live.get(), null, 'get for ' + bad);
     eq(localStorage.getItem('liveWorkout'), null, 'cleared for ' + bad);
   }
 });
 t('liveWorkout: a real session round-trips', () => {
-  const lw = { planId: 'p1', dayIndex: 0, cur: 0, exs: [{ name: 'Squat', sets: [{ kg: 60, reps: 0 }] }] };
+  const lw = { planId: 'p1', dayIndex: 0, exIndex: 0, exercises: [{ name: 'Squat', sets: [{ kg: 60, reps: 0 }] }] };
   live.set(lw);
-  eq(live.get().exs[0].sets[0].kg, 60);
+  eq(live.get().exercises[0].sets[0].kg, 60);
   live.set(null);
   eq(live.get(), null);
 });
 t('liveWorkout: a full save failure does not throw', () => {
   const orig = localStorage.setItem;
   localStorage.setItem = () => { throw new Error('QuotaExceededError'); };
-  try { live.set({ exs: [] }); } finally { localStorage.setItem = orig; }
+  try { live.set({ exercises: [] }); } finally { localStorage.setItem = orig; }
 });
 t('liveCardio: paused sessions survive the shape check, garbage does not', () => {
   localStorage.setItem('liveCardio', JSON.stringify({ act: 'Run', mins: 20, startedAt: null, acc: 300 }));

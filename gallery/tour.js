@@ -1,6 +1,6 @@
 const { chromium, devices } = require('/opt/node22/lib/node_modules/playwright');
 const fs = require('fs');
-const OUT = '/home/user/Body-App/gallery';
+const OUT = '/home/user/Body-App/www/gallery';
 fs.mkdirSync(OUT, { recursive: true });
 
 (async () => {
@@ -60,8 +60,11 @@ fs.mkdirSync(OUT, { recursive: true });
   await shot('02-today-block', 'Today · greeting, week strip, progress arc, next session');
 
   // ---------- live workout ----------
-  await p.click('#view-today .btn-cta').catch(() => {});
-  await p.waitForTimeout(1000);
+  console.log('  today CTA:', await p.evaluate(() => document.querySelector('#view-today .btn-cta')?.textContent?.trim() || 'NONE'),
+    '| arc:', await p.evaluate(() => document.querySelector('#view-today .arc-day')?.textContent));
+  await p.click('#view-today .btn-cta').catch(e => console.log('  click failed:', e.message.split('\n')[0]));
+  await p.waitForSelector('#view-workout:not([hidden])', { timeout: 4000 }).catch(() => console.log('  workout view did not mount'));
+  await p.waitForTimeout(600);
   await shot('03-workout-live', 'Live workout · exercise rail, weight ruler, reps strip');
 
   // pause overlay
