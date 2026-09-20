@@ -4,7 +4,7 @@
    part loaded after this one. Load order is index.html's script order.
    Map of what lives where: FUNCTIONS.md */
 'use strict';
-  const APP_VERSION = 'v334';
+  const APP_VERSION = 'v335';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -51,6 +51,7 @@
   let planDraft = null;
   let statsLift = null;
   let planHistOpen = false;   // Plan tab shows the last few sessions until asked
+  let planDayOpen = null;     // 'planId:dayIndex' of the day left expanded on the Plan tab
   let cardioHistOpen = false;
   let detailReturn = null;   // where the detail screen goes back to
 
