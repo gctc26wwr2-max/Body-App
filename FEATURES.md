@@ -63,6 +63,10 @@ and you can install it to your home screen like any app.
   remaining working sets.
 - **PR detection** — beat your best estimated 1RM (or minimum help) and the
   session banks a PR.
+- **Machine busy?** — on the active exercise: **Later** pushes it to the end
+  of the session and moves you on; **Swap** picks a similar move for this
+  session only (logged sets stay, unlogged ones start fresh, "was …"
+  noted); or tap any exercise on the rail to jump to it.
 - **Pass**, **add mid-workout**, **pause overlay**, live status line, and a
   one-confirmation save into a summary with duration, volume, records and a
   5-star rating.
