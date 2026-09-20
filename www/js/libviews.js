@@ -174,7 +174,93 @@
   /* One line of a block's day: the movement, its sets and reps, and a way
      through to the exercise. Shared by the plan's day previews and the block
      previews in Block Master so the two always read the same. */
-  function planItemRow(it, from) {
+  /* Replace one movement in a block with a similar one — the machine is
+     taken, or you don't own it. Ranked: same movement pattern first, then
+     the same family; anything your kit can't do sinks to the bottom with a
+     tag, and moves flagged for your injuries are left out entirely. */
+  const PATTERN_WORD = {
+    hpush: 'horizontal push', vpush: 'vertical push', fly: 'fly', tri: 'triceps',
+    hpull: 'horizontal pull', vpull: 'vertical pull', delt: 'shoulders', trap: 'traps',
+    curl: 'curl', squat: 'squat', lunge: 'lunge', legiso: 'leg isolation', calf: 'calves',
+    hinge: 'hinge', bridge: 'bridge', coreflex: 'core', corerot: 'rotation',
+    corebrace: 'brace', carry: 'carry', cardio: 'cardio', full: 'full body'
+  };
+  function swapCandidates(cur) {
+    const fam = window.MOVE_FAMILY || {};
+    const pat = patternOf(cur);
+    const tags = injEnabled() ? injuryTags() : new Set();
+    /* within a tier, the closest name wins — "Dumbbell Chest Press" before
+       "Chest Dip"; the word "machine" is ignored so the thing being avoided
+       doesn't pull its relatives up */
+    const words = n => new Set(String(n).toLowerCase().split(/[^a-z]+/).filter(w => w && w !== 'machine'));
+    const cw = words(cur.name);
+    const overlap = n => [...words(n)].filter(w => cw.has(w)).length;
+    return pmExerciseList()
+      .filter(c => c.name !== cur.name && !isRisky(c, tags))
+      .map(c => {
+        const cp = patternOf(c);
+        const tier = cp === pat ? 0 : (fam[cp] && fam[cp] === fam[pat] ? 1 : 2);
+        return { c, tier, ok: equipOK(c), near: overlap(c.name) };
+      })
+      .sort((a, b) => a.tier - b.tier || (a.ok === b.ok ? 0 : a.ok ? -1 : 1)
+        || b.near - a.near || a.c.name.localeCompare(b.c.name));
+  }
+  function openSwapSheet(plan, dayIndex, itemIndex) {
+    const day = plan.days[dayIndex];
+    const it = day.items[itemIndex];
+    const cur = exercises.find(x => x.id === it.exerciseId);
+    if (!cur) return;
+    const ranked = swapCandidates(cur);
+    const back = el('div', 'modal-back');
+    const m = el('div', 'modal swap');
+    m.appendChild(el('div', 'modal-title', 'Replace ' + cur.name));
+    const find = document.createElement('input');
+    find.type = 'search'; find.className = 'swap-find'; find.placeholder = 'Search all moves';
+    find.autocomplete = 'off';
+    m.appendChild(find);
+    const list = el('div', 'swap-list');
+    m.appendChild(list);
+    const pick = async cand => {
+      const rec = await ensureExercise(cand);
+      const wasTimed = isTimedEx(cur), nowTimed = isTimedEx(rec);
+      const next = { ...it, exerciseId: rec.id, kg: 0 };   // a different move starts from its own weight
+      if (nowTimed && !wasTimed) { next.repLo = 30; next.repHi = 45; }
+      if (wasTimed && !nowTimed) { next.repLo = 8; next.repHi = 12; }
+      day.items[itemIndex] = next;
+      await DB.put('plans', plan);
+      haptic();
+      back.remove();
+      renderTab();
+    };
+    const paint = () => {
+      list.innerHTML = '';
+      const q = find.value.trim().toLowerCase();
+      const rows = q
+        ? ranked.filter(r => r.c.name.toLowerCase().includes(q)).slice(0, 12)
+        : ranked.filter(r => r.tier < 2).slice(0, 8);
+      if (!rows.length) { list.appendChild(el('div', 'swap-empty', q ? 'No match' : 'Nothing similar in the catalogue')); return; }
+      rows.forEach(({ c, tier, ok }) => {
+        const r = el('button', 'pv-row swap-row' + (ok ? '' : ' nokit'));
+        const th = el('div', 'pv-thumb'); th.appendChild(thumbFor(c)); r.appendChild(th);
+        const body = el('div');
+        body.appendChild(el('div', 'pv-name', c.name));
+        body.appendChild(el('div', 'pv-meta',
+          !ok ? 'Needs kit you don\u2019t own'
+            : tier === 0 ? 'Same ' + (PATTERN_WORD[patternOf(c)] || 'movement')
+            : tier === 1 ? 'Same family' : (PATTERN_WORD[patternOf(c)] || '')));
+        r.appendChild(body);
+        r.onclick = () => pick(c);
+        list.appendChild(r);
+      });
+    };
+    find.oninput = paint;
+    paint();
+    back.appendChild(m);
+    back.onclick = e => { if (e.target === back) back.remove(); };
+    document.body.appendChild(back);
+  }
+
+  function planItemRow(it, from, onSwap) {
     const ex = exercises.find(x => x.id === it.exerciseId);
     const row = el('div', 'pv-row');
     const th = el('div', 'pv-thumb');
@@ -189,6 +275,16 @@
     if (ex) addHardship(pvMeta, ex);
     c.appendChild(pvMeta);
     row.appendChild(c);
+    if (ex && onSwap) {
+      const sw = el('button', 'pv-swap');
+      sw.title = 'Replace this move';
+      sw.setAttribute('aria-label', 'Replace ' + ex.name);
+      sw.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" '
+        + 'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+        + '<path d="M4 8h13M13 4l4 4-4 4"/><path d="M20 16H7m4-4-4 4 4 4"/></svg>';
+      sw.onclick = e => { e.stopPropagation(); onSwap(); };
+      row.appendChild(sw);
+    }
     if (ex) {
       row.appendChild(el('div', 'pv-go', '›'));
       row.onclick = e => { e.stopPropagation(); openDetail(ex.id, from); };

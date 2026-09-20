@@ -2303,3 +2303,22 @@ body { font-size: 0.8235rem; }
    a grid — every tile is the same size and fully lit */
 .eqw-rail .eqw-tile { transform: none !important; opacity: 1 !important; }
 .eqw-rail .eqw-ph { transform: none !important; }
+
+/* Replace a move: swap button on plan preview rows + the picker sheet */
+.pv-swap {
+  margin-left: auto; flex: 0 0 auto; width: 2rem; height: 2rem; border-radius: 50%;
+  border: 1px solid var(--hair); background: var(--sunken); color: var(--t2);
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.pv-swap + .pv-go { margin-left: 6px; }
+.modal.swap { max-height: 82vh; display: flex; flex-direction: column; gap: 10px; }
+.swap-find {
+  width: 100%; background: var(--sunken); border: 1px solid var(--hair); border-radius: 12px;
+  padding: 9px 12px; color: var(--t1); font-size: 0.8824rem; outline: none; -webkit-appearance: none;
+}
+.swap-find:focus { border-color: var(--lime); }
+.swap-list { overflow: auto; margin: 0 -4px; padding: 0 4px; }
+.swap-row { width: 100%; text-align: left; background: none; border: none; color: inherit; }
+.swap-row.nokit { opacity: .5; }
+.swap-row .pv-meta { color: #857C73; }
+.swap-empty { padding: 18px 4px; color: #857C73; font-size: 0.7941rem; text-align: center; }

@@ -70,6 +70,12 @@ Five tabs, not six: a block *is* the plan, so Ready · Build · Ask AI ·
 Library live as segments under the Plan header, with your running block as
 the default. Done days carry their own summary (Mon · 3,760 kg · 14 sets ·
 46 min); past sessions delete by swipe, not a permanent ✕.
+- **Replace a move** — the ⇄ on any exercise in a day's preview opens a
+  picker of similar moves: same movement pattern first, then the same
+  family, closest names on top; moves your kit can't do sink to the bottom
+  with a tag, moves flagged for your injuries are left out, and a search
+  covers the whole catalogue. The swap keeps sets and reps, starts the
+  weight fresh, and flips rep ranges to seconds for timed moves.
 
 - **Build** — a block builder on three picker wheels: sets · exercise ·
   reps (or seconds), with search, kit- and injury-aware pool, difficulty
