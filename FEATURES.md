@@ -74,7 +74,8 @@ the default. Done days carry their own summary (Mon · 3,760 kg · 14 sets ·
   picker of similar moves: same movement pattern first, then the same
   family, closest names on top; moves your kit can't do sink to the bottom
   with a tag, moves flagged for your injuries are left out, and a search
-  covers the whole catalogue. The swap keeps sets and reps, starts the
+  covers the whole catalogue. The same ⇄ sits on every row in Build, where
+  it rewrites the draft and notes what it replaced. The swap keeps sets and reps, starts the
   weight fresh, and flips rep ranges to seconds for timed moves.
 
 - **Build** — a block builder on three picker wheels: sets · exercise ·
@@ -136,7 +137,10 @@ the default. Done days carry their own summary (Mon · 3,760 kg · 14 sets ·
 - **Accent colour** — a hue wheel: drag the ring for any colour (always at
   the app's own saturation and lightness), six preset dots beneath, live
   preview, Save to keep. Recolours everything, done-day dots included.
-- **Muscle focus**, **Injuries** (filter, not medical advice — the flag
+- **Focus** — up to three of chest, back, shoulders, arms, abs, love
+  handles, glutes, quads, hamstrings, calves, or fat loss (which gets its
+  own instruction in the AI prompt rather than being treated as a muscle);
+  **Injuries** (filter, not medical advice — the flag
   table ships as a review pack for a physio, INJURY-FLAGS-REVIEW.md, with
   desk-research citations), **Equipment** on a photo grid with All /
   untick-all.
