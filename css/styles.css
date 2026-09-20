@@ -2323,3 +2323,11 @@ body { font-size: 0.8235rem; }
 .swap-row .pv-meta { color: #857C73; }
 .swap-empty { padding: 18px 4px; color: #857C73; font-size: 0.7941rem; text-align: center; }
 .exi-row .pv-swap { margin-left: 6px; width: 1.7647rem; height: 1.7647rem; }
+
+/* an update waiting during a live session — offered, never forced */
+.update-chip {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(112px + var(--safe-bottom));
+  z-index: 60; border: 1px solid var(--lime-border); background: var(--lime-bg); color: var(--lime);
+  border-radius: 999px; padding: 8px 14px; font-size: 0.7059rem; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; backdrop-filter: blur(8px);
+}
