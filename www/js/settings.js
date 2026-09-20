@@ -354,7 +354,8 @@
       ['aim', 'Muscle focus', 'focus'],
       ['plates', 'Weight jumps', 'jumps'],
       ['theme', 'Accent', 'accent'], ['units', 'Units', 'units'],
-      ['cal', 'Week starts', 'wkstart']
+      ['cal', 'Week starts', 'wkstart'],
+      ['health', 'Body-weight trend', 'bwrange']
     ] },
     { title: 'Apple', rows: [
       ['health', 'Apple Health'], ['watch', 'Apple Watch'], ['link', 'Integrations']
@@ -470,6 +471,11 @@
           r.appendChild(val);
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'accent' ? ' open' : ''), '\u203a'));
           r.onclick = () => { prefOpen = prefOpen === 'accent' ? null : 'accent'; renderPrefs(); };
+        } else if (live === 'bwrange') {
+          const BW_LBL = { 30: '30 days', 90: '90 days', all: 'All time' };
+          r.appendChild(el('span', 'pref-val', BW_LBL[pDraft.bwRange] || '30 days'));
+          r.appendChild(el('span', 'pref-go' + (prefOpen === 'bwrange' ? ' open' : ''), '\u203a'));
+          r.onclick = () => { prefOpen = prefOpen === 'bwrange' ? null : 'bwrange'; renderPrefs(); };
         } else if (live === 'sound') {
           r.appendChild(el('span', 'pref-val', dSound().label));
           r.appendChild(el('span', 'pref-go' + (prefOpen === 'sound' ? ' open' : ''), '›'));
@@ -490,6 +496,15 @@
             }, 'you-seg'));
           panel.appendChild(el('div', 'ab-hint',
             'Weights, heights and the tape all follow this — nothing stored is rewritten.'));
+          list.appendChild(panel);
+        }
+        if (live === 'bwrange' && prefOpen === 'bwrange') {
+          const panel = el('div', 'pref-panel');
+          panel.appendChild(segToggle(
+            [['30', '30 days'], ['90', '90 days'], ['all', 'All time']],
+            String(pDraft.bwRange || '30'),
+            k => { pDraft.bwRange = k; renderPrefs(); }, 'you-seg'));
+          panel.appendChild(el('div', 'ab-hint', 'How far back the body-weight graph on Profile looks.'));
           list.appendChild(panel);
         }
         if (live === 'wkstart' && prefOpen === 'wkstart') {
