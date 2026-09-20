@@ -293,7 +293,7 @@
         pv.hidden = true;
         const buildPv = () => {
           if (pv.dataset.built) return;
-          day.items.forEach(it => pv.appendChild(planItemRow(it, 'plan')));
+          day.items.forEach((it, idx) => pv.appendChild(planItemRow(it, 'plan', () => openSwapSheet(plan, i, idx))));
           pv.dataset.built = '1';
         };
         /* the expanded day survives a round trip through an exercise's
