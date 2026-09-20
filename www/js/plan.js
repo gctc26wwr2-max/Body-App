@@ -291,12 +291,20 @@
         // tap the day to preview the exercises you'll go through
         const pv = el('div', 'day-preview');
         pv.hidden = true;
+        const buildPv = () => {
+          if (pv.dataset.built) return;
+          day.items.forEach(it => pv.appendChild(planItemRow(it, 'plan')));
+          pv.dataset.built = '1';
+        };
+        /* the expanded day survives a round trip through an exercise's
+           detail screen — the tab re-renders on the way back, so the choice
+           is held in shared state, not in the DOM */
+        const pvKey = plan.id + ':' + i;
+        if (planDayOpen === pvKey) { buildPv(); pv.hidden = false; r.classList.add('open'); }
         r.onclick = () => {
-          if (pv.hidden && !pv.dataset.built) {
-            day.items.forEach(it => pv.appendChild(planItemRow(it, 'plan')));
-            pv.dataset.built = '1';
-          }
+          if (pv.hidden) buildPv();
           pv.hidden = !pv.hidden;
+          planDayOpen = pv.hidden ? null : pvKey;
           r.classList.toggle('open', !pv.hidden);
         };
         dRail.appendChild(pv);
