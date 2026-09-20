@@ -502,7 +502,7 @@ window.MOVEMENTS = {
   'Machine Shoulder Press':      ['vpush', 'overhead', 'shoulder'],
   'Assisted Pull-Up':            ['vpull', 'overhead', 'shoulder', 'elbow', 'grip'],
   'Glute Bridge':                ['bridge'],
-  'Pallof Press':                ['corebrace']
+  'Pallof Press': ["corerot"]
 ,
 
   /* --- generated for the exercises added from the content library --- */
@@ -583,7 +583,7 @@ window.MOVEMENTS = {
   "Hip Adduction Machine": ["legiso","hip"],
   "Cable Glute Kickback": ["legiso","hip"],
   "Tibialis Raise": ["legiso","ankle"],
-  "Captain's Chair Knee Raise": ["corebrace","hip"],
+  "Captain's Chair Knee Raise": ["coreflex","hip","spineflex"],
   "Sit-Up": ["coreflex","hip","spineflex"],
   "Cable Woodchop": ["corerot","spinerot"],
   "Bird Dog": ["corebrace"],
@@ -611,8 +611,9 @@ window.MOVEMENTS = {
   "Wrist Curl": ["curl","wrist","elbow"],
   "Reverse Wrist Curl": ["curl","wrist","elbow"],
   "Dead Hang": ["curl","shoulder","grip","overhead"],
-  "Neck Extension": ["corebrace","neck"],
-  "Neck Flexion": ["corebrace","neck"]
+  "Mountain Climbers": ["coreflex","hip","wrist","shoulder"],
+  "Neck Extension": ["neck","neck"],
+  "Neck Flexion": ["neck","neck"]
 };
 
 /* Patterns that can stand in for each other when the exact one is ruled out. */
@@ -622,6 +623,7 @@ window.MOVE_FAMILY = {
   squat: 'legs', lunge: 'legs', legiso: 'legs', calf: 'legs',
   hinge: 'legs', bridge: 'legs',
   coreflex: 'core', corerot: 'core', corebrace: 'core', carry: 'core',
+  neck: 'neck',
   cardio: 'cardio', full: 'full'
 };
 
@@ -650,7 +652,8 @@ window.MOVE_INFER = [
   [/sled|prowler/i,                                 ['cardio', 'knee', 'impact']],
   [/bench|chest press|floor press/i,                ['hpush', 'shoulder']],
   [/fly|flye|crossover|pec deck/i,                  ['fly', 'shoulder']],
-  [/plank|dead ?bug|pallof|bird ?dog|hollow/i,      ['corebrace']],
+  [/pallof|anti[-\s]?rotation/i,                    ['corerot']],
+  [/plank|dead ?bug|bird ?dog|hollow/i,             ['corebrace']],
   [/twist|woodchop|rotation/i,                      ['corerot', 'spinerot', 'spineflex']],
   [/crunch|sit[-\s]?up|leg raise|knee raise/i,      ['coreflex', 'spineflex', 'neck']],
   [/carry|farmer|suitcase/i,                        ['carry', 'grip']],

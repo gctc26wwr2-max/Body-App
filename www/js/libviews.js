@@ -183,7 +183,7 @@
     hpull: 'horizontal pull', vpull: 'vertical pull', delt: 'shoulders', trap: 'traps',
     curl: 'curl', squat: 'squat', lunge: 'lunge', legiso: 'leg isolation', calf: 'calves',
     hinge: 'hinge', bridge: 'bridge', coreflex: 'core', corerot: 'rotation',
-    corebrace: 'brace', carry: 'carry', cardio: 'cardio', full: 'full body'
+    corebrace: 'brace', carry: 'carry', cardio: 'cardio', full: 'full body', neck: 'neck'
   };
   function swapCandidates(cur) {
     const fam = window.MOVE_FAMILY || {};
