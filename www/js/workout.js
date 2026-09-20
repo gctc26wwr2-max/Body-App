@@ -496,6 +496,47 @@
     };
     outs.appendChild(passB);
     outs.appendChild(el('span', 'exx-out-note', 'today only'));
+
+    /* the machine is busy: do this one at the end, or do a similar move
+       instead — both one tap, both this session only */
+    const laterAfter = lw.exercises.some((e2, i) => i > ei && !e2.passed && !e2.sets.every(s => s.done));
+    if (laterAfter) {
+      const laterB = el('button', 'exx-out', 'Later');
+      laterB.title = 'Machine busy — do it at the end';
+      laterB.onclick = () => {
+        const [me] = lw.exercises.splice(ei, 1);
+        lw.exercises.push(me);
+        const next = lw.exercises.findIndex(e2 => !e2.passed && !e2.sets.every(s => s.done));
+        lw.exIndex = next >= 0 ? next : 0;
+        lw.advanceAfterRest = false;
+        live.set(lw);
+        haptic();
+        scrollToEx = true;
+        renderWorkout();
+      };
+      outs.appendChild(laterB);
+    }
+    const swapB = el('button', 'exx-out', 'Swap');
+    swapB.title = 'Do a similar move instead';
+    swapB.onclick = () => pickReplacement(cur, async cand => {
+      const rec = await ensureExercise(cand);
+      const wasTimed = isTimedEx(cur), nowTimed = isTimedEx(rec);
+      cur.swappedFrom = cur.swappedFrom || cur.name;
+      cur.name = rec.name;
+      cur.exerciseId = rec.id;
+      cur.timed = nowTimed;
+      cur.sets.forEach(s => {
+        if (s.done) return;                 // what you already lifted stays as logged
+        s.kg = 0;                           // a different move starts from its own weight
+        if (nowTimed && !wasTimed) { s.targetLo = 30; s.targetHi = 45; s.reps = 30; }
+        if (wasTimed && !nowTimed) { s.targetLo = 8; s.targetHi = 12; s.reps = 8; }
+      });
+      live.set(lw);
+      haptic();
+      renderWorkout();
+    });
+    outs.appendChild(swapB);
+    if (cur.swappedFrom) outs.appendChild(el('span', 'exx-out-note', 'was ' + cur.swappedFrom));
     card.appendChild(outs);
 
     // plate math
