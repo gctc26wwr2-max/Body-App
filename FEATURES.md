@@ -55,6 +55,9 @@ and you can install it to your home screen like any app.
   row colours by where you landed against the target range.
 - **Rest timer** — starts on logging a set, adjustable ±15 s, skippable.
   When it ends, the next unfinished exercise expands and scrolls into view.
+- **Live curve** — each exercise's weight-over-time graph sits under its
+  sets, and today's best logged set is its last point: it joins the curve
+  the moment a set is logged and moves as logged sets are edited.
 - **Progression advice** — hit the top of the rep range and the app offers
   the next real jump for that equipment; one tap applies it to the
   remaining working sets.
