@@ -131,6 +131,8 @@ the default. Done days carry their own summary (Mon · 3,760 kg · 14 sets ·
   on-device), name typed inline, and a vitals line — age, height, latest
   body weight, tape body-fat — plus "Training since …". The name powers
   the Today greeting and leads the Claude report.
+- **Body-weight trend** — the graph on Profile looks back 30 days, 90
+  days or all time; pick the range in Settings.
 - **About you** — birth month + year on wheels (the age computes itself and
   never goes stale), sex, height (cm/ft), goal, experience, session
   length, tape measurements for the Navy body-fat estimate.

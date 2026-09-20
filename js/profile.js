@@ -235,13 +235,15 @@
     bwCard.appendChild(bwRuler.el);
     bwCard.appendChild(el('div', 'bwv-hint', 'Swipe the scale to adjust'));
 
-    // 30-day trend
+    // trend over the range chosen in Settings (30 days by default, or all time)
     {
-      let pts = bw.filter(e => Date.now() - e.ts < 30 * 86400000);
+      const rangeKey = String(getProfile().bwRange || '30');
+      const rangeDays = rangeKey === 'all' ? 0 : (+rangeKey || 30);
+      let pts = rangeDays ? bw.filter(e => Date.now() - e.ts < rangeDays * 86400000) : bw;
       if (pts.length < 2) pts = bw;
       if (pts.length >= 2) {
         const tHead = el('div', 'bwv-head');
-        tHead.appendChild(el('div', 'micro', 'Trend · 30 days'));
+        tHead.appendChild(el('div', 'micro', 'Trend · ' + (rangeDays ? rangeDays + ' days' : 'all time')));
         const td = +(pts[pts.length - 1].kg - pts[0].kg).toFixed(1);
         tHead.appendChild(el('div', 'micro trend-d', `${td > 0 ? '+' : td < 0 ? '−' : ''}${Math.abs(td).toFixed(1)} kg`));
         tHead.style.marginTop = '6px';
