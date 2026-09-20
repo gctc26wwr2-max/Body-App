@@ -514,7 +514,9 @@
     }
 
     // in-place refresh for value edits — avoids full re-render flicker
+    let paintGraph = null;      // set below, once the history graph exists
     const updateVals = () => {
+      if (paintGraph) paintGraph();
       cur.sets.forEach((s, i) => {
         const kv = $('#val-kg-' + ei + '-' + i);
         if (kv) kv.textContent = fmtWn(s.kg);
@@ -751,21 +753,31 @@
       card.appendChild(line);
     }
 
-    // weight history graph for this move, right under its sets
+    // weight history graph for this move, right under its sets — and today's
+    // best logged set is its last point, moving the instant a set is logged
+    // or a logged set's numbers change
     {
       const asc = [...hist].sort((a, b) => a.ts - b.ts);
-      const hasWeight = asc.some(s => s.sets.some(x => (x.weight || 0) > 0));
-      const pts = asc.map(s => ({
-        ts: s.ts,
-        kg: hasWeight
-          ? Math.max(...s.sets.map(x => x.weight || 0))
-          : Math.max(...s.sets.map(x => x.reps || 0))
-      })).filter(p => p.kg > 0);
-      if (pts.length >= 2) {
-        const g = el('div', 'bw-graph');
-        g.innerHTML = bwGraphSVG(pts);
-        card.appendChild(g);
-      }
+      const g = el('div', 'bw-graph');
+      paintGraph = () => {
+        const doneNow = cur.sets.filter(s => s.done && !s.warm);
+        const hasWeight = asc.some(s => s.sets.some(x => (x.weight || 0) > 0))
+          || doneNow.some(s => (s.kg || 0) > 0);
+        const pts = asc.map(s => ({
+          ts: s.ts,
+          kg: hasWeight
+            ? Math.max(...s.sets.map(x => x.weight || 0))
+            : Math.max(...s.sets.map(x => x.reps || 0))
+        })).filter(p => p.kg > 0);
+        if (doneNow.length) {
+          const v = hasWeight ? Math.max(...doneNow.map(s => s.kg || 0)) : Math.max(...doneNow.map(s => s.reps || 0));
+          if (v > 0) pts.push({ ts: Date.now(), kg: v, live: true });
+        }
+        g.hidden = pts.length < 2;
+        g.innerHTML = pts.length >= 2 ? bwGraphSVG(pts) : '';
+      };
+      paintGraph();
+      card.appendChild(g);
     }
     /* everything below the header goes in one wrapper, so grabbing a grip can
        fold the open exercise shut — you cannot aim a drop at a card that is
