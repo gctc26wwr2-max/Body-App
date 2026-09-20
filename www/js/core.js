@@ -4,7 +4,7 @@
    part loaded after this one. Load order is index.html's script order.
    Map of what lives where: FUNCTIONS.md */
 'use strict';
-  const APP_VERSION = 'v342';
+  const APP_VERSION = 'v343';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -312,7 +312,10 @@
     }
     return { bar, list: out };
   }
-  const isBarbell = ex => /(^|\s)bar(bell)?\b/i.test((ex.name || '') + ' ' + (ex.notes || ''));
+  /* by the kit it needs, not by the word "bar" — "pull bar to chest" made a
+     cable pulldown show plate math; custom moves fall back to their name */
+  const isBarbell = ex => !!ex && (equipOf(ex).includes('barbell')
+    || (!!ex.custom && /barbell/i.test(ex.name || '')));
 
   function planWeek(plan) {          // calendar week since start
     if (!plan.startDate) return null;

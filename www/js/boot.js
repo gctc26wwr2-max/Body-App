@@ -307,14 +307,24 @@
       /* never reload mid-set, but a paused session is not mid-set — and it
          survives a reload intact, so holding back only strands you on an old
          build for as long as the pause lasts */
-      const lwU = live.get();
-      if (lwU && !lwU.pausedAt) return;
       const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
       const j = await r.json();
-      if (j.v && j.v !== APP_VERSION && sessionStorage.getItem('reloadedFor') !== j.v) {
-        sessionStorage.setItem('reloadedFor', j.v);
-        location.reload();
+      if (!(j.v && j.v !== APP_VERSION && sessionStorage.getItem('reloadedFor') !== j.v)) return;
+      const lwU = live.get();
+      if (lwU && !lwU.pausedAt) {
+        /* mid-session: never yank the screen away mid-set, but don't hide
+           the update either — the live session survives a reload intact, so
+           offer it as a chip and let the lifter pick the moment */
+        if (!$('#update-chip')) {
+          const chip = el('button', 'update-chip', 'Update ready · ' + j.v);
+          chip.id = 'update-chip';
+          chip.onclick = () => { sessionStorage.setItem('reloadedFor', j.v); location.reload(); };
+          document.body.appendChild(chip);
+        }
+        return;
       }
+      sessionStorage.setItem('reloadedFor', j.v);
+      location.reload();
     } catch { /* offline — try again next time */ }
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
