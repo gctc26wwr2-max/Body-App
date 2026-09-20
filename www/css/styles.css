@@ -2322,3 +2322,4 @@ body { font-size: 0.8235rem; }
 .swap-row.nokit { opacity: .5; }
 .swap-row .pv-meta { color: #857C73; }
 .swap-empty { padding: 18px 4px; color: #857C73; font-size: 0.7941rem; text-align: center; }
+.exi-row .pv-swap { margin-left: 6px; width: 1.7647rem; height: 1.7647rem; }

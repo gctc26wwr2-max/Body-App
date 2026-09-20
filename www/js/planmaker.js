@@ -413,6 +413,22 @@
         if (addHardship(hb, it)) nm.appendChild(hb);
         r.appendChild(nm);
         r.appendChild(el('div', 'exi-scheme', `${it.sets} × ${it.repLo}–${it.repHi}${isTimedEx(it) ? ' s' : ''}`));
+        /* the same replace-with-a-similar-move as the Plan tab, on the draft */
+        const sw = el('button', 'pv-swap');
+        sw.title = 'Replace this move';
+        sw.setAttribute('aria-label', 'Replace ' + it.name);
+        sw.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" '
+          + 'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+          + '<path d="M4 8h13M13 4l4 4-4 4"/><path d="M20 16H7m4-4-4 4 4 4"/></svg>';
+        sw.onclick = () => pickReplacement(it, cand => {
+          const wasTimed = isTimedEx(it), nowTimed = isTimedEx(cand);
+          it.swappedFrom = it.name;
+          it.name = cand.name;
+          swapRange(it, wasTimed, nowTimed);
+          haptic();
+          renderPlanMaker();
+        });
+        r.appendChild(sw);
         const x = el('button', 'hist-del', '✕');
         x.onclick = () => { day.items.splice(i, 1); renderPlanMaker(); };
         r.appendChild(x);

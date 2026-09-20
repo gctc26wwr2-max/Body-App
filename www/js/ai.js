@@ -43,7 +43,10 @@
     { key: 'back', label: 'Back', regions: ['upper-back', 'lower-back', 'trapezius'] },
     { key: 'shoulders', label: 'Shoulders', regions: ['front-deltoids', 'back-deltoids'] },
     { key: 'arms', label: 'Arms', regions: ['biceps', 'triceps', 'forearm'] },
-    { key: 'core', label: 'Core', regions: ['abs', 'obliques'] },
+    { key: 'core', label: 'Core', regions: [] },            // kept for profiles that chose it
+    { key: 'abs', label: 'Abs', regions: ['abs'] },
+    { key: 'obliques', label: 'Love handles', regions: ['obliques'] },
+    { key: 'fatloss', label: 'Fat loss', regions: [] },       // an aim, not a muscle — gets its own line
     { key: 'glutes', label: 'Glutes', regions: ['gluteal', 'abductors'] },
     { key: 'quads', label: 'Quads', regions: ['quadriceps'] },
     { key: 'hams', label: 'Hamstrings', regions: ['hamstring', 'adductor'] },
@@ -130,7 +133,9 @@
     L.push('');
     L.push('WHAT I WANT');
     L.push(`- One block, ${dayN} training day${dayN === 1 ? '' : 's'} a week unless you think that is wrong — say so if you do.`);
-    if (focus.length) L.push(`- Extra attention on: ${focus.join(', ').toLowerCase()} — bias volume there without dropping the rest.`);
+    const muscleFocus = focus.filter(f => f !== 'Fat loss');
+    if (muscleFocus.length) L.push(`- Extra attention on: ${muscleFocus.join(', ').toLowerCase()} — bias volume there without dropping the rest.`);
+    if (focus.includes('Fat loss')) L.push('- Fat reduction is the aim: short rests, compound work, higher-rep sets and some conditioning each week — but keep me strong, and remember diet does most of it.');
     if (pr.sessionMins) L.push(`- Each session has to fit ${pr.sessionMins} minutes including rest.`);
     L.push(/SESSIONS \(0 total/.test(report)
       ? '- I have not logged anything in this app yet, so pick sensible starting weights for my experience and let me correct them.'

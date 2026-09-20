@@ -205,11 +205,30 @@
       .sort((a, b) => a.tier - b.tier || (a.ok === b.ok ? 0 : a.ok ? -1 : 1)
         || b.near - a.near || a.c.name.localeCompare(b.c.name));
   }
+  /* rep/second ranges follow the movement: a timed replacement gets a
+     seconds range, a rep-based one replacing a timed move gets reps back */
+  function swapRange(next, wasTimed, nowTimed) {
+    if (nowTimed && !wasTimed) { next.repLo = 30; next.repHi = 45; }
+    if (wasTimed && !nowTimed) { next.repLo = 8; next.repHi = 12; }
+    return next;
+  }
+  /* a stored block: rewrite the item, save, re-render */
   function openSwapSheet(plan, dayIndex, itemIndex) {
     const day = plan.days[dayIndex];
     const it = day.items[itemIndex];
     const cur = exercises.find(x => x.id === it.exerciseId);
     if (!cur) return;
+    pickReplacement(cur, async cand => {
+      const rec = await ensureExercise(cand);
+      day.items[itemIndex] = swapRange({ ...it, exerciseId: rec.id, kg: 0 }, isTimedEx(cur), isTimedEx(rec));
+      await DB.put('plans', plan);
+      haptic();
+      renderTab();
+    });
+  }
+  /* the picker itself — `cur` needs only a name; onPick gets the catalogue
+     entry (or custom exercise) chosen */
+  function pickReplacement(cur, onPick) {
     const ranked = swapCandidates(cur);
     const back = el('div', 'modal-back');
     const m = el('div', 'modal swap');
@@ -220,18 +239,7 @@
     m.appendChild(find);
     const list = el('div', 'swap-list');
     m.appendChild(list);
-    const pick = async cand => {
-      const rec = await ensureExercise(cand);
-      const wasTimed = isTimedEx(cur), nowTimed = isTimedEx(rec);
-      const next = { ...it, exerciseId: rec.id, kg: 0 };   // a different move starts from its own weight
-      if (nowTimed && !wasTimed) { next.repLo = 30; next.repHi = 45; }
-      if (wasTimed && !nowTimed) { next.repLo = 8; next.repHi = 12; }
-      day.items[itemIndex] = next;
-      await DB.put('plans', plan);
-      haptic();
-      back.remove();
-      renderTab();
-    };
+    const pick = cand => { back.remove(); onPick(cand); };
     const paint = () => {
       list.innerHTML = '';
       const q = find.value.trim().toLowerCase();
