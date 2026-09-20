@@ -46,12 +46,29 @@
     { key: 'core', label: 'Core', regions: [] },            // kept for profiles that chose it
     { key: 'abs', label: 'Abs', regions: ['abs'] },
     { key: 'obliques', label: 'Love handles', regions: ['obliques'] },
-    { key: 'fatloss', label: 'Fat loss', regions: [] },       // an aim, not a muscle — gets its own line
     { key: 'glutes', label: 'Glutes', regions: ['gluteal', 'abductors'] },
     { key: 'quads', label: 'Quads', regions: ['quadriceps'] },
     { key: 'hams', label: 'Hamstrings', regions: ['hamstring', 'adductor'] },
     { key: 'calves', label: 'Calves', regions: ['calves', 'left-soleus', 'right-soleus'] }
   ];
+  /* What the block is FOR. One rail in Ask AI; each aim is a sentence the
+     model can act on, not a label. Unset falls back to the About-you goal. */
+  const AI_AIMS = [
+    { key: 'muscle', label: 'Build muscle', prompt: 'Build muscle: moderate loads in the 6–12 range, enough weekly sets per muscle, progress by adding reps then weight.' },
+    { key: 'strength', label: 'Get stronger', prompt: 'Get stronger: heavy compound lifts in the 3–6 range with long rests, accessories kept light; progress the big lifts first.' },
+    { key: 'fatloss', label: 'Lose fat', prompt: 'Lose fat while keeping strength: short rests, compound work, higher-rep sets and some conditioning each week — diet does most of it, so do not turn the block into cardio.' },
+    { key: 'bulk', label: 'Gain weight', prompt: 'Gain weight and size: I am eating in a surplus, so give me the volume to use it — big compounds, plenty of sets, progressive overload every week, minimal conditioning.' },
+    { key: 'recomp', label: 'Recomp', prompt: 'Recomposition — lose fat and build muscle at the same time: hypertrophy-style volume with hard sets, moderate rests, steady progression, a little conditioning.' },
+    { key: 'maintain', label: 'Maintain', prompt: 'Maintain what I have with the least time: fewer sets at the same intensity, keep every pattern in the week, no need to push progression hard.' },
+    { key: 'fitness', label: 'General fitness', prompt: 'General fitness and health: full-body sessions, joint-friendly moves, a mix of strength and conditioning, sustainable week to week.' }
+  ];
+  const aimOf = () => {
+    const pr = getProfile();
+    let k = pr.aim;
+    if (!k && (pr.focus || []).includes('fatloss')) k = 'fatloss';   // profiles from before the aim rail
+    if (!k) k = { strength: 'strength', muscle: 'muscle', fatloss: 'fatloss', health: 'fitness' }[pr.goal] || null;
+    return AI_AIMS.find(x => x.key === k) || null;
+  };
   const REGION_GROUP = {};
   FOCUS_GROUPS.forEach(g => g.regions.forEach(r => { REGION_GROUP[r] = g.key; }));
 
@@ -133,9 +150,9 @@
     L.push('');
     L.push('WHAT I WANT');
     L.push(`- One block, ${dayN} training day${dayN === 1 ? '' : 's'} a week unless you think that is wrong — say so if you do.`);
-    const muscleFocus = focus.filter(f => f !== 'Fat loss');
-    if (muscleFocus.length) L.push(`- Extra attention on: ${muscleFocus.join(', ').toLowerCase()} — bias volume there without dropping the rest.`);
-    if (focus.includes('Fat loss')) L.push('- Fat reduction is the aim: short rests, compound work, higher-rep sets and some conditioning each week — but keep me strong, and remember diet does most of it.');
+    const aim = aimOf();
+    if (aim) L.push('- ' + aim.prompt);
+    if (focus.length) L.push(`- Extra attention on: ${focus.join(', ').toLowerCase()} — bias volume there without dropping the rest.`);
     if (pr.sessionMins) L.push(`- Each session has to fit ${pr.sessionMins} minutes including rest.`);
     L.push(/SESSIONS \(0 total/.test(report)
       ? '- I have not logged anything in this app yet, so pick sensible starting weights for my experience and let me correct them.'
@@ -347,6 +364,18 @@
       localStorage.setItem('aiDays', DAYS[i]);
       refresh();
     }, 64));
+
+    /* the aim: what the block is for — stored on the profile, one instruction
+       in the prompt; unset shows the About-you goal's equivalent */
+    c1.appendChild(el('div', 'micro', 'Aim'));
+    const curAim = aimOf();
+    c1.appendChild(optionRail(AI_AIMS.map(x => x.label), Math.max(0, AI_AIMS.findIndex(x => curAim && x.key === curAim.key)), i => {
+      const pr2 = getProfile();
+      pr2.aim = AI_AIMS[i].key;
+      if ((pr2.focus || []).includes('fatloss')) pr2.focus = pr2.focus.filter(k => k !== 'fatloss');
+      localStorage.setItem('profile', JSON.stringify(pr2));
+      refresh();
+    }, 96, false, 'Aim'));
 
     /* focus is the profile's — the same setting the Settings diagram edits */
     c1.appendChild(el('div', 'micro', 'Focus'));

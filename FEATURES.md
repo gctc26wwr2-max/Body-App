@@ -89,7 +89,10 @@ the default. Done days carry their own summary (Mon · 3,760 kg · 14 sets ·
   shelves grouped by days-per-week, filtered by audience and split, with a
   Start-here pick from your About-you answers, full preview sheets, kit-gap
   callouts, and install / queue / replace.
-- **Ask AI** — the app writes a complete prompt for any chatbot: program,
+- **Ask AI** — first pick the block's **aim** on a rail (build muscle, get
+  stronger, lose fat, gain weight, recomp, maintain, general fitness),
+  each a real instruction in the prompt rather than a label — unset, it
+  follows your About-you goal. Then the app writes a complete prompt for any chatbot: program,
   raw sessions, trends per lift, often-skipped movements, real attendance,
   last PR, blocks already run, body data, injuries, kit — plus the exact
   JSON shape and the allowed exercise names. Paste the reply back and it
@@ -143,9 +146,7 @@ the default. Done days carry their own summary (Mon · 3,760 kg · 14 sets ·
   the app's own saturation and lightness), six preset dots beneath, live
   preview, Save to keep. Recolours everything, done-day dots included.
 - **Focus** — up to three of chest, back, shoulders, arms, abs, love
-  handles, glutes, quads, hamstrings, calves, or fat loss (which gets its
-  own instruction in the AI prompt rather than being treated as a muscle);
-  **Injuries** (filter, not medical advice — the flag
+  handles, glutes, quads, hamstrings, calves; **Injuries** (filter, not medical advice — the flag
   table ships as a review pack for a physio, INJURY-FLAGS-REVIEW.md, with
   desk-research citations), **Equipment** on a photo grid with All /
   untick-all.
