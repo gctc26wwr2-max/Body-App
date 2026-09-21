@@ -72,6 +72,13 @@ visible in every later file. Rules that follow from this:
   and bump the marketing version in the native shell instead.
 - IS_NATIVE also counts the wrap as "installed", so the Add-to-Home-Screen
   hint stays hidden.
+- **Rest alert with the screen locked.** The single most repeated
+  complaint across other trackers' reviews. A web app in WKWebView cannot
+  sound or vibrate in the background, so `startRest` (workout.js) must
+  also schedule a local notification for `restEndsAt` on native
+  (@capacitor/local-notifications), and `stopRest` must cancel it. Same
+  for the warm-up clock and the hold timer. Do this in the first native
+  build, before TestFlight.
 
 ## Design review (v6) — the standing layout decisions
 
