@@ -1,5 +1,5 @@
 # Rackside — every feature, in plain words
-*As of v347 · https://gctc26wwr2-max.github.io/Body-App/*
+*As of v348 · https://gctc26wwr2-max.github.io/Body-App/*
 
 Rackside is a training app that lives entirely on your phone. No account, no
 server, no subscription — everything is stored on the device, it works offline,
@@ -71,6 +71,12 @@ and you can install it to your home screen like any app.
   of the session and moves you on; **Swap** picks a similar move for this
   session only (logged sets stay, unlogged ones start fresh, "was …"
   noted); or tap any exercise on the rail to jump to it.
+- **Sticky note** on every exercise card — seat, grip, pin — typed once,
+  there next week.
+- **Last time, ghosted** — under a set's loaded number, faint "last 40 × 10",
+  only while it differs from what is loaded.
+- **Keep the swap** — a move swapped in mid-session is offered back on the
+  summary: one tap writes it into the block.
 - **Pass**, **add mid-workout**, **pause overlay**, live status line, and a
   one-confirmation save into a summary with duration, volume, records and a
   5-star rating.

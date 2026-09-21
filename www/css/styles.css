@@ -2322,3 +2322,32 @@ body { font-size: 0.8235rem; }
   border-radius: 999px; padding: 8px 14px; font-size: 0.7059rem; font-weight: 800; letter-spacing: .06em;
   text-transform: uppercase; backdrop-filter: blur(8px);
 }
+
+/* sticky note on the live card — one line, tap to edit */
+.exx-memo {
+  display: flex; align-items: center; gap: 6px; width: 100%; margin: 0 0 6px;
+  padding: 0; background: none; border: 0; color: var(--t2); text-align: left;
+  font-size: 0.7353rem; font-weight: 600; min-width: 0;
+}
+.exx-memo svg { flex: none; color: var(--t6); }
+.exx-memo-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.exx-memo.unset .exx-memo-t { color: var(--t6); }
+.exx-memo-in {
+  width: 100%; margin: 0 0 6px; padding: 6px 10px; border-radius: 9px;
+  background: var(--sunken); border: 1px solid var(--lime-border); color: var(--t1);
+  font: inherit; font-size: 0.8235rem; font-weight: 600;
+}
+.exx-memo-in:focus { outline: none; box-shadow: 0 0 0 3px rgba(var(--acc-rgb),.22); }
+/* last time's set, under the loaded value, only while they differ */
+.kg-cell { position: relative; }
+.kg-cell .kv-ghost {
+  position: absolute; left: 0; right: 0; bottom: -0.3rem; margin: 0; text-align: center;
+  font-size: 0.5588rem; font-weight: 700; color: var(--t6); white-space: nowrap; pointer-events: none;
+}
+/* swaps offered back to the block on the summary */
+.sum-swaps { margin: 14px 0 4px; display: flex; flex-direction: column; gap: 6px; }
+.sum-swap {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border: 1px solid var(--hair); border-radius: 12px; background: var(--surface);
+}
+.sum-swap > div:first-child { flex: 1; min-width: 0; }

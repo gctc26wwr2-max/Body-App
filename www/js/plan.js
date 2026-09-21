@@ -98,7 +98,10 @@
       id: DB.uid(), date: todayStr(), ts: Date.now(),
       planId: lw.planId, dayIndex: lw.dayIndex, name: lw.dayName,
       duration: mins, volume: Math.round(volume), sets: setCount, kcal,
-      prs, stars: null, feel: null
+      prs, stars: null, feel: null,
+      /* a move you swapped in today can be kept in the block from the summary */
+      swaps: lw.exercises.filter(e => e.swappedFromId && e.swappedFromId !== e.exerciseId)
+        .map(e => ({ fromId: e.swappedFromId, fromName: e.swappedFrom, toId: e.exerciseId, toName: e.name }))
     };
     await DB.put('workouts', workout);
     live.set(null);
@@ -151,6 +154,38 @@
       r.appendChild(c);
       r.appendChild(el('div', 'pr-delta num', '+' + fmtW(pr.after - pr.before)));
       root.appendChild(r);
+    }
+
+    /* swaps made today: keep them in the block, or leave it as it was */
+    const swaps = (w.swaps || []).filter(sw => plan && plan.days && plan.days[w.dayIndex]
+      && plan.days[w.dayIndex].items.some(it => it.exerciseId === sw.fromId));
+    if (swaps.length) {
+      const box = el('div', 'sum-swaps');
+      box.appendChild(el('div', 'micro', swaps.length === 1 ? 'Swapped today' : 'Swaps today'));
+      swaps.forEach(sw => {
+        const r = el('div', 'sum-swap');
+        const c = el('div');
+        c.appendChild(el('div', 'pr-name', sw.toName));
+        c.appendChild(el('div', 'pr-detail', 'was ' + sw.fromName));
+        r.appendChild(c);
+        const keep = el('button', 'exx-out', 'Keep in block');
+        keep.onclick = async () => {
+          const fresh = await DB.get('plans', plan.id);
+          const day = fresh && fresh.days && fresh.days[w.dayIndex];
+          const idx = day ? day.items.findIndex(it => it.exerciseId === sw.fromId) : -1;
+          if (idx < 0) return;
+          const was = exercises.find(x => x.id === sw.fromId), now = exercises.find(x => x.id === sw.toId);
+          day.items[idx] = swapRange({ ...day.items[idx], exerciseId: sw.toId }, isTimedEx(was), isTimedEx(now));
+          await DB.put('plans', fresh);
+          const i = plans.findIndex(pl => pl.id === fresh.id);
+          if (i >= 0) plans[i] = fresh;
+          haptic();
+          keep.replaceWith(el('span', 'exx-out-note', 'Kept'));
+        };
+        r.appendChild(keep);
+        box.appendChild(r);
+      });
+      root.appendChild(box);
     }
 
     /* the whole session, on the same three faces as the exercises */
