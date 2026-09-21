@@ -268,7 +268,21 @@
     document.body.appendChild(back);
   }
 
-  function planItemRow(it, from, onSwap) {
+  /* the link toggle used on Build rows and Plan previews */
+  function ssButton(on, name, toggle) {
+    const b = el('button', 'pv-ss' + (on ? ' on' : ''));
+    b.title = on ? 'Unpair' : 'Superset with the next one';
+    b.setAttribute('aria-label', (on ? 'Unpair ' : 'Superset ') + name + ' with the next exercise');
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" '
+      + 'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+      + '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/>'
+      + '<path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>';
+    b.onclick = e => { e.stopPropagation(); toggle(); };
+    return b;
+  }
+  /* ss: { on, canLink, toggle } lets a stored block pair rows in place */
+  function planItemRow(it, from, onSwap, ss) {
     const ex = exercises.find(x => x.id === it.exerciseId);
     const row = el('div', 'pv-row');
     const th = el('div', 'pv-thumb');
@@ -293,6 +307,9 @@
       sw.onclick = e => { e.stopPropagation(); onSwap(); };
       row.appendChild(sw);
     }
+    if (ex && ss && ss.canLink) row.appendChild(ssButton(!!ss.on, ex.name, ss.toggle));
+    if (ss && ss.on) row.classList.add('ss-a');
+    if (ss && ss.prev) row.classList.add('ss-b');
     if (ex) {
       row.appendChild(el('div', 'pv-go', '›'));
       row.onclick = e => { e.stopPropagation(); openDetail(ex.id, from); };

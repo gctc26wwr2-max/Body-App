@@ -669,6 +669,7 @@
           it.repLo = Math.max(0, Math.min(600, num(it.repLo, 8)));
           it.repHi = Math.max(it.repLo, Math.min(600, num(it.repHi, 12)));
           it.kg = Number.isFinite(+it.kg) ? +it.kg : 0;
+          if (it.ss !== true) delete it.ss;
         }
       }
     }

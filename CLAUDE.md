@@ -48,7 +48,11 @@ visible in every later file. Rules that follow from this:
 6. Any change to stored data shape: bump `BACKUP_SCHEMA` and add a
    `BACKUP_MIGRATIONS` step (profile.js), plus an in-app one-time migration
    if live devices carry the old shape.
-7. Media blobs only move through `mediaStore` (core.js) — never touch the
+7. After a set is banked, `afterSetLogged` (workout.js) is the one place
+   that decides where the session goes next: superset partner now (no
+   rest), or rest then `advanceTo` / `advanceAfterRest`. Every logging path
+   (log button, hold timer, hold stop) goes through it.
+8. Media blobs only move through `mediaStore` (core.js) — never touch the
    'media' IndexedDB store directly. This is the Capacitor seam: blobs in
    IndexedDB inside WKWebView are the fragile piece on iOS. The read side
    (mediaURL) already handles both {blob} and {path} records.
