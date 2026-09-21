@@ -2038,7 +2038,8 @@ body { font-size: 0.8235rem; }
   font-variant-numeric: tabular-nums;
 }
 .np-key:active { background: var(--lime); color: var(--on-accent); }
-.np-back { color: var(--amber); font-size: 1.0588rem; }
+.np-back { color: var(--amber); display: flex; align-items: center; justify-content: center; }
+.np-back svg { width: 1.8235rem; height: 1.8235rem; }
 .np-blank { visibility: hidden; }
 #num-pop-acts { display: flex; gap: 10px; }
 #num-pop-cancel {
