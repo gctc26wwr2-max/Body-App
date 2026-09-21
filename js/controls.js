@@ -387,6 +387,12 @@
     ['1', '2', '3', '4', '5', '6', '7', '8', '9', opts.decimals === false ? '' : '.', '0', '⌫']
       .forEach(k => {
         const b = el('button', 'np-key' + (k === '⌫' ? ' np-back' : ''), k);
+        if (k === '⌫') {                     // a real icon, sized like the digits, not a tiny glyph
+          b.setAttribute('aria-label', 'Delete');
+          b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+            + 'stroke-linecap="round" stroke-linejoin="round">'
+            + '<path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z"/><path d="M12 9.5l5 5M17 9.5l-5 5"/></svg>';
+        }
         if (!k) { b.disabled = true; b.className = 'np-key np-blank'; }
         else b.onclick = () => press(k);
         keys.appendChild(b);
