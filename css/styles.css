@@ -482,6 +482,7 @@ body { font-size: 0.8235rem; }
 /* the warm-up's clock lives in its own Start button; a second tap stops it */
 .hold-cell.stop svg { display: none; }
 .hold-cell.stop::before { content: ''; width: 0.5294rem; height: 0.5294rem; border-radius: 2px; background: currentColor; flex: none; }
+.kv.ticking { color: var(--lime); font-size: 1.4118rem; }
 /* A held set has no weight worth a column: the seconds take the weight's
    place and its scale, and the hold gets a button you cannot miss. */
 .hold-cell {

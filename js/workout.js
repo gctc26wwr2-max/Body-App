@@ -930,7 +930,13 @@
         btn.classList.add('on');
         const lbl = btn.querySelector('.hold-lbl');
         if (lbl) lbl.textContent = holdHeldMs ? 'Paused' : (ph.lead ? ph.label : fmtClock(left));
-        if (inline) btn.classList.add('stop');
+        if (inline) {
+          /* the row's big number is the clock — the chip only says Stop */
+          btn.classList.add('stop');
+          if (lbl) lbl.textContent = 'Stop';
+          const big = $('#val-sec-' + exIdx + '-' + si);
+          if (big) { big.textContent = fmtClock(left); big.classList.add('ticking'); }
+        }
       }
     };
     paint(phases[0].dur, phases[0]);
