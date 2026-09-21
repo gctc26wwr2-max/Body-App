@@ -397,7 +397,7 @@
         ob.disabled = same && !day.wasOrder;
         ob.onclick = () => {
           if (day.wasOrder) { day.items = day.wasOrder; day.wasOrder = null; }
-          else { day.wasOrder = day.items.slice(); day.items = sorted; }
+          else { day.wasOrder = day.items.slice(); day.items = sorted; day.items.forEach(x => { x.ss = false; }); }
           haptic();
           renderPlanMaker();
         };
@@ -413,6 +413,12 @@
         if (addHardship(hb, it)) nm.appendChild(hb);
         r.appendChild(nm);
         r.appendChild(el('div', 'exi-scheme', `${it.sets} × ${it.repLo}–${it.repHi}${isTimedEx(it) ? ' s' : ''}`));
+        /* pair it with the next row as a superset — one tap on, one tap off */
+        if (i < day.items.length - 1) {
+          r.appendChild(ssButton(!!it.ss, it.name, () => { it.ss = !it.ss; haptic(); renderPlanMaker(); }));
+        } else it.ss = false;
+        if (it.ss) r.classList.add('ss-a');
+        if (i > 0 && day.items[i - 1].ss) r.classList.add('ss-b');
         /* the same replace-with-a-similar-move as the Plan tab, on the draft */
         const sw = el('button', 'pv-swap');
         sw.title = 'Replace this move';
@@ -438,6 +444,8 @@
       /* the order you put them in is the order you train them, so it has to
          be changeable without deleting and re-adding */
       dragReorder(idx, '.exi-row', (from, to) => {
+        /* a moved row leaves its pair behind, on both sides */
+        for (const j of [from, from - 1, to > from ? to : to - 1]) if (j >= 0 && day.items[j]) day.items[j].ss = false;
         day.items.splice(to, 0, day.items.splice(from, 1)[0]);
         day.wasOrder = null;          // you have moved it by hand; that is the order now
         renderPlanMaker();
@@ -484,8 +492,9 @@
           || exercises.find(e => e.name === it.name)
           || { name: it.name, group: 'Other', notes: '' };
         const ex = await ensureExercise(libItem);
-        items.push({ exerciseId: ex.id, sets: it.sets, repLo: it.repLo, repHi: it.repHi, kg: 0 });
+        items.push({ exerciseId: ex.id, sets: it.sets, repLo: it.repLo, repHi: it.repHi, kg: 0, ...(it.ss ? { ss: true } : {}) });
       }
+      if (items.length) delete items[items.length - 1].ss;
       days.push({ name: d.name, items });
     }
     const plan = {

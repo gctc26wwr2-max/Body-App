@@ -139,6 +139,7 @@
         : 0;
       exList.push({
         exerciseId: ex.id, name: ex.name, assisted,
+        ss: item.ss === true,                    // superset: paired with the next one
         timed: isTimedEx(ex),                    // hold/interval exercises log seconds
         perSide: /side/i.test(ex.notes || ''),   // run the hold once per side
         repLo: lo, repHi: hi, rest: restDefault(), deload,
@@ -341,6 +342,9 @@
        first. The exercise you were on stays the one you are on, wherever it
        lands. */
     dragReorder(rail, '.exx', (from, to) => {
+      unpair(lw, from);
+      const newPrev = to > from ? to : to - 1;      // what sits above it once it lands
+      if (newPrev >= 0 && newPrev !== from && lw.exercises[newPrev]) lw.exercises[newPrev].ss = false;
       const moved = lw.exercises.splice(from, 1)[0];
       lw.exercises.splice(to, 0, moved);
       const cur0 = lw.exIndex;
@@ -378,6 +382,35 @@
     } else {
       requestAnimationFrame(() => window.scrollTo(0, keepY));
     }
+  }
+
+  /* A superset pairs an exercise with the next one: a set of the first, no
+     rest, a set of the second, then rest and back to the first. The partner
+     is only a partner while it still has sets to give. */
+  function ssPartner(lw, ei) {
+    const cur = lw.exercises[ei];
+    const pi = cur.ss ? ei + 1 : (ei > 0 && lw.exercises[ei - 1].ss ? ei - 1 : -1);
+    const p = pi >= 0 ? lw.exercises[pi] : null;
+    return p && !p.passed && !p.warmup && p.sets.some(s => !s.done) ? pi : -1;
+  }
+  /* moving an exercise breaks its pairing — on both sides */
+  function unpair(lw, ei) {
+    const cur = lw.exercises[ei];
+    if (cur) cur.ss = false;
+    if (ei > 0 && lw.exercises[ei - 1]) lw.exercises[ei - 1].ss = false;
+  }
+  /* what happens after a set is banked. Returns whether to rest now. */
+  function afterSetLogged(lw, ei) {
+    const cur = lw.exercises[ei];
+    lw.exIndex = ei;
+    lw.advanceAfterRest = false;
+    lw.advanceTo = null;
+    const pi = ssPartner(lw, ei);
+    if (pi > ei) { lw.exIndex = pi; scrollToEx = true; return false; }   // straight on to the partner
+    if (pi >= 0) { lw.advanceTo = pi; return true; }                     // rest, then back to the first
+    lw.advanceAfterRest = cur.sets.every(s => s.done)
+      && lw.exercises.some((e2, i) => i > ei && !e2.passed && e2.sets.some(s => !s.done));
+    return true;
   }
 
   /* the matching set from the most recent saved session of this exercise */
@@ -442,8 +475,10 @@
     hd.appendChild(th);
     const col = el('div', 'exx-col');
     col.appendChild(el('div', 'exx-name', cur.name));
+    const paired = (cur.ss && lw.exercises[ei + 1]) || (ei > 0 && lw.exercises[ei - 1].ss);
     const exMeta = el('div', 'exx-meta',
-      `${(ex && ex.group) ? ex.group + ' · ' : ''}${cur.sets.length} × ${fmtRange(cur.repLo, cur.repHi)}${cur.timed ? (cur.perSide ? ' s / side' : ' s') : ''}`);
+      `${(ex && ex.group) ? ex.group + ' · ' : ''}${cur.sets.length} × ${fmtRange(cur.repLo, cur.repHi)}${cur.timed ? (cur.perSide ? ' s / side' : ' s') : ''}${paired ? ' · superset' : ''}`);
+    if (paired) card.classList.add(cur.ss && lw.exercises[ei + 1] ? 'ss-a' : 'ss-b');
     addHardship(exMeta, ex || { name: cur.name });
     col.appendChild(exMeta);
     hd.appendChild(col);
@@ -535,6 +570,7 @@
       const laterB = el('button', 'exx-out', 'Later');
       laterB.title = 'Machine busy — do it at the end';
       laterB.onclick = () => {
+        unpair(lw, ei);
         const [me] = lw.exercises.splice(ei, 1);
         lw.exercises.push(me);
         const next = lw.exercises.findIndex(e2 => !e2.passed && !e2.sets.every(s => s.done));
@@ -718,11 +754,13 @@
           if (lw.scaleOpenAt === key) lw.scaleOpenAt = null;
           if (lw.repScaleAt === key) lw.repScaleAt = null;
         }
-        // last set banked -> advance AFTER the rest finishes, not abruptly now
-        lw.advanceAfterRest = set.done && cur.sets.every(s => s.done)
-          && lw.exercises.some((e2, i) => i > ei && !e2.passed);
+        // last set banked -> advance AFTER the rest finishes, not abruptly now;
+        // in a superset the partner comes first and the rest waits
+        let restNow = false;
+        if (set.done) restNow = afterSetLogged(lw, ei);
+        else { lw.advanceAfterRest = false; lw.advanceTo = null; }
         live.set(lw);
-        if (set.done) startRest(cur.rest);   // after save — startRest re-reads state
+        if (restNow) startRest(cur.rest);   // after save — startRest re-reads state
         renderWorkout();
       };
       inner.appendChild(log);
@@ -958,11 +996,9 @@
           set2.reps = worked;
           set2.done = true;
           set2.doneAt = Date.now();
-          fresh.exIndex = exIdx;
-          fresh.advanceAfterRest = fresh.exercises[exIdx].sets.every(x => x.done)
-            && exIdx < fresh.exercises.length - 1;
+          const restNow = afterSetLogged(fresh, exIdx);
           live.set(fresh);
-          startRest(fresh.exercises[exIdx].rest);
+          if (restNow) startRest(fresh.exercises[exIdx].rest);
         }
       }
       renderWorkout();
@@ -1026,10 +1062,9 @@
       set.done = true;
       set.doneAt = Date.now();
       const curEx = fresh.exercises[exIdx];
-      fresh.exIndex = exIdx;
-      fresh.advanceAfterRest = curEx.sets.every(s => s.done) && exIdx < fresh.exercises.length - 1;
+      const restNow = afterSetLogged(fresh, exIdx);
       live.set(fresh);
-      startRest(curEx.rest);
+      if (restNow) startRest(curEx.rest);
       if (!$('#view-workout').hidden) renderWorkout();
     }, 200);
     renderWorkout();
@@ -1233,10 +1268,12 @@
   function stopRest() {
     const lw = live.get();
     if (lw) {
-      if (lw.restEndsAt && lw.advanceAfterRest) {
+      if (lw.restEndsAt && Number.isFinite(lw.advanceTo)) {
+        lw.exIndex = lw.advanceTo; lw.advanceTo = null; scrollToEx = true;
+      } else if (lw.restEndsAt && lw.advanceAfterRest) {
         lw.advanceAfterRest = false;
-        // step over anything you passed on the way to the next one
-        const next = lw.exercises.findIndex((e, i) => i > lw.exIndex && !e.passed);
+        // step over anything you passed or already finished on the way to the next one
+        const next = lw.exercises.findIndex((e, i) => i > lw.exIndex && !e.passed && e.sets.some(s => !s.done));
         if (next >= 0) { lw.exIndex = next; scrollToEx = true; }
       }
       lw.restEndsAt = null;
@@ -1257,12 +1294,15 @@
     const left = Math.ceil((lw.restEndsAt - Date.now()) / 1000);
     if (left <= 0) {
       lw.restEndsAt = null;
-      if (lw.advanceAfterRest) {
+      if (Number.isFinite(lw.advanceTo)) {
+        /* a superset's rest ends back on the first of the pair */
+        lw.exIndex = lw.advanceTo; lw.advanceTo = null; scrollToEx = true;
+      } else if (lw.advanceAfterRest) {
         lw.advanceAfterRest = false;
         /* the rest that ends an exercise hands over to the next one you are
-           actually going to do — anything passed is stepped over — and the
-           card opens on screen rather than waiting to be found */
-        const next = lw.exercises.findIndex((e, i) => i > lw.exIndex && !e.passed);
+           actually going to do — anything passed or finished is stepped
+           over — and the card opens on screen rather than waiting to be found */
+        const next = lw.exercises.findIndex((e, i) => i > lw.exIndex && !e.passed && e.sets.some(s => !s.done));
         if (next >= 0) { lw.exIndex = next; scrollToEx = true; }
       }
       live.set(lw);

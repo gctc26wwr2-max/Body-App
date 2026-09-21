@@ -2351,3 +2351,19 @@ body { font-size: 0.8235rem; }
   border: 1px solid var(--hair); border-radius: 12px; background: var(--surface);
 }
 .sum-swap > div:first-child { flex: 1; min-width: 0; }
+
+/* supersets: a link toggle on the row, and one accent bar down the pair */
+.pv-ss {
+  flex: 0 0 auto; width: 1.7647rem; height: 1.7647rem; border-radius: 50%; margin-left: 6px;
+  border: 1px solid var(--hair); background: var(--sunken); color: var(--t5);
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.pv-row .pv-ss { margin-left: 6px; }
+.pv-ss.on { background: var(--lime-bg); border-color: var(--lime-border); color: var(--lime); }
+.exi-row.ss-a, .exi-row.ss-b, .pv-row.ss-a, .pv-row.ss-b { position: relative; }
+.exi-row.ss-a::before, .exi-row.ss-b::before, .pv-row.ss-a::before, .pv-row.ss-b::before {
+  content: ''; position: absolute; left: -8px; top: 0; bottom: 0; width: 3px; background: var(--lime);
+}
+.exi-row.ss-a::before, .pv-row.ss-a::before { top: 6px; border-radius: 2px 2px 0 0; }
+.exi-row.ss-b::before, .pv-row.ss-b::before { bottom: 6px; border-radius: 0 0 2px 2px; }
+.exx.ss-a .exx-head, .exx.ss-b .exx-head { box-shadow: inset 3px 0 0 var(--lime); border-radius: 4px; }

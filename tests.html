@@ -269,6 +269,16 @@ t('restore: v6 file walks the 6→7 step; memo is text, sliced, never markup', a
   eq(m2.startsWith('<b>seat 4</b>'), true, 'kept as text (rendered via textContent, never innerHTML)');
   eq('memo' in (await DB.get('exercises', 'm3')), false, 'empty memo dropped');
 });
+t('restore: item.ss survives only as a true boolean', async () => {
+  resetWorld();
+  const f = v5file(); f.version = 7;
+  f.plans[0].days[0].items.push({ exerciseId: 'wsx1', sets: 2, repLo: 8, repHi: 10, kg: 0, ss: 'yes' });
+  f.plans[0].days[0].items[0].ss = true;
+  await restoreData(backupBlob(f));
+  const its = (await DB.get('plans', 'pOld')).days[0].items;
+  eq(its[0].ss, true, 'true kept');
+  eq('ss' in its[1], false, 'string dropped');
+});
 t('restore: records without an id are skipped, valid ones kept', async () => {
   resetWorld();
   const f = v5file();

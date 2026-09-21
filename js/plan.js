@@ -328,7 +328,17 @@
         pv.hidden = true;
         const buildPv = () => {
           if (pv.dataset.built) return;
-          day.items.forEach((it, idx) => pv.appendChild(planItemRow(it, 'plan', () => openSwapSheet(plan, i, idx))));
+          day.items.forEach((it, idx) => pv.appendChild(planItemRow(it, 'plan', () => openSwapSheet(plan, i, idx), {
+            on: it.ss === true && idx < day.items.length - 1,
+            prev: idx > 0 && day.items[idx - 1].ss === true,
+            canLink: idx < day.items.length - 1,
+            toggle: async () => {
+              it.ss = !it.ss;
+              await DB.put('plans', plan);
+              haptic();
+              renderTab();
+            }
+          })));
           pv.dataset.built = '1';
         };
         /* the expanded day survives a round trip through an exercise's
