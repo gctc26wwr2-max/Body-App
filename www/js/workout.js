@@ -826,11 +826,13 @@
 
   /* ---- live hold timer for timed exercises (plank etc.) ---- */
   let holdInt = null, holdIdx = -1, holdExIdx = -1, holdEndTs = 0, holdHeldMs = 0;
+  let holdStopFn = null;    // the warm-up counts on its own card: a second tap on Start stops and banks
   let scrollToEx = false;   // scroll the current exercise into view on next render
 
   function cancelHold() {
     clearInterval(holdInt);
     holdInt = null;
+    holdStopFn = null;
     holdIdx = -1;
     holdExIdx = -1;
     holdHeldMs = 0;
@@ -844,15 +846,23 @@
      on a three-second lead-in — nobody is in position the instant they take
      their thumb off the screen. */
   function toggleHold(exIdx, si) {
-    if (holdInt && holdExIdx === exIdx && holdIdx === si) { cancelHold(); renderWorkout(); return; }
+    if (holdInt && holdExIdx === exIdx && holdIdx === si) {
+      if (holdStopFn) holdStopFn(); else { cancelHold(); renderWorkout(); }
+      return;
+    }
     cancelHold();
     const lw0 = live.get();
     if (!lw0) return;
     const exRef = lw0.exercises[exIdx];
     const secs = exRef.sets[si].reps;
+    /* The warm-up is five easy minutes, not a hold: it counts down on its own
+       card, no popup, no lead-in — the Start button becomes the clock and a
+       second tap stops it, banking the minutes done. */
+    const inline = !!exRef.warmup;
     /* three to get set, then the hold — two-sided holds run it once per side
        with a short switch break between */
-    const phases = [{ label: 'Get set', dur: 3, lead: true }].concat(exRef.perSide
+    const phases = inline ? [{ label: 'Warm-up', dur: secs }]
+      : [{ label: 'Get set', dur: 3, lead: true }].concat(exRef.perSide
       ? [{ label: 'Left side', dur: secs }, { label: 'Switch', dur: 10, lead: true }, { label: 'Right side', dur: secs }]
       : [{ label: 'Hold', dur: secs }]);
     let phase = 0;
@@ -866,40 +876,7 @@
     const phaseEl = $('#hold-pop-phase');
     const barEl = $('#hold-pop-bar').firstElementChild;
     $('#hold-pop-name').textContent = exRef.name;
-    /* five minutes is long enough to forget what the card told you, so the
-       list runs under the clock as well */
-    const stepBox = $('#hold-pop-steps');
-    if (stepBox) {
-      stepBox.innerHTML = '';
-      const list = exRef.warmup && exRef.steps ? exRef.steps.slice(0, 3) : null;
-      stepBox.hidden = !list;
-      let demoBox = null;
-      if (list) list.forEach((st, i) => {
-        const row = el('div', 'hp-step');
-        const rec2 = st.id && exercises.find(e => e.id === st.id);
-        /* a play button where there is a demonstration — it opens right here
-           under the clock, because the clock must not stop for it */
-        if (rec2 && rec2.demo) {
-          const b = el('button', 'warm-play hp-play');
-          b.appendChild(svgIcon(PLAY, 8));
-          b.onclick = () => {
-            const already = demoBox && demoBox.dataset.slug === rec2.demo;
-            if (demoBox) { demoBox.remove(); demoBox = null; }
-            if (already) return;
-            demoBox = el('div', 'hp-demo');
-            demoBox.dataset.slug = rec2.demo;
-            demoBox.appendChild(animFor(rec2));
-            row.after(demoBox);
-            haptic();
-          };
-          row.appendChild(b);
-        } else row.appendChild(el('i', null, String(i + 1)));
-        row.appendChild(el('span', null, st.name));
-        row.appendChild(el('span', 'hp-note', st.note || ''));
-        stepBox.appendChild(row);
-      });
-    }
-    pop.hidden = false;
+    pop.hidden = inline;
     /* Pause freezes the clock where it stands — a set can be interrupted by
        anything, and losing the count means starting the hold again. */
     holdHeldMs = 0;
@@ -919,6 +896,7 @@
        into the set and banked, not thrown away. Under five seconds counts as
        a false start and records nothing; the backdrop stays a pure escape. */
     let lastWorked = 0;              // the most recent finished work phase
+    holdStopFn = inline ? () => $('#hold-pop-stop').onclick() : null;
     $('#hold-pop-stop').onclick = () => {
       const ph = phases[phase];
       const leftS = holdHeldMs ? holdHeldMs / 1000 : Math.max(0, (holdEndTs - Date.now()) / 1000);
@@ -952,6 +930,7 @@
         btn.classList.add('on');
         const lbl = btn.querySelector('.hold-lbl');
         if (lbl) lbl.textContent = holdHeldMs ? 'Paused' : (ph.lead ? ph.label : fmtClock(left));
+        if (inline) btn.classList.add('stop');
       }
     };
     paint(phases[0].dur, phases[0]);
