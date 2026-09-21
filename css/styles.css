@@ -479,6 +479,9 @@ body { font-size: 0.8235rem; }
   white-space: nowrap;
 }
 .hold-btn.on { background: var(--lime); border-color: transparent; color: var(--canvas); }
+/* the warm-up's clock lives in its own Start button; a second tap stops it */
+.hold-cell.stop svg { display: none; }
+.hold-cell.stop::before { content: ''; width: 0.5294rem; height: 0.5294rem; border-radius: 2px; background: currentColor; flex: none; }
 /* A held set has no weight worth a column: the seconds take the weight's
    place and its scale, and the hold gets a button you cannot miss. */
 .hold-cell {
@@ -1891,17 +1894,6 @@ body { font-size: 0.8235rem; }
 .warm-play svg { display: block; margin-left: 1px; }
 
 /* the warm-up list, repeated under the running clock */
-#hold-pop-steps { display: flex; flex-direction: column; gap: 4px; width: 100%; }
-.hp-step {
-  display: grid; grid-template-columns: 16px 1fr auto; align-items: center;
-  gap: 8px; text-align: left; font-size: 0.7059rem; color: var(--t4);
-}
-.hp-note { color: var(--t5); text-align: right; }
-.hp-step i {
-  flex: 0 0 auto; font-style: normal; width: 16px; height: 16px; border-radius: 8px;
-  font-size: 0.5588rem; font-weight: 800; line-height: 16px; text-align: center;
-  color: var(--lime); border: 1px solid var(--lime-border);
-}
 
 
 /* the warm-up's drawn tile, in place of a photograph */
@@ -1997,9 +1989,6 @@ body { font-size: 0.8235rem; }
 .cd-prognote { margin: 10px 0 0; text-align: center; }
 
 /* a demonstration playing inside the hold timer */
-.hp-demo { display: flex; justify-content: center; padding: 4px 0 2px; }
-.hp-demo .demo-anim { width: 132px; aspect-ratio: 1; border-radius: 14px; overflow: hidden; }
-.hp-play { width: 16px; height: 16px; border-radius: 8px; justify-self: start; }
 
 /* leaving lives inside the pause — quiet, under the one real button */
 #pause-pop-quit {
