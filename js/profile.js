@@ -589,9 +589,13 @@
        5    pre-split kit ('machine' bucket) and timed movements still
             carrying rep targets
        6    machine bucket split into nine named machines; timed movements
-            measured in seconds */
-  const BACKUP_SCHEMA = 6;
+            measured in seconds
+       7    exercises may carry a memo (sticky note, ≤80 chars); plan items
+            may carry ss (superset with the next item) — both optional, so
+            a 6 file needs no rewrite */
+  const BACKUP_SCHEMA = 7;
   const BACKUP_MIGRATIONS = {
+    6: () => {},
     5: data => {
       if (Array.isArray(data.equip) && data.equip.includes('machine'))
         data.equip = [...new Set([...data.equip,
@@ -669,7 +673,10 @@
       }
     }
     for (const ex of (Array.isArray(data.exercises) ? data.exercises : []))
-      if (ex && typeof ex === 'object') ex.name = String(ex.name || '').slice(0, 120);
+      if (ex && typeof ex === 'object') {
+        ex.name = String(ex.name || '').slice(0, 120);
+        if (ex.memo != null) { ex.memo = String(ex.memo).slice(0, 80); if (!ex.memo) delete ex.memo; }
+      }
     let n = 0;
     for (const [store, key] of [['exercises', 'exercises'], ['plans', 'plans'], ['sessions', 'sessions'], ['workouts', 'workouts'], ['bodyweight', 'bodyweight'], ['cardio', 'cardio']]) {
       for (const rec of (data[key] || [])) {

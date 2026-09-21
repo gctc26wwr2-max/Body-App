@@ -256,6 +256,19 @@ t('blockArcSVG never emits attacker markup', () => {
   if (/<img|onerror|<b>/.test(svg)) throw new Error('markup leaked: ' + svg.slice(0, 120));
   if (!/W4</.test(svg)) throw new Error('week label wrong');
 });
+t('restore: v6 file walks the 6→7 step; memo is text, sliced, never markup', async () => {
+  resetWorld();
+  const f = v5file(); f.version = 6;
+  f.exercises[0].memo = { toString() { return 'x'; } };
+  f.exercises.push({ id: 'm2', name: 'Row', group: 'Back', notes: '', memo: '<b>seat 4</b>' + 'y'.repeat(200) });
+  f.exercises.push({ id: 'm3', name: 'Curl', group: 'Arms', notes: '', memo: '' });
+  await restoreData(backupBlob(f));
+  eq(typeof (await DB.get('exercises', 'wsx1')).memo, 'string', 'object memo coerced to text');
+  const m2 = (await DB.get('exercises', 'm2')).memo;
+  eq(m2.length, 80, 'memo sliced to 80');
+  eq(m2.startsWith('<b>seat 4</b>'), true, 'kept as text (rendered via textContent, never innerHTML)');
+  eq('memo' in (await DB.get('exercises', 'm3')), false, 'empty memo dropped');
+});
 t('restore: records without an id are skipped, valid ones kept', async () => {
   resetWorld();
   const f = v5file();

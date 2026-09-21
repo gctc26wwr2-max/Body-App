@@ -380,6 +380,44 @@
     }
   }
 
+  /* the matching set from the most recent saved session of this exercise */
+  function lastSetOf(sessions, cur, si) {
+    if (!sessions || cur.warmup) return null;
+    const hist = sessions.filter(s => s.exerciseId === cur.exerciseId).sort((a, b) => b.ts - a.ts);
+    const sets = hist[0] && Array.isArray(hist[0].sets) ? hist[0].sets : null;
+    const wBefore = cur.sets.filter((x, j) => j < si && x.warm).length;
+    const p = sets ? sets[si - wBefore] : null;
+    return p && Number.isFinite(+p.reps) ? { weight: +p.weight || 0, reps: +p.reps } : null;
+  }
+
+  function memoRow(ex) {
+    const row = el('button', 'exx-memo' + (ex.memo ? '' : ' unset'));
+    row.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" '
+      + 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+      + '<path d="M17 3.5l3.5 3.5L8 19.5 3.5 20.5 4.5 16z"/></svg>';
+    row.appendChild(el('span', 'exx-memo-t', ex.memo || 'Note · seat, grip, pin'));
+    row.setAttribute('aria-label', ex.memo ? 'Edit note: ' + ex.memo : 'Add a note');
+    row.onclick = () => {
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.maxLength = 80; inp.className = 'exx-memo-in';
+      inp.value = ex.memo || ''; inp.placeholder = 'Seat 4 · wide grip';
+      inp.autocapitalize = 'sentences'; inp.autocomplete = 'off'; inp.enterKeyHint = 'done';
+      row.replaceWith(inp);
+      inp.focus();
+      let done = false;
+      const commit = async () => {
+        if (done) return; done = true;
+        const v = inp.value.trim().slice(0, 80);
+        if (v) ex.memo = v; else delete ex.memo;
+        await DB.put('exercises', ex);
+        inp.replaceWith(memoRow(ex));
+      };
+      inp.onblur = commit;
+      inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } };
+    };
+    return row;
+  }
+
   function exerciseCard(lw, cur, ei, sessions) {
     const ex = exercises.find(e => e.id === cur.exerciseId);
     const allDone = cur.sets.length > 0 && cur.sets.every(s => s.done);
@@ -453,6 +491,9 @@
     }
 
     // --- expanded (active exercise) ---
+    /* a note that stays with the exercise across sessions — seat 4, wide
+       grip, pin 7 — the thing you always forget by next week */
+    if (ex && !cur.warmup) card.appendChild(memoRow(ex));
     if (!cur.warmup) {          // the warm-up's steps are its instructions
       const watch = el('div', 'ex-watch');
       watch.appendChild(svgIcon(PLAY, 10));
@@ -513,6 +554,7 @@
       const rec = await ensureExercise(cand);
       const wasTimed = isTimedEx(cur), nowTimed = isTimedEx(rec);
       cur.swappedFrom = cur.swappedFrom || cur.name;
+      cur.swappedFromId = cur.swappedFromId || cur.exerciseId;   // so the block can keep the swap
       cur.name = rec.name;
       cur.exerciseId = rec.id;
       cur.timed = nowTimed;
@@ -617,6 +659,13 @@
       kvWrap.appendChild(kv);
       kvWrap.appendChild(el('small', null, cur.timed ? 's' : wUnit()));
       valCell.appendChild(kvWrap);
+      /* what this set was last time, in faint type, only while it differs
+         from what is loaded — the same number twice is noise */
+      const ghost = lastSetOf(sessions, cur, si);
+      if (ghost && !set.done && (ghost.weight !== set.kg || ghost.reps !== set.reps)) {
+        valCell.appendChild(el('small', 'kv-ghost num',
+          cur.timed ? `last ${ghost.reps} s` : `last ${fmtWn(ghost.weight)} × ${ghost.reps}`));
+      }
       // a logged set is locked — untick it first to change anything
       valCell.disabled = set.done;
       valCell.onclick = () => {
