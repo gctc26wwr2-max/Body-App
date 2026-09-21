@@ -1,5 +1,5 @@
 # Rackside — every feature, in plain words
-*As of v333 · https://gctc26wwr2-max.github.io/Body-App/*
+*As of v345 · https://gctc26wwr2-max.github.io/Body-App/*
 
 Rackside is a training app that lives entirely on your phone. No account, no
 server, no subscription — everything is stored on the device, it works offline,
@@ -40,9 +40,11 @@ and you can install it to your home screen like any app.
 - **Warm-up ramp** — with warm-up on, the first lift gets two lighter W sets
   (50% × 8, 75% × 5). They keep to themselves: changing a W weight never
   drags the working sets down, and they never trigger progression advice.
-- **Warm-up routine** — five easy minutes dealt from a pool: pulse work plus
-  two drills matched to the day. The deal advances every banked day, so no
-  two sessions in a row warm up the same. Every step photographed.
+- **Warm-up routine** — five easy minutes, no kit: an easy walk or bike,
+  then two body-weight drills matched to the day (squats, lunges, push-ups,
+  planks…), then the W sets. The deal advances every banked day, so no two
+  sessions in a row warm up the same; every drill is photographed. The
+  card is Pass-only — no Later, Swap or progression noise.
 - **Timed sets** — 24 movements the app knows are measured in seconds
   (planks, carries, sleds, dead hangs…) run on a seconds ruler with a
   full-screen countdown: 3-second lead-in, per-side phases, pause, and Stop

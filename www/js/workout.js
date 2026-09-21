@@ -192,48 +192,37 @@
         const ex2 = await ensureExercise(r);
         return { name, id: ex2.id };
       };
-      /* every practice here is one the catalogue has photographs of, so the
-         list demonstrates itself and the card can wear the first one's
-         picture like any other exercise.
-
+      /* Nothing in the routine needs kit. A rope or a bike is not always
+         where you are, so the pulse line names no machine — any easy walk,
+         bike or row does — and every drill is body weight on the floor.
          The same two drills every session get skipped, so the routine is
          dealt from a pool: lower days loosen hips and knees, upper days
          shoulders and trunk, and the deal advances with every day you
-         bank — tomorrow warms up differently from today. Each slot is a
-         preference chain, so a missing machine falls back to the next
-         practice your kit allows rather than to nothing. */
-      const PULSE_POOL = [
-        ['Jump Rope', 'Elliptical', 'Air Bike'],
-        ['Battle Ropes', 'Elliptical', 'Jump Rope'],
-        ['Rowing Machine', 'Battle Ropes', 'Jump Rope'],
-        ['Incline Treadmill Walk', 'Stair Climber', 'Elliptical', 'Jump Rope']
-      ];
+         bank. Each slot is a preference chain so an unticked mat still
+         finds a standing drill. */
       const WARM_LOWER = [
-        [['Bodyweight Squat'], ['Glute Bridge', 'Walking Lunge']],
-        [['Walking Lunge', 'Lunge', 'Bodyweight Squat'], ['Calf Raise', 'Glute Bridge']],
-        [['Step-Up', 'Split Squat', 'Bodyweight Squat'], ['Kettlebell Swing', 'Glute Bridge']],
-        [['Lunge', 'Walking Lunge', 'Bodyweight Squat'], ['Dead Bug', 'Plank']]
+        [['Bodyweight Squat'], ['Glute Bridge', 'Lunge']],
+        [['Lunge', 'Bodyweight Squat'], ['Calf Raise', 'Glute Bridge']],
+        [['Bodyweight Squat'], ['Dead Bug', 'Lunge']],
+        [['Lunge', 'Bodyweight Squat'], ['Plank', 'Calf Raise']]
       ];
       const WARM_UPPER = [
-        [['Band Pull-Apart', 'Face Pull'], ['Bodyweight Squat', 'Plank']],
-        [['Face Pull', 'Band Pull-Apart'], ['Plank', 'Dead Bug']],
-        [['Cable External Rotation', 'Band Pull-Apart'], ['Mountain Climbers', 'Bodyweight Squat']],
-        [['Inverted Row', 'Band Pull-Apart'], ['Dead Bug', 'Side Plank']]
+        [['Push-Up'], ['Plank', 'Bodyweight Squat']],
+        [['Push-Up'], ['Dead Bug', 'Bodyweight Squat']],
+        [['Mountain Climbers', 'Push-Up'], ['Bodyweight Squat']],
+        [['Push-Up'], ['Side Plank', 'Bodyweight Squat']]
       ];
       const seed = ((plan.completed || []).length + dayIndex);
-      const pulse = pick(PULSE_POOL[seed % PULSE_POOL.length])
-        || pick(['Jump Rope', 'Elliptical', 'Battle Ropes', 'Air Bike']);
       const duo = (lower ? WARM_LOWER : WARM_UPPER)[seed % 4];
       let loosen = duo.map(chain => pick(chain)).filter(Boolean);
-      if (!loosen.length) loosen = [pick(['Bodyweight Squat', 'Plank'])].filter(Boolean);
+      if (!loosen.length) loosen = [pick(['Bodyweight Squat', 'Push-Up'])].filter(Boolean);
       /* one practice per line: what to do on the left, how much on the right,
-         so the column of play buttons and the column of counts both line up */
-      /* a hold is counted in seconds, everything else in reps — the day it
-         falls on has nothing to do with it */
+         so the column of play buttons and the column of counts both line up.
+         A hold is counted in seconds, everything else in reps. */
       const noteFor = n =>
-        /Plank|Hang|Hold|Dead Bug|Mountain Climbers|Battle Ropes/i.test(n) ? '30 s' : '15 reps';
+        /Plank|Dead Bug|Mountain Climbers/i.test(n) ? '30 s' : /Push-Up/i.test(n) ? '10 reps' : '15 reps';
       const steps = [
-        pulse ? { ...(await link(pulse)), note: '2 min' } : { name: 'Brisk walk', note: '2 min' },
+        { name: 'Easy walk or bike', note: '2 min' },
         ...(await Promise.all(loosen.map(async n => ({ ...(await link(n)), note: noteFor(n) })))),
         ramp
           ? { name: 'Then the W sets', note: first.name }
@@ -499,7 +488,8 @@
 
     /* the machine is busy: do this one at the end, or do a similar move
        instead — both one tap, both this session only */
-    const laterAfter = lw.exercises.some((e2, i) => i > ei && !e2.passed && !e2.sets.every(s => s.done));
+    const laterAfter = !cur.warmup &&
+      lw.exercises.some((e2, i) => i > ei && !e2.passed && !e2.sets.every(s => s.done));
     if (laterAfter) {
       const laterB = el('button', 'exx-out', 'Later');
       laterB.title = 'Machine busy — do it at the end';
@@ -516,9 +506,10 @@
       };
       outs.appendChild(laterB);
     }
+    /* the warm-up is nobody's machine — it can be passed, not moved or swapped */
     const swapB = el('button', 'exx-out', 'Swap');
     swapB.title = 'Do a similar move instead';
-    swapB.onclick = () => pickReplacement(cur, async cand => {
+    if (!cur.warmup) swapB.onclick = () => pickReplacement(cur, async cand => {
       const rec = await ensureExercise(cand);
       const wasTimed = isTimedEx(cur), nowTimed = isTimedEx(rec);
       cur.swappedFrom = cur.swappedFrom || cur.name;
@@ -535,7 +526,7 @@
       haptic();
       renderWorkout();
     });
-    outs.appendChild(swapB);
+    if (!cur.warmup) outs.appendChild(swapB);
     if (cur.swappedFrom) outs.appendChild(el('span', 'exx-out-note', 'was ' + cur.swappedFrom));
     card.appendChild(outs);
 
@@ -699,9 +690,10 @@
       card.appendChild(r);
     });
 
-    // progression strip
-    const sug = suggestion(cur.sets, cur);
-    if (sug.kind === 'increase') {
+    // progression strip — a warm-up has nothing to progress, so it gets none
+    const sug = cur.warmup ? { kind: 'none' } : suggestion(cur.sets, cur);
+    if (cur.warmup) {
+    } else if (sug.kind === 'increase') {
       const s = el('div', 'suggest up');
       const t = el('div');
       t.appendChild(el('div', 's-title', `Top of range · ${sug.last.reps}/${cur.repLo}-${cur.repHi}`));
