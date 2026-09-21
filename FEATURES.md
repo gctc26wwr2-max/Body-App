@@ -1,5 +1,5 @@
 # Rackside — every feature, in plain words
-*As of v346 · https://gctc26wwr2-max.github.io/Body-App/*
+*As of v347 · https://gctc26wwr2-max.github.io/Body-App/*
 
 Rackside is a training app that lives entirely on your phone. No account, no
 server, no subscription — everything is stored on the device, it works offline,
