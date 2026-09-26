@@ -355,6 +355,14 @@
         dRail.appendChild(pv);
       });
       c.appendChild(dRail);
+      /* every day of the week banked before the calendar gets there */
+      if (firstPendingDay < 0 && curWeek && curWeek < weeks && !plan.pausedAt && !planFinished(plan) && !live.get()) {
+        const nw = el('button', 'btn-ghost train-again');
+        nw.appendChild(svgIcon(PLAY, 11));
+        nw.appendChild(document.createTextNode(' Start week ' + (curWeek + 1)));
+        nw.onclick = () => startNextWeek(plan);
+        c.appendChild(nw);
+      }
       root.appendChild(c);
     }
 
