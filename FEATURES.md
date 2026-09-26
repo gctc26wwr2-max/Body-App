@@ -1,5 +1,5 @@
 # Rackside — every feature, in plain words
-*As of v349 · https://gctc26wwr2-max.github.io/Body-App/*
+*As of v350 · https://gctc26wwr2-max.github.io/Body-App/*
 
 Rackside is a training app that lives entirely on your phone. No account, no
 server, no subscription — everything is stored on the device, it works offline,
@@ -123,7 +123,11 @@ the default. Done days carry their own summary (Mon · 3,760 kg · 14 sets ·
   two-line "what it is for" with more, form cues; add your own exercises with
   photos/videos, a load-vs-assistance switch, and automatic seconds
   detection.
-- **Deload weeks** and **week gating** as before.
+- **Deload weeks** and **week gating** — a week unlocks when the calendar
+  reaches it, but finishing every day early is not a wall: **Start week N**
+  (on Today and under the block's days) begins the next week today and the
+  later weeks follow on from it. A day you already trained offers a quiet
+  **Train … anyway**.
 
 ## Cardio
 

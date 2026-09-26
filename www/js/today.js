@@ -208,7 +208,7 @@
       } else if (mode === 'weekdone') {
         sess = `Week ${curWeek || 1} of ${weeks} · done`;
         title = 'Rest';
-        meta = `All of week ${curWeek || 1} is banked. Week ${Math.min((curWeek || 1) + 1, weeks)} unlocks as the calendar rolls over.`;
+        meta = `All of week ${curWeek || 1} is banked. Rest, or start week ${Math.min((curWeek || 1) + 1, weeks)} now.`;
       } else if (mode === 'complete') {
         sess = `Block ${blockNumber(plan)} · complete`;
         title = 'Done';
@@ -252,6 +252,19 @@
         const cta = el('button', 'btn-cta big', 'Resume training');
         cta.onclick = async () => { await resumePlan(plan); renderTab(); };
         root.appendChild(cta);
+      } else if (mode === 'weekdone' && (curWeek || 1) < weeks) {
+        const cta = el('button', 'btn-cta big');
+        cta.appendChild(svgIcon(PLAY, 13));
+        cta.appendChild(document.createTextNode(' Start week ' + ((curWeek || 1) + 1)));
+        cta.onclick = () => startNextWeek(plan);
+        root.appendChild(cta);
+      } else if (mode === 'banked' && nextIdxArc >= 0) {
+        /* recovery is the advice, not a lock — a second session is one tap */
+        const again = el('button', 'btn-ghost train-again');
+        again.appendChild(svgIcon(PLAY, 11));
+        again.appendChild(document.createTextNode(' Train ' + plan.days[nextIdxArc].name + ' anyway'));
+        again.onclick = () => startWorkout(plan, nextIdxArc);
+        root.appendChild(again);
       }
 
       // numbered exercise index — today's session, or a preview of the next one
@@ -374,6 +387,32 @@
       <text x="20" y="208" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W1</text>
       <text x="320" y="208" text-anchor="middle" fill="#4A443E" font-size="9" font-weight="800" font-family="Archivo, sans-serif">W${weeks}</text>
     </svg>`;
+  }
+
+  /* Start the next week today. A week only unlocks when the calendar
+     reaches it, which is wrong for someone who banked every day early and
+     wants to keep going. Pulling the start date back — the same move a
+     resumed break makes the other way — makes today day one of the next
+     week, and every later week follows on from today. */
+  async function startNextWeek(plan) {
+    const w = weekOf(plan) || 1;
+    const weeks = plan.weeks || 4;
+    if (w >= weeks) return;
+    if (!await appConfirm({
+      title: `Start week ${w + 1} today?`,
+      body: `Week ${w} is all banked. Later weeks follow on from today.`,
+      ok: `Start week ${w + 1}`, cancel: 'Not yet'
+    })) return;
+    const fmtD = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const d = dateOf(plan.startDate);
+    const since = Math.floor((Date.now() - d.getTime()) / 86400000);
+    d.setDate(d.getDate() - Math.max(0, 7 * w - since));
+    plan.startDate = fmtD(d);
+    /* a clock change can leave the division an hour short of the week */
+    while ((planWeek(plan) || 1) <= w) { d.setDate(d.getDate() - 1); plan.startDate = fmtD(d); }
+    await DB.put('plans', plan);
+    haptic();
+    await startWorkout(plan, 0);
   }
 
   /* Resume a paused block — shift its start date by the length of the
