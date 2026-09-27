@@ -83,7 +83,9 @@ visible in every later file. Rules that follow from this:
 ## Design review (v6) — the standing layout decisions
 
 - Today: one hero. Eyebrow (date · greeting · streak) → arc with the day
-  name inside → Start → exercise list → weekday strip → install hint last.
+  name inside → Start → exercise list folded to one row (owner: Today
+  doesn't show the plan's detail; tap opens it) → weekday strip → install
+  hint last.
   No block card; the greeting never takes the title slot.
 - Five tabs. Blocks is folded into Plan as segments (`masterTab`); keep
   `show('library')` aliased to Plan.

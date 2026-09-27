@@ -7,6 +7,7 @@
      TODAY
      ============================================================ */
   let greetPick = null;   // the visit's greeting, chosen once
+  let todayListOpen = false;   // Today's exercise list starts folded; a tap opens it for the visit
 
   async function renderToday() {
     const root = $('#view-today');
@@ -278,8 +279,24 @@
           : `Up next · ${idxDay.name}${nextPref ? ' · ' + nextPref : ''}`;
       }
       if (idxDay && idxDay.items.length) {
-        if (idxLabel) root.appendChild(el('div', 'micro', idxLabel));
+        /* the arc and Start are the screen; the full list is one tap away,
+           folded into a single quiet row */
+        const n = idxDay.items.length;
+        const tog = el('button', 'today-list-t' + (todayListOpen ? ' open' : ''));
+        tog.setAttribute('aria-expanded', todayListOpen ? 'true' : 'false');
+        tog.appendChild(el('span', 'tlt-l', idxLabel || 'Exercises'));
+        tog.appendChild(el('span', 'tlt-n num', String(n)));
+        tog.appendChild(el('span', 'tlt-c', '▾'));
+        root.appendChild(tog);
         const idx = el('div', 'ex-index');
+        idx.hidden = !todayListOpen;
+        tog.onclick = () => {
+          todayListOpen = !todayListOpen;
+          idx.hidden = !todayListOpen;
+          tog.classList.toggle('open', todayListOpen);
+          tog.setAttribute('aria-expanded', todayListOpen ? 'true' : 'false');
+          haptic();
+        };
         idxDay.items.forEach((it, i) => {
           const ex = exercises.find(e => e.id === it.exerciseId);
           const r = el('div', 'exi-row');
