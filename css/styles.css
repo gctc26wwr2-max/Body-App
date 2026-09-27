@@ -2373,3 +2373,15 @@ body { font-size: 0.8235rem; }
   display: flex; align-items: center; justify-content: center; gap: 6px;
   width: 100%; height: 2.8235rem; margin: 4px 0 10px; font-size: 0.8235rem; font-weight: 700;
 }
+
+/* Today's exercise list, folded to one row under Start */
+.today-list-t {
+  display: flex; align-items: center; gap: 8px; width: 100%; height: 2.8235rem; padding: 0 2px;
+  background: none; border: 0; border-top: 1px solid var(--hair-8); border-bottom: 1px solid var(--hair-8);
+  color: #857C73; font-size: 0.6471rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+}
+.today-list-t .tlt-l { flex: 1; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.today-list-t .tlt-n { color: var(--t3); letter-spacing: 0; font-size: 0.7647rem; }
+.today-list-t .tlt-c { transition: transform .18s ease; }
+.today-list-t.open { border-bottom-color: transparent; }
+.today-list-t.open .tlt-c { transform: rotate(180deg); color: var(--lime); }
