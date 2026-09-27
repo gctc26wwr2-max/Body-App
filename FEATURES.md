@@ -1,5 +1,5 @@
 # Rackside — every feature, in plain words
-*As of v350 · https://gctc26wwr2-max.github.io/Body-App/*
+*As of v351 · https://gctc26wwr2-max.github.io/Body-App/*
 
 Rackside is a training app that lives entirely on your phone. No account, no
 server, no subscription — everything is stored on the device, it works offline,
@@ -16,7 +16,8 @@ and you can install it to your home screen like any app.
   a greeting by name ("Welcome back, Amin" after six hours away, else the
   time of day) and the streak; the arc with today's day name inside it is
   the only hero; a single Start button sits right under it, then the
-  exercise list, then the quiet weekday strip.
+  exercise list folded to one row (tap to open), then the quiet weekday
+  strip.
 - A **floating rest pill** follows you to other tabs while a rest timer runs.
 - **First-run coach marks** — one hint each for the weight scale, the reps
   strip and the rest pill, shown once, plus honest empty states before any
