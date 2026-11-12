@@ -4,7 +4,7 @@
    part loaded after this one. Load order is index.html's script order.
    Map of what lives where: FUNCTIONS.md */
 'use strict';
-  const APP_VERSION = 'v351';
+  const APP_VERSION = 'v352';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -371,6 +371,34 @@
      value here would brick the app for exactly the user mid-session. get()
      therefore checks the shape the renderers iterate, not just that the
      JSON parses — anything else is dropped so the next boot starts clean. */
+  /* A session left open is not a session still happening. The clock only
+     knows start, pauses and now, so a forgotten Finish used to count for
+     ever. The last real activity is the start, a resume, or a logged set;
+     after WORKOUT_IDLE_MIN with none, the session stops where training
+     stopped — the last activity plus the rest that followed it.
+     Returns that stop time, or null while the session is still live. */
+  const WORKOUT_IDLE_MIN = 30;
+  function workoutLastActive(lw) {
+    let t = +lw.startedAt || 0;
+    if (+lw.resumedAt > t) t = +lw.resumedAt;
+    for (const e of (Array.isArray(lw.exercises) ? lw.exercises : []))
+      for (const s of (e && Array.isArray(e.sets) ? e.sets : [])) if (s && +s.doneAt > t) t = +s.doneAt;
+    return t;
+  }
+  function workoutIdleStop(lw, now = Date.now()) {
+    if (!lw || lw.pausedAt || !lw.startedAt) return null;
+    const last = workoutLastActive(lw);
+    if (now - last < WORKOUT_IDLE_MIN * 60000) return null;
+    const r = +lw.restLen;
+    const rest = Number.isFinite(r) && r > 0 ? Math.min(Math.max(r, 15), 900) : 120;
+    return Math.min(now, last + rest * 1000);
+  }
+  /* YYYY-MM-DD of a timestamp, local time — todayStr for any moment */
+  const dayStrOf = ts => {
+    const d = new Date(ts);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+
   const live = {
     get() {
       const raw = localStorage.getItem('liveWorkout');

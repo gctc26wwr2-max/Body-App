@@ -327,10 +327,16 @@
       location.reload();
     } catch { /* offline — try again next time */ }
   }
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    /* back from the pocket hours later: stop a forgotten session first */
+    if (idleCheck()) { if (!$('#view-workout').hidden) renderWorkout(); else renderTab(); }
+    checkUpdate();
+  });
 
   applyAccent();
   migrate().then(() => {
+    idleCheck();                 // a session left open overnight opens stopped
     const lw = live.get();
     if (lw) { show('workout'); renderTab().then(renderWorkout); }
     else renderTab();

@@ -26,10 +26,31 @@
   const wElapsed = lw => Math.max(0,
     Math.floor((((lw.pausedAt || Date.now()) - lw.startedAt) - (lw.pausedMs || 0)) / 1000));
 
+  /* applies workoutIdleStop: freezes a forgotten session where training
+     stopped. Returns true when it paused something. */
+  function idleCheck() {
+    if (holdInt) return false;                 // a hold or warm-up clock is running
+    const lw = live.get();
+    const stopAt = workoutIdleStop(lw);
+    if (stopAt == null) return false;
+    lw.pausedAt = stopAt;
+    lw.autoPaused = true;
+    lw.restEndsAt = null;
+    delete lw.restLeft;
+    lw.advanceAfterRest = false;
+    lw.advanceTo = null;
+    clearInterval(restInt); restInt = null;
+    clearInterval(elapsedInt); elapsedInt = null;
+    live.set(lw);
+    updatePill();
+    return true;
+  }
+
   function pauseWorkout() {
     const lw = live.get();
     if (!lw || lw.pausedAt) return;
     lw.pausedAt = Date.now();
+    delete lw.autoPaused;
     // hold the rest countdown where it stands rather than letting it run out
     if (lw.restEndsAt) {
       lw.restLeft = Math.max(1, Math.ceil((lw.restEndsAt - Date.now()) / 1000));
@@ -55,16 +76,27 @@
     /* the number on this screen is the one that is actually moving: how long
        the break has been. The session clock is the one that has stopped, so
        it is stated once and left alone. */
+    /* a session that paused itself was forgotten, not interrupted: the
+       number that matters is where it stopped, and the next step is Finish */
+    const auto = !!lw.autoPaused;
+    $('#pause-pop-tag').textContent = auto ? 'Stopped at' : 'Paused for';
     const tick = () => {
       const now = live.get();
       if (!now || !now.pausedAt) { closePausePop(); return; }
-      $('#pause-pop-time').textContent = fmtClock(Math.floor((Date.now() - now.pausedAt) / 1000));
+      $('#pause-pop-time').textContent = auto
+        ? fmtClock(wElapsed(now))
+        : fmtClock(Math.floor((Date.now() - now.pausedAt) / 1000));
     };
-    $('#pause-pop-held').textContent = `Session held at ${fmtClock(wElapsed(lw))}`;
-    $('#pause-pop-body').textContent = lw.restLeft
-      ? `Your rest is holding at ${fmtClock(lw.restLeft)}. Nothing logs until you start again.`
-      : 'Nothing logs until you start again.';
-    $('#pause-pop-go').onclick = () => resumeWorkout();
+    $('#pause-pop-held').textContent = auto ? '' : `Session held at ${fmtClock(wElapsed(lw))}`;
+    $('#pause-pop-body').textContent = auto
+      ? `Nothing logged for ${WORKOUT_IDLE_MIN} min. Idle time isn't counted.`
+      : lw.restLeft
+        ? `Your rest is holding at ${fmtClock(lw.restLeft)}. Nothing logs until you start again.`
+        : 'Nothing logs until you start again.';
+    const go = $('#pause-pop-go'), alt = $('#pause-pop-alt');
+    go.textContent = auto ? 'Finish & save' : 'Start again';
+    go.onclick = auto ? () => { closePausePop(); finishWorkout(); } : () => resumeWorkout();
+    if (alt) { alt.hidden = !auto; alt.onclick = () => resumeWorkout(); }
     const quitBtn = $('#pause-pop-quit');
     if (quitBtn) quitBtn.onclick = async () => {
       if (!await appConfirm({
@@ -95,6 +127,8 @@
     if (!lw || !lw.pausedAt) return;
     lw.pausedMs = (lw.pausedMs || 0) + (Date.now() - lw.pausedAt);
     lw.pausedAt = null;
+    lw.resumedAt = Date.now();      // coming back counts as activity
+    delete lw.autoPaused;
     if (lw.restLeft) {
       lw.restEndsAt = Date.now() + lw.restLeft * 1000;
       delete lw.restLeft;
@@ -320,7 +354,14 @@
     root.appendChild(head);
     clearInterval(elapsedInt);
     elapsedInt = null;
+    let idleSeen = Date.now();
     const tickClock = () => {
+      /* left running in a pocket: every half minute, ask whether the
+         session was forgotten, and stop the clock if it was */
+      if (Date.now() - idleSeen > 30000) {
+        idleSeen = Date.now();
+        if (idleCheck()) { renderWorkout(); return; }
+      }
       clock.textContent = fmtClock(wElapsed(lw));
       const kc = liftKcal(wElapsed(lw) / 60, lastBodyKg);
       burnEl.textContent = kc > 0 ? ` · ${kc} kcal` : '';
