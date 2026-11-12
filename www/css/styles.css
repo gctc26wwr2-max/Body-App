@@ -1712,6 +1712,8 @@ body { font-size: 0.8235rem; }
 }
 #pause-pop-body { font-size: 0.7353rem; font-weight: 600; line-height: 1.45; color: var(--t4); }
 #pause-pop-go { width: 100%; margin-top: 10px; }
+#pause-pop-alt { width: 100%; margin-top: 8px; }
+#pause-pop-held:empty { display: none; }
 .rail.held { opacity: .38; pointer-events: none; filter: saturate(.5); }
 
 /* every sheet gets a way out in the corner, not just a swipe or a Cancel

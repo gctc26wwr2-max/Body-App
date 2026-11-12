@@ -288,6 +288,36 @@ t('restore: records without an id are skipped, valid ones kept', async () => {
 });
 
 /* ---------------- guarded stored-state reads ---------------- */
+/* ---------------- forgotten sessions ---------------- */
+t('idle: a session with recent activity keeps running', () => {
+  const now = Date.UTC(2026, 10, 12, 18, 0);
+  const lw = { startedAt: now - 50 * 60000, restLen: 120,
+    exercises: [{ sets: [{ done: true, doneAt: now - 10 * 60000 }, { done: false }] }] };
+  eq(workoutIdleStop(lw, now), null, 'logged 10 min ago');
+});
+t('idle: forgotten for hours → stops at last set + its rest', () => {
+  const now = Date.UTC(2026, 10, 12, 23, 0);
+  const last = now - 5 * 3600000;
+  const lw = { startedAt: last - 40 * 60000, restLen: 90,
+    exercises: [{ sets: [{ done: true, doneAt: last - 3 * 60000 }, { done: true, doneAt: last }] }] };
+  eq(workoutIdleStop(lw, now), last + 90000, 'last set + 90 s rest');
+});
+t('idle: started and never logged → stops one rest after the start', () => {
+  const now = Date.UTC(2026, 10, 12, 23, 0);
+  const lw = { startedAt: now - 2 * 3600000, exercises: [{ sets: [{ done: false }] }] };
+  eq(workoutIdleStop(lw, now), lw.startedAt + 120000, 'default 120 s rest');
+});
+t('idle: a resume counts as activity; paused or garbage sessions are left alone', () => {
+  const now = Date.UTC(2026, 10, 12, 23, 0);
+  eq(workoutIdleStop({ startedAt: now - 3 * 3600000, resumedAt: now - 60000, exercises: [] }, now), null, 'resumed a minute ago');
+  eq(workoutIdleStop({ startedAt: now - 3 * 3600000, pausedAt: now - 3600000, exercises: [] }, now), null, 'already paused');
+  eq(workoutIdleStop({ startedAt: now - 3 * 3600000, restLen: 'x', exercises: [{ sets: 'nope' }] }, now) <= now, true, 'garbage shape tolerated');
+  eq(workoutIdleStop(null, now), null, 'no session');
+});
+t('dayStrOf: local calendar day of a timestamp', () => {
+  const d = new Date(2026, 0, 5, 23, 59);
+  eq(dayStrOf(d.getTime()), '2026-01-05');
+});
 t('liveWorkout: corrupt or misshapen state is dropped, not thrown', () => {
   for (const bad of ['{{{not json', '42', '[1,2]', '{"exercises":"boom"}',
     '{"exercises":[{"sets":"x"}]}', '{"exercises":[null]}', '{"exs":[{"sets":[]}]}', '"a string"']) {

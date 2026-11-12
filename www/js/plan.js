@@ -34,6 +34,10 @@
     }
 
     const sessionsAll = await DB.all('sessions');
+    /* a session paused and finished later belongs to the day it stopped,
+       not the day Finish was tapped */
+    const endTs = lw.pausedAt || Date.now();
+    const endDay = dayStrOf(endTs);
     const mins = Math.max(1, Math.round(wElapsed(lw) / 60));
     const kcal = liftKcal(wElapsed(lw) / 60, lastBodyKg);
     let volume = 0, setCount = 0;
@@ -64,7 +68,7 @@
         }
       }
       await DB.put('sessions', {
-        id: DB.uid(), exerciseId: e.exerciseId, date: todayStr(), ts: Date.now(),
+        id: DB.uid(), exerciseId: e.exerciseId, date: endDay, ts: endTs,
         planId: lw.planId, timed: !!e.timed, feel: e.feel || null,
         sets: done.map(s => ({ reps: s.reps, weight: s.kg }))
       });
@@ -86,7 +90,7 @@
          banked is a fine workout, but it isn't new block progress, and a
          duplicate here inflated "Session N of M" and filled the arc early */
       if (!plan.completed.some(c => c.week === w && c.day === lw.dayIndex))
-        plan.completed.push({ week: w, day: lw.dayIndex, date: todayStr(), duration: mins });
+        plan.completed.push({ week: w, day: lw.dayIndex, date: endDay, duration: mins });
       if (w >= (plan.weeks || 4)) {
         const doneFinal = new Set(plan.completed.filter(c => c.week >= (plan.weeks || 4)).map(c => c.day));
         if (doneFinal.size >= plan.days.length) plan.finishedAt = Date.now();
@@ -95,7 +99,7 @@
     }
 
     const workout = {
-      id: DB.uid(), date: todayStr(), ts: Date.now(),
+      id: DB.uid(), date: endDay, ts: endTs,
       planId: lw.planId, dayIndex: lw.dayIndex, name: lw.dayName,
       duration: mins, volume: Math.round(volume), sets: setCount, kcal,
       prs, stars: null, feel: null,

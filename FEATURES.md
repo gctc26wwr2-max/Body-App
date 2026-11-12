@@ -1,5 +1,5 @@
 # Rackside — every feature, in plain words
-*As of v351 · https://gctc26wwr2-max.github.io/Body-App/*
+*As of v352 · https://gctc26wwr2-max.github.io/Body-App/*
 
 Rackside is a training app that lives entirely on your phone. No account, no
 server, no subscription — everything is stored on the device, it works offline,
@@ -82,6 +82,10 @@ and you can install it to your home screen like any app.
   Build rows and on the block's own preview). Live, a set of the first
   goes straight to the second with no rest; the second's rest lands you
   back on the first. Moving a paired exercise unpairs it.
+- **Forgot to finish?** After 30 minutes with nothing logged the session
+  stops itself where training stopped (last set plus its rest), so idle
+  time never counts. Open the app and it says "Stopped at 42:00" with
+  Finish & save first; the session is filed under the day you trained.
 - **Pass**, **add mid-workout**, **pause overlay**, live status line, and a
   one-confirmation save into a summary with duration, volume, records and a
   5-star rating.
