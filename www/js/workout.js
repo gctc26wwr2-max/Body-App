@@ -156,6 +156,9 @@
     const sessions = await DB.all('sessions');
     const exList = [];
     const deload = isDeloadWeek(plan, wk);
+    /* the block's own plan for this week — effort, a set more or fewer, what
+       the week is for. The deload week runs on its own rules. */
+    const wPlan = (!deload && Array.isArray(plan.weeksPlan) && plan.weeksPlan[wk - 1]) || null;
     for (const item of day.items) {
       const ex = exercises.find(e => e.id === item.exerciseId);
       if (!ex) continue;
@@ -176,10 +179,14 @@
         ss: item.ss === true,                    // superset: paired with the next one
         timed: isTimedEx(ex),                    // hold/interval exercises log seconds
         perSide: /side/i.test(ex.notes || ''),   // run the hold once per side
-        repLo: lo, repHi: hi, rest: restDefault(), deload,
+        repLo: lo, repHi: hi, deload,
+        rest: Number.isFinite(item.rest) && item.rest >= 15 ? item.rest : restDefault(),
+        ...(item.note ? { note: item.note } : {}),
+        ...((wPlan && Number.isFinite(wPlan.rir)) ? { rir: wPlan.rir }
+          : Number.isFinite(item.rir) ? { rir: item.rir } : {}),
         sets: Array.from({ length: deload
           ? Math.max(1, Math.round((item.sets || 3) * DELOAD_SETS))
-          : (item.sets || 3) }, (_, si) => {
+          : Math.max(1, Math.min(10, (item.sets || 3) + ((wPlan && wPlan.sets) || 0))) }, (_, si) => {
           const prev = lastSets ? lastSets[si] : null;
           // start every set at the heaviest weight you reached last time —
           // weight you earned mid-session carries into the whole next session
@@ -279,6 +286,7 @@
       });
     }
     live.set({
+      ...(wPlan && wPlan.note ? { weekNote: `Week ${wk} · ${wPlan.note}` } : {}),
       planId: plan.id, dayIndex, dayName: day.name,
       startedAt: Date.now(), exIndex: 0,
       restEndsAt: null, restLen: restDefault(), pickerOpen: false,
@@ -374,6 +382,7 @@
        the rail behind it is out of reach either way */
     paintPausePop();
 
+    if (lw.weekNote) root.appendChild(el('div', 'w-weeknote', lw.weekNote));
     // ---- the rail: every exercise threaded on one line ----
     const rail = el('div', 'rail' + (paused ? ' held' : ''));
     lw.exercises.forEach((cur2, ei) => {
@@ -518,7 +527,7 @@
     col.appendChild(el('div', 'exx-name', cur.name));
     const paired = (cur.ss && lw.exercises[ei + 1]) || (ei > 0 && lw.exercises[ei - 1].ss);
     const exMeta = el('div', 'exx-meta',
-      `${(ex && ex.group) ? ex.group + ' · ' : ''}${cur.sets.length} × ${fmtRange(cur.repLo, cur.repHi)}${cur.timed ? (cur.perSide ? ' s / side' : ' s') : ''}${paired ? ' · superset' : ''}`);
+      `${(ex && ex.group) ? ex.group + ' · ' : ''}${cur.sets.length} × ${fmtRange(cur.repLo, cur.repHi)}${cur.timed ? (cur.perSide ? ' s / side' : ' s') : ''}${Number.isFinite(cur.rir) && !cur.timed ? ` · ${cur.rir} in reserve` : ''}${paired ? ' · superset' : ''}`);
     if (paired) card.classList.add(cur.ss && lw.exercises[ei + 1] ? 'ss-a' : 'ss-b');
     addHardship(exMeta, ex || { name: cur.name });
     col.appendChild(exMeta);
@@ -569,6 +578,7 @@
     // --- expanded (active exercise) ---
     /* a note that stays with the exercise across sessions — seat 4, wide
        grip, pin 7 — the thing you always forget by next week */
+    if (cur.note && !cur.warmup) card.appendChild(el('div', 'exx-coach', cur.note));
     if (ex && !cur.warmup) card.appendChild(memoRow(ex));
     if (!cur.warmup) {          // the warm-up's steps are its instructions
       const watch = el('div', 'ex-watch');

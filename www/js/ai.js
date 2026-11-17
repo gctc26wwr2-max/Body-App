@@ -14,15 +14,28 @@
   /* what the answer has to look like — quoted into the prompt and parsed
      back out of it, so there is one definition of the shape */
   const AI_SHAPE = `{
-  "name": "Block 2 — Upper Strength",
-  "weeks": 4,
-  "deload": true,
+  "name": "<short block name>",
+  "why": "<two or three sentences: why this block, for me, now>",
+  "weeks": <2-12>,
+  "deload": <true or false>,
+  "progression": [
+    { "week": 1, "rir": <reps in reserve this week, 0-4>, "sets": <change vs the base sets, -2 to 2>, "note": "<what this week is for>" }
+  ],
   "days": [
     {
-      "name": "Day A",
+      "name": "<short day name>",
       "items": [
-        { "exercise": "Bench Press", "sets": 4, "reps": "5-8" },
-        { "exercise": "Seated Cable Row", "sets": 3, "reps": "8-12" }
+        {
+          "exercise": "<name copied exactly from the list>",
+          "variation": "<optional: grip, stance, single-arm, tempo…>",
+          "sets": <1-8>,
+          "reps": "<range, like 6-10>",
+          "weight": <starting weight in my unit, 0 for bodyweight>,
+          "rest": <seconds>,
+          "rir": <reps in reserve, 0-4>,
+          "note": "<optional one-line cue>",
+          "superset": <true to pair with the NEXT item>
+        }
       ]
     }
   ]
@@ -157,21 +170,25 @@
     L.push(/SESSIONS \(0 total/.test(report)
       ? '- I have not logged anything in this app yet, so pick sensible starting weights for my experience and let me correct them.'
       : '- Progress from where the numbers above actually are, not from scratch.');
-    L.push('- Cover every movement pattern across the week and say in a line or two why the block is shaped the way it is.');
+    L.push('- Cover every movement pattern across the week. Make it mine: use my numbers, my weak points and my skipped movements above, not a template.');
     L.push('');
     L.push('HOW TO ANSWER');
-    L.push('Write your reasoning first in a few short lines. Then put the block itself in ONE fenced code block, '
-      + 'exactly like this, with nothing but JSON inside the fence:');
+    L.push('Keep any text outside the fence short. Put the block in ONE fenced code block, in this shape, '
+      + 'with nothing but JSON inside the fence (the <…> parts are for you to fill in):');
     L.push('');
     L.push('```rackside');
     L.push(AI_SHAPE);
     L.push('```');
     L.push('');
     L.push('RULES FOR THE FENCE');
-    L.push('- "exercise" must be copied exactly from the list below. If you want something that is not on it, use the nearest thing that is.');
+    L.push('- "exercise" must be copied exactly from the list below. For a version the list does not have — a grip, a stance, single-arm, a tempo — keep the list name in "exercise" and say the difference in "variation".');
     L.push('- "reps" is a range in quotes, like "8-12". A single number is fine too. For a timed hold, give the range in seconds.');
     L.push('- "sets" is a whole number, 1 to 8. Each day gets 3 to 8 exercises. The block gets 2 to 6 days.');
-    L.push('- "weeks" 2 to 12. "deload": true adds one easier week at the end.');
+    L.push(`- "weight" is the first-week working weight in ${wUnit()}, from my numbers above where I have them; 0 for bodyweight or a hold.`);
+    L.push('- "rest" is seconds between sets (30 to 300). "rir" is how many reps to leave in the tank (0 to 4).');
+    L.push('- "superset": true pairs an exercise with the one right after it, done back to back. Leave it out otherwise.');
+    L.push('- "weeks" 2 to 12. "progression" has one entry per week (not the deload) — that is how the weeks differ from each other. "deload": true adds one easier week at the end.');
+    L.push('- "why" and every "note" are plain text, short. "note" is optional.');
     L.push('- Day names stay short — they become buttons.');
     L.push('- It has to parse as JSON: no comments, no trailing commas, straight quotes.');
     L.push('');
@@ -215,6 +232,24 @@
     if (best && bestScore >= 0.55) return { rec: best, how: 'closest' };
     return { rec: { name: String(name).trim().slice(0, 60), group: 'Other', notes: '', custom: true }, how: 'new' };
   }
+
+  /* "90", 90, "90s", "1:30", "2 min" → seconds; anything else → null */
+  function aiSecs(v) {
+    if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+    const t = String(v == null ? '' : v).trim().toLowerCase();
+    let m = t.match(/^(\d+):(\d{1,2})$/);
+    if (m) return +m[1] * 60 + +m[2];
+    m = t.match(/([\d.]+)\s*(?:m|min|mins|minutes?)\b/);
+    if (m) return Math.round(+m[1] * 60);
+    m = t.match(/[\d.]+/);
+    return m ? Math.round(+m[0]) : null;
+  }
+  const aiInt = (v, lo, hi) => {
+    const n = Math.round(+v);
+    return Number.isFinite(n) && String(v).trim() !== '' && v !== null && typeof v !== 'boolean'
+      ? Math.max(lo, Math.min(hi, n)) : null;
+  };
+  const aiText = (v, n) => (typeof v === 'string' || typeof v === 'number') ? String(v).trim().slice(0, n) : '';
 
   function aiReps(v, fallback) {
     const f = fallback || [8, 12];
@@ -282,16 +317,62 @@
         hi = Math.max(1, Math.min(100, Math.round(hi) || lo));
         if (hi < lo) { const t = lo; lo = hi; hi = t; }
         const sets = Math.max(1, Math.min(10, Math.round(+(typeof it === 'object' ? it.sets : 0)) || 3));
-        items.push({ name: m.rec.name, rec: m.rec, how: m.how, asked: String(nm || '').trim(), sets, repLo: lo, repHi: hi });
+        const o = typeof it === 'object' && it ? it : {};
+        let { rec, how } = m;
+        /* a variation rides on a catalogue move: its own name, the base's
+           photo, group and notes — never collapsed into the plain move */
+        const vari = aiText(o.variation, 40).replace(/[()]/g, '');
+        if (vari && how !== 'new' && !/^(none|n\/a|standard|normal|-)$/i.test(vari)) {
+          rec = { name: `${rec.name} (${vari})`.slice(0, 80), group: rec.group, notes: rec.notes || '',
+            demo: rec.demo || null, custom: true, variantOf: rec.name };
+          how = 'variant';
+        }
+        const out = { name: rec.name, rec, how, asked: String(nm || '').trim(), sets, repLo: lo, repHi: hi };
+        /* weight arrives in the lifter's unit; stored in kg like everything else */
+        const w = +(o.weight != null ? o.weight : (o.kg != null ? o.kg : o.load));
+        if (Number.isFinite(w) && w > 0) out.kg = Math.min(500, Math.round(fromW(Math.min(w, 1100)) * 4) / 4);
+        const rs = aiSecs(o.rest != null ? o.rest : o.restSec);
+        if (rs != null && rs > 0) out.rest = Math.max(15, Math.min(600, Math.round(rs)));
+        let rir = aiInt(o.rir != null ? o.rir : o.RIR, 0, 5);
+        if (rir == null && o.rpe != null) { const rpe = aiInt(o.rpe, 5, 10); if (rpe != null) rir = Math.min(5, 10 - rpe); }
+        if (rir != null) out.rir = rir;
+        const note = aiText(o.note != null ? o.note : o.cue, 80);
+        if (note) out.note = note;
+        if (o.superset === true || o.ss === true) out.ss = true;
+        items.push(out);
       });
-      if (items.length) days.push({ name: String((d && d.name) || '').trim() || 'Day ' + 'ABCDEF'[di], items });
+      if (items.length) {
+        delete items[items.length - 1].ss;        // the last move has nothing to pair with
+        days.push({ name: String((d && d.name) || '').trim() || 'Day ' + 'ABCDEF'[di], items });
+      }
     });
     if (!days.length) return { error: 'That block has days but no exercises in them.' };
     const weeks = Math.max(2, Math.min(12, Math.round(+obj.weeks) || 4));
+    /* how the weeks differ: one entry per working week, by its "week"
+       number when it has one, else by position */
+    let weeksPlan = null;
+    const prog = Array.isArray(obj.progression) ? obj.progression : (Array.isArray(obj.weeksPlan) ? obj.weeksPlan : null);
+    if (prog) {
+      const wp = Array.from({ length: weeks }, () => null);
+      prog.slice(0, 24).forEach((e, i) => {
+        if (!e || typeof e !== 'object') return;
+        const wk = aiInt(e.week, 1, 99);
+        const at = wk != null ? wk - 1 : i;
+        if (at < 0 || at >= weeks) return;
+        const entry = {};
+        const r = aiInt(e.rir, 0, 5); if (r != null) entry.rir = r;
+        const sd = aiInt(e.sets, -3, 3); if (sd) entry.sets = sd;
+        const nt = aiText(e.note, 80); if (nt) entry.note = nt;
+        if (Object.keys(entry).length) wp[at] = entry;
+      });
+      if (wp.some(Boolean)) weeksPlan = wp;
+    }
+    const why = aiText(obj.why != null ? obj.why : obj.reasoning, 600);
     return {
       block: {
         name: String(obj.name || '').trim().slice(0, 60) || 'Block ' + (plans.length + 1),
-        weeks, deload: obj.deload !== false, days
+        weeks, deload: obj.deload !== false, days,
+        ...(why ? { why } : {}), ...(weeksPlan ? { weeksPlan } : {})
       }
     };
   }
@@ -317,11 +398,15 @@
       const items = [];
       for (const it of d.items) {
         const ex = await ensureExercise(it.rec);
-        items.push({ exerciseId: ex.id, sets: it.sets, repLo: it.repLo, repHi: it.repHi, kg: 0 });
+        const item = { exerciseId: ex.id, sets: it.sets, repLo: it.repLo, repHi: it.repHi, kg: it.kg || 0 };
+        for (const k of ['rest', 'rir', 'note', 'ss']) if (it[k] != null) item[k] = it[k];
+        items.push(item);
       }
       days.push({ name: d.name, items });
     }
     const plan = {
+      ...(block.why ? { why: block.why } : {}),
+      ...(block.weeksPlan ? { weeksPlan: block.weeksPlan } : {}),
       id: DB.uid(), createdAt: Date.now(), name: block.name,
       weeks: block.weeks + (block.deload ? 1 : 0), deload: !!block.deload,
       days, prefDays: (current && current.prefDays) || [0, 2, 4],
@@ -461,6 +546,11 @@
         `${b.name} · ${b.days.length} day${b.days.length === 1 ? '' : 's'} · `
         + `${total} exercise${total === 1 ? '' : 's'} · `
         + `${b.weeks} week${b.weeks === 1 ? '' : 's'}${b.deload ? ' + deload' : ''}`));
+      if (b.why) out.appendChild(el('div', 'ai-why', b.why));
+      if (b.weeksPlan) {
+        const rirs = b.weeksPlan.map(x => (x && x.rir != null) ? x.rir : '·');
+        if (rirs.some(x => x !== '·')) out.appendChild(el('div', 'ai-weeks num', 'In reserve by week · ' + rirs.join(' · ')));
+      }
       let kitGaps = 0;
       b.days.forEach(d => {
         const dh = el('div', 'blk-day');
@@ -473,6 +563,8 @@
           left.appendChild(el('div', 'ai-row-n', it.name));
           if (it.how === 'closest') left.appendChild(el('div', 'ai-tag', 'nearest to “' + it.asked + '”'));
           if (it.how === 'new') left.appendChild(el('div', 'ai-tag new', 'new — added to your library'));
+          if (it.how === 'variant') left.appendChild(el('div', 'ai-tag new', 'variation of ' + it.rec.variantOf));
+          if (it.note) left.appendChild(el('div', 'ai-note', it.note));
           /* the prompt's catalogue is kit-filtered, but nothing forces the
              reply to stay inside it — the same check the Ready blocks run
              happens here, before the block is yours */
@@ -485,8 +577,10 @@
               kitGaps++;
             }
           }
+          if (it.ss) r.classList.add('ss-a');
           r.appendChild(left);
-          r.appendChild(el('div', 'ai-row-m num', `${it.sets} × ${it.repLo}-${it.repHi}`));
+          r.appendChild(el('div', 'ai-row-m num', [`${it.sets} × ${it.repLo}-${it.repHi}`,
+            it.kg ? fmtW(it.kg) : null, it.rest ? fmtClock(it.rest) : null].filter(Boolean).join(' · ')));
           out.appendChild(r);
         });
       });
@@ -785,7 +879,8 @@
     if (ex) return ex;
     ex = {
       id: DB.uid(), createdAt: Date.now(), mediaIds: [], custom: !!item.custom,
-      name: item.name, group: item.group, notes: item.notes || '', demo: item.demo || null
+      name: item.name, group: item.group, notes: item.notes || '', demo: item.demo || null,
+      ...(item.variantOf ? { variantOf: String(item.variantOf).slice(0, 120) } : {})
     };
     await DB.put('exercises', ex);
     exercises.push(ex);

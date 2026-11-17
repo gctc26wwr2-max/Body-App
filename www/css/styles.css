@@ -2387,3 +2387,17 @@ body { font-size: 0.8235rem; }
 .today-list-t .tlt-c { transition: transform .18s ease; }
 .today-list-t.open { border-bottom-color: transparent; }
 .today-list-t.open .tlt-c { transform: rotate(180deg); color: var(--lime); }
+
+/* Ask AI, richer blocks: the reasoning, the week wave, cues */
+.ai-why { margin: 10px 0 4px; font-size: 0.7647rem; line-height: 1.45; color: var(--t3); }
+.ai-weeks { margin: 2px 0 8px; font-size: 0.6471rem; font-weight: 700; color: #857C73; }
+.ai-note, .pv-note { font-size: 0.6471rem; font-weight: 600; color: #857C73; margin-top: 2px; }
+.ai-row.ss-a { box-shadow: inset 3px 0 0 var(--lime); padding-left: 8px; }
+.exx-coach { font-size: 0.7353rem; font-weight: 600; color: var(--t3); margin: 0 0 4px; }
+.w-weeknote { margin: 10px 0 0 44px; font-size: 0.6471rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #857C73; }
+.pb-why {
+  display: block; width: 100%; margin: 8px 0 2px; padding: 0; background: none; border: 0; text-align: left;
+  font-size: 0.7059rem; line-height: 1.45; color: #857C73;
+}
+.pb-why .pb-why-t { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.pb-why.open .pb-why-t { -webkit-line-clamp: unset; color: var(--t3); }

@@ -1,5 +1,5 @@
 # Rackside — every feature, in plain words
-*As of v353 · https://gctc26wwr2-max.github.io/Body-App/*
+*As of v354 · https://gctc26wwr2-max.github.io/Body-App/*
 
 Rackside is a training app that lives entirely on your phone. No account, no
 server, no subscription — everything is stored on the device, it works offline,
@@ -127,6 +127,14 @@ the default. Done days carry their own summary (Mon · 3,760 kg · 14 sets ·
   arrays, duplicate keys, wrong names, other alphabets and silly numbers
   are all survived (unit-tested against garbage), with kit gaps tagged on
   import.
+- **AI blocks carry the coaching, not just a list** — the reply format now
+  holds, per exercise, a starting weight (in your unit), rest, reps in
+  reserve, a one-line cue and superset pairing; a variation ("single-arm")
+  arrives as its own move on the base photo instead of being flattened;
+  and per block a short "why" (kept, folded, on the Plan tab) and a
+  week-by-week progression — each week's effort, a set more or fewer, and
+  what the week is for, applied when that week's sessions start. The
+  prompt's example uses placeholders, so nothing gets copied from it.
 - **Library** — the full catalogue (183 movements): the photo sits in the
   palette (desaturated under a gradient) with the name on it, level chip,
   two-line "what it is for" with more, form cues; add your own exercises with

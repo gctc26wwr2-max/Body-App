@@ -293,9 +293,11 @@
     const timed = isTimedEx(ex);
     const pvMeta = el('div', 'pv-meta num',
       `${it.sets} × ${it.repLo}-${it.repHi}${timed ? ' s' : ' reps'}`
-      + (it.kg ? ` · ${fmtW(it.kg)}` : ''));
+      + (it.kg ? ` · ${fmtW(it.kg)}` : '')
+      + (Number.isFinite(it.rest) ? ` · ${fmtClock(it.rest)}` : ''));
     if (ex) addHardship(pvMeta, ex);
     c.appendChild(pvMeta);
+    if (it.note) c.appendChild(el('div', 'pv-note', it.note));
     row.appendChild(c);
     if (ex && onSwap) {
       const sw = el('button', 'pv-swap');
