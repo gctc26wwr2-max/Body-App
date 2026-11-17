@@ -1,5 +1,5 @@
 # Rackside — every feature, in plain words
-*As of v352 · https://gctc26wwr2-max.github.io/Body-App/*
+*As of v353 · https://gctc26wwr2-max.github.io/Body-App/*
 
 Rackside is a training app that lives entirely on your phone. No account, no
 server, no subscription — everything is stored on the device, it works offline,
@@ -104,6 +104,10 @@ the default. Done days carry their own summary (Mon · 3,760 kg · 14 sets ·
   it rewrites the draft and notes what it replaced. The swap keeps sets and reps, starts the
   weight fresh, and flips rep ranges to seconds for timed moves.
 
+- **Minutes per session** — asked on a rail when you create a block, in
+  Build and in Ask AI (30–90 min, the same setting as About you). Build's
+  day clock reads against it ("~23 of 45 min"); the AI prompt holds every
+  session to it.
 - **Build** — a block builder on three picker wheels: sets · exercise ·
   reps (or seconds), with search, kit- and injury-aware pool, difficulty
   line that repaints per detent, hardest-first ordering, drag to reorder.
