@@ -149,6 +149,20 @@
     }
     root.appendChild(days);
 
+    /* how long each day may run — the clock on every day below reads
+       against it; the same setting as About you and Ask AI */
+    root.appendChild(el('div', 'micro', 'Minutes per session'));
+    root.appendChild(optionRail(SESSION_MINS.map(String), Math.max(0, SESSION_MINS.indexOf(+getProfile().sessionMins || 60)), i => {
+      setProfile({ sessionMins: SESSION_MINS[i] });
+      /* repaint only the day's clock — a re-render would drop the drag */
+      const dm = $('#view-planmaker .day-mins');
+      if (dm) {
+        const m = +dm.dataset.mins;
+        dm.textContent = `~${m} of ${SESSION_MINS[i]} min`;
+        dm.classList.toggle('over', m > SESSION_MINS[i]);
+      }
+    }, 64, false, 'Minutes per session'));
+
     /* injury log — the switch says whether anything hurts; if it does, spin
        the dial and tap an area to add it. Tap it again to drop it. */
     const injLive = injEnabled();
@@ -381,11 +395,12 @@
     const day = pmDays[pmDay];
     if (day.items.length) {
       const mins = dayMinutes(day.items);
-      const budget = getProfile().sessionMins || 0;
+      const budget = +getProfile().sessionMins || 60;
       const dayHead = el('div', 'inj-head');
       dayHead.appendChild(el('div', 'micro', day.name));
-      dayHead.appendChild(el('div', 'day-mins' + (budget && mins > budget ? ' over' : ''),
-        budget ? `~${mins} of ${budget} min` : `~${mins} min`));
+      const dmEl = el('div', 'day-mins' + (mins > budget ? ' over' : ''), `~${mins} of ${budget} min`);
+      dmEl.dataset.mins = mins;
+      dayHead.appendChild(dmEl);
       root.appendChild(dayHead);
       /* one tap for the order most programs use; the drag handles stay the
          override, and a second tap puts your own order back */

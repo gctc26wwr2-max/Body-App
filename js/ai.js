@@ -153,7 +153,7 @@
     const aim = aimOf();
     if (aim) L.push('- ' + aim.prompt);
     if (focus.length) L.push(`- Extra attention on: ${focus.join(', ').toLowerCase()} — bias volume there without dropping the rest.`);
-    if (pr.sessionMins) L.push(`- Each session has to fit ${pr.sessionMins} minutes including rest.`);
+    L.push(`- Each session has to fit ${+pr.sessionMins || 60} minutes including rest.`);
     L.push(/SESSIONS \(0 total/.test(report)
       ? '- I have not logged anything in this app yet, so pick sensible starting weights for my experience and let me correct them.'
       : '- Progress from where the numbers above actually are, not from scratch.');
@@ -364,6 +364,14 @@
       localStorage.setItem('aiDays', DAYS[i]);
       refresh();
     }, 64));
+
+    /* how long a session can be — the same setting as About you; the
+       prompt holds the AI to it */
+    c1.appendChild(el('div', 'micro', 'Minutes per session'));
+    c1.appendChild(optionRail(SESSION_MINS.map(String), Math.max(0, SESSION_MINS.indexOf(+getProfile().sessionMins || 60)), i => {
+      setProfile({ sessionMins: SESSION_MINS[i] });
+      refresh();
+    }, 64, false, 'Minutes per session'));
 
     /* the aim: what the block is for — stored on the profile, one instruction
        in the prompt; unset shows the About-you goal's equivalent */
