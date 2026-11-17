@@ -300,6 +300,17 @@
         wt.appendChild(el('span', i < (curWeek || 1) ? 'done' : (i === (curWeek || 1) && curWeek ? 'cur' : '')));
       }
       c.appendChild(wt);
+      /* the AI's reasoning, kept with the block — folded to one line */
+      if (plan.why) {
+        const why = el('button', 'pb-why');
+        why.appendChild(el('span', 'pb-why-t', plan.why));
+        why.setAttribute('aria-expanded', 'false');
+        why.onclick = () => {
+          const open = why.classList.toggle('open');
+          why.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+        c.appendChild(why);
+      }
       const doneThisWeek = new Set((plan.completed || []).filter(x => x.week === (curWeek || 1)).map(x => x.day));
       const firstPendingDay = (plan.days || []).findIndex((_, i) => !doneThisWeek.has(i));
       const dRail = el('div', 'plan-rail');

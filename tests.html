@@ -256,6 +256,71 @@ t('blockArcSVG never emits attacker markup', () => {
   if (/<img|onerror|<b>/.test(svg)) throw new Error('markup leaked: ' + svg.slice(0, 120));
   if (!/W4</.test(svg)) throw new Error('week label wrong');
 });
+/* ---------------- richer AI blocks ---------------- */
+const RICH = () => ({ name: 'Mine', why: 'Because your squat stalled.', weeks: 4, deload: true,
+  progression: [{ week: 1, rir: 3, sets: 0, note: 'Groove' }, { week: 2, rir: 2 }, { week: 3, rir: 1, sets: 1 }, { week: 4, rir: 0, note: 'Peak' }],
+  days: [{ name: 'Legs', items: [
+    { exercise: 'Back Squat', sets: 4, reps: '5-8', weight: 100, rest: 180, rir: 2, note: 'Brace, then sit', superset: false },
+    { exercise: 'Seated Cable Row', variation: 'single-arm', sets: 3, reps: '10-12', weight: 30, rest: '90s', rir: 2, superset: true },
+    { exercise: 'Plank', sets: 3, reps: '30-45', rest: '1:00', superset: true }] }] });
+t('AI block: weight, rest, rir, cue, superset survive the parse', () => {
+  const r = P('```rackside\n' + JSON.stringify(RICH()) + '\n```');
+  eq(errOf(r), null, 'error');
+  const [sq, row, pl] = r.block.days[0].items;
+  eq(sq.kg, 100, 'weight in kg'); eq(sq.rest, 180, 'rest s'); eq(sq.rir, 2, 'rir'); eq(sq.note, 'Brace, then sit', 'cue');
+  eq('ss' in sq, false, 'superset false dropped');
+  eq(row.rest, 90, '"90s"'); eq(row.ss, true, 'superset kept');
+  eq(pl.rest, 60, '"1:00"'); eq('ss' in pl, false, 'last item cannot pair');
+});
+t('AI block: a variation becomes its own move on the base photo, never collapsed', () => {
+  const row = P(JSON.stringify(RICH())).block.days[0].items[1];
+  eq(row.how, 'variant'); eq(row.name, 'Seated Cable Row (single-arm)');
+  eq(row.rec.variantOf, 'Seated Cable Row'); eq(row.rec.custom, true);
+  const base = EXERCISE_LIBRARY.find(x => x.name === 'Seated Cable Row');
+  eq(row.rec.demo, base.demo || null, 'base photo');
+  const plain = RICH(); plain.days[0].items[1].variation = 'none';
+  eq(P(JSON.stringify(plain)).block.days[0].items[1].name, 'Seated Cable Row', '"none" is no variation');
+});
+t('AI block: why and the week-by-week progression are kept', () => {
+  const b = P(JSON.stringify(RICH())).block;
+  eq(b.why, 'Because your squat stalled.');
+  eq(b.weeksPlan.length, 4);
+  eq(b.weeksPlan[0], { rir: 3, note: 'Groove' }); eq(b.weeksPlan[2], { rir: 1, sets: 1 }); eq(b.weeksPlan[3].note, 'Peak');
+});
+t('AI block: weight is read in the lifter\'s unit', () => {
+  setUnits('lb');
+  try { near(P(JSON.stringify(RICH())).block.days[0].items[0].kg, 45.25, 0.26, '100 lb ≈ 45.4 kg, to 0.25'); }
+  finally { setUnits('kg'); }
+});
+t('AI block: garbage in the new fields is dropped or clamped, never kept raw', () => {
+  const g = RICH();
+  Object.assign(g.days[0].items[0], { weight: '<img src=x onerror=1>', rest: -40, rir: 99, note: { x: 1 }, superset: 'yes' });
+  g.days[0].items[1].variation = 'a'.repeat(300);
+  g.why = ['<script>'];
+  g.progression = [null, 'x', { week: 99, rir: 2 }, { week: 2, rir: 'hard', sets: 40, note: 'n'.repeat(500) }];
+  const b = P(JSON.stringify(g)).block;
+  const sq = b.days[0].items[0];
+  eq('kg' in sq, false, 'markup weight dropped'); eq('rest' in sq, false, 'negative rest dropped');
+  eq(sq.rir, 5, 'rir clamped'); eq('note' in sq, false, 'object note dropped'); eq('ss' in sq, false, '"yes" is not true');
+  eq(b.days[0].items[1].name.length <= 80, true, 'variation sliced');
+  eq('why' in b, false, 'array why dropped');
+  eq(b.weeksPlan[1], { sets: 3, note: 'n'.repeat(80) }, 'week 2 clamped');
+  eq(b.weeksPlan.filter(Boolean).length, 1, 'out-of-range week ignored');
+});
+t('restore: v7 file walks to 8; new plan fields scrubbed', async () => {
+  resetWorld();
+  const f = v5file(); f.version = 7;
+  Object.assign(f.plans[0], { why: 'w'.repeat(900), weeksPlan: [{ rir: 9, sets: 7, note: '<b>x</b>' }, 'junk', { nothing: 1 }] });
+  Object.assign(f.plans[0].days[0].items[0], { rest: '9999', rir: 'x', note: 42 });
+  f.exercises[0].variantOf = { evil: 1 };
+  await restoreData(backupBlob(f));
+  const pl = await DB.get('plans', 'pOld');
+  eq(pl.why.length, 600, 'why sliced');
+  eq(pl.weeksPlan, [{ rir: 5, sets: 3, note: '<b>x</b>' }, null, null], 'weeksPlan clamped, text kept as text');
+  const it = pl.days[0].items[0];
+  eq(it.rest, 600, 'rest clamped'); eq('rir' in it, false, 'bad rir dropped'); eq('note' in it, false, 'number note dropped');
+  eq('variantOf' in (await DB.get('exercises', 'wsx1')), false, 'object variantOf dropped');
+});
 t('restore: v6 file walks the 6→7 step; memo is text, sliced, never markup', async () => {
   resetWorld();
   const f = v5file(); f.version = 6;

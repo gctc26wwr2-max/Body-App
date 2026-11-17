@@ -592,9 +592,14 @@
             measured in seconds
        7    exercises may carry a memo (sticky note, ≤80 chars); plan items
             may carry ss (superset with the next item) — both optional, so
-            a 6 file needs no rewrite */
-  const BACKUP_SCHEMA = 7;
+            a 6 file needs no rewrite
+       8    from Ask AI: plans may carry why (≤600 chars) and weeksPlan
+            ([{rir, sets, note} | null] per week); plan items rest (s), rir
+            and note; exercises variantOf — all optional, a 7 file needs
+            no rewrite */
+  const BACKUP_SCHEMA = 8;
   const BACKUP_MIGRATIONS = {
+    7: () => {},
     6: () => {},
     5: data => {
       if (Array.isArray(data.equip) && data.equip.includes('machine'))
@@ -660,6 +665,18 @@
       if (!pl || typeof pl !== 'object') continue;
       pl.name = String(pl.name || '').slice(0, 60);
       pl.weeks = Math.max(1, Math.min(52, num(pl.weeks, 4)));
+      if (pl.why != null) { pl.why = (typeof pl.why === 'string' ? pl.why : '').slice(0, 600); if (!pl.why) delete pl.why; }
+      if (pl.weeksPlan != null) {
+        pl.weeksPlan = Array.isArray(pl.weeksPlan) ? pl.weeksPlan.slice(0, 52).map(e => {
+          if (!e || typeof e !== 'object') return null;
+          const o = {};
+          const r = num(e.rir, NaN); if (Number.isFinite(r)) o.rir = Math.max(0, Math.min(5, r));
+          const sd = num(e.sets, 0); if (sd) o.sets = Math.max(-3, Math.min(3, sd));
+          if (typeof e.note === 'string' && e.note.trim()) o.note = e.note.slice(0, 80);
+          return Object.keys(o).length ? o : null;
+        }) : null;
+        if (!pl.weeksPlan || !pl.weeksPlan.some(Boolean)) delete pl.weeksPlan;
+      }
       for (const d of (Array.isArray(pl.days) ? pl.days : [])) {
         if (!d || typeof d !== 'object') continue;
         d.name = String(d.name || '').slice(0, 60);
@@ -670,6 +687,9 @@
           it.repHi = Math.max(it.repLo, Math.min(600, num(it.repHi, 12)));
           it.kg = Number.isFinite(+it.kg) ? +it.kg : 0;
           if (it.ss !== true) delete it.ss;
+          if (it.rest != null) { const r = num(it.rest, NaN); if (Number.isFinite(r) && r > 0) it.rest = Math.max(15, Math.min(600, r)); else delete it.rest; }
+          if (it.rir != null) { const r = num(it.rir, NaN); if (Number.isFinite(r)) it.rir = Math.max(0, Math.min(5, r)); else delete it.rir; }
+          if (it.note != null) { it.note = typeof it.note === 'string' ? it.note.slice(0, 80) : ''; if (!it.note) delete it.note; }
         }
       }
     }
@@ -677,6 +697,7 @@
       if (ex && typeof ex === 'object') {
         ex.name = String(ex.name || '').slice(0, 120);
         if (ex.memo != null) { ex.memo = String(ex.memo).slice(0, 80); if (!ex.memo) delete ex.memo; }
+        if (ex.variantOf != null) { ex.variantOf = typeof ex.variantOf === 'string' ? ex.variantOf.slice(0, 120) : ''; if (!ex.variantOf) delete ex.variantOf; }
       }
     let n = 0;
     for (const [store, key] of [['exercises', 'exercises'], ['plans', 'plans'], ['sessions', 'sessions'], ['workouts', 'workouts'], ['bodyweight', 'bodyweight'], ['cardio', 'cardio']]) {
