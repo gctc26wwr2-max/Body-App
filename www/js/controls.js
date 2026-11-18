@@ -241,11 +241,16 @@
       mark();
     };
     const mark = () => {
-      [...strip.children].forEach(t => {
-        const sel = Math.abs(+t.dataset.v - st.val) < opts.step / 2;
+      const kids = [...strip.children];
+      const si = kids.findIndex(t => Math.abs(+t.dataset.v - st.val) < opts.step / 2);
+      kids.forEach((t, i) => {
+        const sel = i === si;
         t.classList.toggle('sel', sel);
-        // the selected tick is always labelled; others follow the every-Nth rule
-        t.lastChild.textContent = sel ? fmt(+t.dataset.v) : t.dataset.lbl;
+        /* the selected tick is always labelled; others follow the every-Nth
+           rule — except its two neighbours, whose labels would collide with
+           a longer one like "42.5" on a fine grid */
+        t.lastChild.textContent = sel ? fmt(+t.dataset.v)
+          : (si >= 0 && Math.abs(i - si) === 1 && opts.tickW < 26) ? '' : t.dataset.lbl;
       });
     };
     const slide = anim => {
@@ -445,10 +450,15 @@
       deltaEl.textContent = setDelta(cur, si);
       if (!big.querySelector('.ks-pen')) paintReadout(big, fmtKg(shown));
     };
+    /* fine and even, whatever the bar: a notch per half kilo and a tall,
+       labelled tick on every whole kilo (lb: a notch per pound, labelled
+       every five). The gym's real jumps still drive progression and the
+       quick chips — the ruler is for picking, not for prescribing. */
+    const lbMode = wUnit() === 'lb';
     const ruler = rulerScale({
-      value: +toW(set.kg).toFixed(1), step: jumpW(cur), tickW: 30, span: 14, min: 0,
+      value: +toW(set.kg).toFixed(2), step: lbMode ? 1 : 0.5, tickW: lbMode ? 16 : 20, span: 22, min: 0,
       label: 'Weight', unit: wUnit(),
-      labelEvery: 2, majorEvery: 2, onChange: commit
+      labelEvery: lbMode ? 5 : 2, majorEvery: lbMode ? 5 : 2, onChange: commit
     });
     box.appendChild(ruler.el);
 
@@ -458,7 +468,7 @@
     const openedWith = set.kg;   // for reverting a mistaken change
     const undo = el('button', 'ks-adj ks-reset num', '↺ ' + fmtWn(openedWith));
     undo.title = 'Back to ' + fmtW(openedWith);
-    undo.onclick = () => ruler.setVal(+toW(openedWith).toFixed(1));
+    undo.onclick = () => ruler.setVal(+toW(openedWith).toFixed(2));
     const reset = el('button', 'ks-adj ks-reset num', '0');
     reset.title = 'Reset to 0';
     reset.onclick = () => ruler.setVal(0);

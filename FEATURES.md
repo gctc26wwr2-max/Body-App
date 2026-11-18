@@ -1,5 +1,5 @@
 # Rackside — every feature, in plain words
-*As of v354 · https://gctc26wwr2-max.github.io/Body-App/*
+*As of v355 · https://gctc26wwr2-max.github.io/Body-App/*
 
 Rackside is a training app that lives entirely on your phone. No account, no
 server, no subscription — everything is stored on the device, it works offline,
@@ -29,8 +29,10 @@ and you can install it to your home screen like any app.
   The active one expands; done ones dim; the line never draws through markers.
 - **Weight scale** — a sliding ruler under every set. Drag it like a real
   scale, with a haptic tick per notch. It is infinite (rebased mid-drag),
-  empty below zero, and steps in your equipment's real jumps — all three
-  kinds configurable per gym in Settings on picker wheels.
+  empty below zero, and steps in half kilos with every whole kilo tall and
+  labelled (lb: one pound a notch, labelled every five). Your equipment's
+  real jumps — configurable per gym in Settings — still drive progression
+  and the quick chips.
 - **Type a weight** — the pencil chip opens the app's own number pad (no
   system keyboard). A typed value becomes a real tick on the ruler, even
   off-grid (19 kg on a 2.5 machine stays 19).
