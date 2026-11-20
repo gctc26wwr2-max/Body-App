@@ -719,6 +719,11 @@
       card.appendChild(ws);
     }
 
+    /* above the table: one wheel for the reps of every set still to do,
+       while there is more than one of them */
+    if (!cur.timed && !cur.warmup && cur.sets.filter(s => !s.done && !s.warm).length > 1)
+      card.appendChild(repsAllScale(lw, cur, updateVals));
+
     /* column headers — the rep range lives here, never inline in a row.
        A held exercise has no weight worth a column, so the seconds take the
        weight's place and its own scale, and the play button gets room. */

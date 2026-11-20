@@ -2401,3 +2401,15 @@ body { font-size: 0.8235rem; }
 }
 .pb-why .pb-why-t { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .pb-why.open .pb-why-t { -webkit-line-clamp: unset; color: var(--t3); }
+
+/* one reps wheel for every set, above the table */
+.reps-all { margin: 2px 0 6px; padding: 8px 10px 4px; border-radius: 14px; background: var(--sunken); border: 1px solid var(--hair); }
+.ra-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.ra-lbl { font-size: 0.5882rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #857C73; }
+.ra-pen { padding: 0; }
+.ra-ruler {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 16%, #000 84%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 16%, #000 84%, transparent);
+}
+.ks-tick.zone i { background: rgba(var(--acc-rgb), .55); }
+.ks-tick.zone span { color: var(--t3); }
