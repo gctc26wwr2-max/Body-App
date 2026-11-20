@@ -82,6 +82,7 @@
         if (e) {
           const done = e.sets.filter(s => s.done);
           if (done.length) item.kg = Math.max(...done.map(s => s.kg));
+          if (Number.isFinite(e.planReps) && e.planReps >= 1) item.planReps = Math.round(e.planReps);
         }
       }
       const w = weekOf(plan) || 1;
@@ -179,7 +180,8 @@
           const idx = day ? day.items.findIndex(it => it.exerciseId === sw.fromId) : -1;
           if (idx < 0) return;
           const was = exercises.find(x => x.id === sw.fromId), now = exercises.find(x => x.id === sw.toId);
-          day.items[idx] = swapRange({ ...day.items[idx], exerciseId: sw.toId }, isTimedEx(was), isTimedEx(now));
+          const { planReps, note, ...keep } = day.items[idx];   // the old move's reps and cue do not transfer
+          day.items[idx] = swapRange({ ...keep, exerciseId: sw.toId }, isTimedEx(was), isTimedEx(now));
           await DB.put('plans', fresh);
           const i = plans.findIndex(pl => pl.id === fresh.id);
           if (i >= 0) plans[i] = fresh;

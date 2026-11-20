@@ -565,6 +565,7 @@
     const apply = v => {
       v = Math.max(1, Math.round(v));
       todo().forEach(s => { s.reps = v; });
+      cur.planReps = v;            // the block keeps it when the session is saved
       live.set(lw);
       updateVals();
     };

@@ -1,5 +1,5 @@
 # Rackside — every feature, in plain words
-*As of v356 · https://gctc26wwr2-max.github.io/Body-App/*
+*As of v357 · https://gctc26wwr2-max.github.io/Body-App/*
 
 Rackside is a training app that lives entirely on your phone. No account, no
 server, no subscription — everything is stored on the device, it works offline,
@@ -60,6 +60,11 @@ and you can install it to your home screen like any app.
   help, deloads add help, and trends read the right way up.
 - **Reps logging** — tap the number to type it, or adjust on a strip; the
   row colours by where you landed against the target range.
+- **Reps · every set** — a horizontal wheel above the sets: one swipe sets
+  the reps of every set still to do (logged sets and W sets keep theirs),
+  the target range tinted on it, the pencil to type. The choice is kept:
+  finish the session and that exercise starts every set there next time,
+  until you move the wheel again.
 - **Rest timer** — starts on logging a set, adjustable ±15 s, skippable.
   When it ends, the next unfinished exercise expands and scrolls into view.
 - **Live curve** — each exercise's weight-over-time graph sits under its

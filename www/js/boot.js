@@ -24,7 +24,11 @@
           weeks: src.weeks || 4,
           days: (src.days || []).map(d => ({
             name: d.name,
+            /* the form edits sets and the range; everything else an item
+               carries (rest, effort, cue, superset, planned reps) rides
+               through untouched rather than being dropped on save */
             items: d.items.map(i => ({
+              ...i,
               exerciseId: i.exerciseId, sets: i.sets || 3,
               repLo: i.repLo || i.reps || 8, repHi: i.repHi || i.reps || 12, kg: i.kg || 0
             }))
@@ -86,7 +90,9 @@
         const del = el('button', 'del', '✕');
         del.type = 'button';
         del.title = 'Take it out of this day';
-        del.onclick = () => { day.items.splice(ii, 1); renderPlanDays(); };
+        /* taking an item out leaves its superset partner unpaired */
+        const drop = () => { if (day.items[ii - 1]) day.items[ii - 1].ss = false; day.items.splice(ii, 1); renderPlanDays(); };
+        del.onclick = drop;
         top.appendChild(del);
         r.appendChild(top);
         const nums = el('div', 'pf-item-nums');
@@ -98,7 +104,7 @@
         nums.appendChild(el('span', 'x', '–'));
         nums.appendChild(numIn(item.repHi, v => item.repHi = v));
         r.appendChild(nums);
-        swipeToRemove(r, () => { day.items.splice(ii, 1); renderPlanDays(); });
+        swipeToRemove(r, drop);
         card.appendChild(r);
       });
 
@@ -153,7 +159,11 @@
       : { id: DB.uid(), createdAt: Date.now(), startDate: null, completed: [], finishedAt: null };
     plan.name = e.target.name.value.trim();
     plan.weeks = planDraft.weeks || 4;
-    plan.days = days.map(d => ({ name: d.name.trim() || 'Day', items: d.items }));
+    plan.days = days.map(d => {
+      const items = d.items.map(it => ({ ...it }));
+      if (items.length) delete items[items.length - 1].ss;   // the last move has nothing to pair with
+      return { name: d.name.trim() || 'Day', items };
+    });
     delete plan.items;
     await DB.put('plans', plan);
     planSaved = null;
