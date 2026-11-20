@@ -1,5 +1,5 @@
 # Rackside — every feature, in plain words
-*As of v355 · https://gctc26wwr2-max.github.io/Body-App/*
+*As of v356 · https://gctc26wwr2-max.github.io/Body-App/*
 
 Rackside is a training app that lives entirely on your phone. No account, no
 server, no subscription — everything is stored on the device, it works offline,
@@ -112,7 +112,7 @@ the default. Done days carry their own summary (Mon · 3,760 kg · 14 sets ·
   session to it.
 - **Build** — a block builder on three picker wheels: sets · exercise ·
   reps (or seconds), with search, kit- and injury-aware pool, difficulty
-  line that repaints per detent, hardest-first ordering, drag to reorder.
+  line that repaints per detent, category chips in body order, one-tap Upper first ordering (upper body, then lower body, then core and cardio; compounds before isolation in each), drag to reorder.
 - **Ready — 57 installable programs** (203 days, 970 exercises, every name
   validated, every movement photographed), browsable as picture-card
   shelves grouped by days-per-week, filtered by audience and split, with a

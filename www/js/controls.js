@@ -768,7 +768,7 @@
       ...(window.EXERCISE_LIBRARY || []).filter(i => equipOK(i) && !seen.has(i.name.toLowerCase()))
     ];
 
-    const groups = ['All', ...[...new Set(pool.map(x => x.group))].sort()];
+    const groups = ['All', ...sortGroups(new Set(pool.map(x => x.group)))];
     if (!groups.includes(addGroup)) addGroup = 'All';
     const chips = el('div', 'gchip-row');
     groups.forEach(g => {
