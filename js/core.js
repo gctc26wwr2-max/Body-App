@@ -4,7 +4,7 @@
    part loaded after this one. Load order is index.html's script order.
    Map of what lives where: FUNCTIONS.md */
 'use strict';
-  const APP_VERSION = 'v355';
+  const APP_VERSION = 'v356';
 
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
@@ -314,6 +314,11 @@
   }
   /* by the kit it needs, not by the word "bar" — "pull bar to chest" made a
      cable pulldown show plate math; custom moves fall back to their name */
+  /* body order, not the alphabet: upper body, then lower body, then the
+     trunk, then conditioning — the order chips and sorted days follow */
+  const BODY_GROUP_ORDER = ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Glutes', 'Core', 'Full body', 'Cardio', 'Other'];
+  const groupRank = g => { const i = BODY_GROUP_ORDER.indexOf(g); return i < 0 ? 50 : i; };
+  const sortGroups = gs => [...gs].sort((a, b) => groupRank(a) - groupRank(b) || String(a).localeCompare(String(b)));
   const isBarbell = ex => !!ex && (equipOf(ex).includes('barbell')
     || (!!ex.custom && /barbell/i.test(ex.name || '')));
 

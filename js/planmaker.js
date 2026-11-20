@@ -4,34 +4,41 @@
    Map of what lives where: FUNCTIONS.md */
 'use strict';
   /* ---- ordering a day ----
-     Form is the first thing fatigue takes, so the movements that ask most of
-     it go first: the big compound patterns, then the single-joint work, then
-     core, then conditioning. Inside a tier the more technical lift leads, and
-     if two are level the heavier one does — the taxonomy the library already
-     carries does all of it, no extra tagging. */
-  const PATTERN_TIER = {
-    olympic: 0,
-    squat: 1, hinge: 1, lunge: 1,
-    horizontal_push: 2, vertical_push: 2, horizontal_pull: 2, vertical_pull: 2,
-    carry: 3, rotation: 3,
-    isolation_upper: 4, isolation_lower: 4,
-    anti_extension: 5, anti_rotation: 5, anti_lateral_flexion: 5,
-    conditioning: 6
+     Upper body first, then lower body, then the trunk, then conditioning —
+     the owner's order. Inside each region the compound work leads the
+     single-joint work (form is the first thing fatigue takes), the more
+     technical lift goes before the simpler one, and if two are level the
+     heavier one does. The taxonomy the library already carries does all of
+     it; a move without a pattern falls back to its group. */
+  const PATTERN_REGION = {
+    olympic: [0, 0],
+    horizontal_push: [1, 0], vertical_push: [1, 0], horizontal_pull: [1, 0], vertical_pull: [1, 0],
+    isolation_upper: [1, 1],
+    squat: [2, 0], hinge: [2, 0], lunge: [2, 0],
+    isolation_lower: [2, 1],
+    carry: [3, 0], rotation: [3, 0],
+    anti_extension: [3, 1], anti_rotation: [3, 1], anti_lateral_flexion: [3, 1],
+    conditioning: [4, 0]
   };
+  const GROUP_REGION = { Chest: 1, Back: 1, Shoulders: 1, Arms: 1, Legs: 2, Glutes: 2, Core: 3, 'Full body': 0, Cardio: 4 };
   function orderRank(it) {
     const lib = LIB_BY_ID[contentIdFor(it)];
-    const tier = lib && PATTERN_TIER[lib.pattern];
+    const pr = lib && PATTERN_REGION[lib.pattern];
+    const ex = exercises.find(e => e.id === it.exerciseId || e.name === it.name)
+      || (window.EXERCISE_LIBRARY || []).find(e => e.name === it.name);
+    const region = pr ? pr[0] : (GROUP_REGION[ex && ex.group] ?? 3);
     const skill = (hardshipOf(it) || {}).n || (lib && lib.skill) || 2;
     return {
-      tier: tier == null ? 3 : tier,          // unknown sits with the carries
-      skill: -skill,                          // more technical first
-      kg: -(it.kg || 0)                       // then the heavier one
+      region,                                  // upper, then lower, then trunk, then conditioning
+      tier: pr ? pr[1] : 0,                    // compound before isolation
+      skill: -skill,                           // more technical first
+      kg: -(it.kg || 0)                        // then the heavier one
     };
   }
   function sortDayHardestFirst(items) {
     return items
       .map((it, i) => ({ it, i, r: orderRank(it) }))
-      .sort((a, b) => a.r.tier - b.r.tier || a.r.skill - b.r.skill
+      .sort((a, b) => a.r.region - b.r.region || a.r.tier - b.r.tier || a.r.skill - b.r.skill
         || a.r.kg - b.r.kg || a.i - b.i)     // a tie keeps the order you had
       .map(x => x.it);
   }
@@ -266,7 +273,7 @@
        so pick a body part or type a couple of letters and the dial shrinks */
     let shown = lib;
     const facets = el('div', 'pm-find');
-    const groups = ['All', ...[...new Set(lib.map(x => x.group))].sort()];
+    const groups = ['All', ...sortGroups(new Set(lib.map(x => x.group)))];
     if (!groups.includes(pmGroup)) pmGroup = 'All';
     const chips = el('div', 'gchip-row');
     groups.forEach(g => {
@@ -408,7 +415,7 @@
         const sorted = sortDayHardestFirst(day.items);
         const same = sorted.every((x, i) => x === day.items[i]);
         const ob = el('button', 'day-order' + (day.wasOrder ? ' on' : ''));
-        ob.textContent = day.wasOrder ? 'Undo order' : 'Hardest first';
+        ob.textContent = day.wasOrder ? 'Undo order' : 'Upper first';
         ob.disabled = same && !day.wasOrder;
         ob.onclick = () => {
           if (day.wasOrder) { day.items = day.wasOrder; day.wasOrder = null; }
