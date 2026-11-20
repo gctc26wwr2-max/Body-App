@@ -321,6 +321,15 @@ t('restore: v7 file walks to 8; new plan fields scrubbed', async () => {
   eq(it.rest, 600, 'rest clamped'); eq('rir' in it, false, 'bad rir dropped'); eq('note' in it, false, 'number note dropped');
   eq('variantOf' in (await DB.get('exercises', 'wsx1')), false, 'object variantOf dropped');
 });
+t('restore: v8 file walks to 9; planReps kept as a whole number 1–100, garbage dropped', async () => {
+  resetWorld();
+  const f = v5file(); f.version = 8;
+  const base = f.plans[0].days[0].items[0];
+  f.plans[0].days[0].items = [{ ...base, planReps: 8 }, { ...base, planReps: '250' }, { ...base, planReps: 'eight' }, { ...base, planReps: 0 }];
+  await restoreData(backupBlob(f));
+  const its = (await DB.get('plans', 'pOld')).days[0].items;
+  eq(its.map(i => i.planReps), [8, 100, undefined, undefined]);
+});
 t('restore: v6 file walks the 6→7 step; memo is text, sliced, never markup', async () => {
   resetWorld();
   const f = v5file(); f.version = 6;

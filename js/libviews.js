@@ -220,7 +220,8 @@
     if (!cur) return;
     pickReplacement(cur, async cand => {
       const rec = await ensureExercise(cand);
-      day.items[itemIndex] = swapRange({ ...it, exerciseId: rec.id, kg: 0 }, isTimedEx(cur), isTimedEx(rec));
+      const { planReps, note, ...keep } = it;      // the old move's reps and cue do not transfer
+      day.items[itemIndex] = swapRange({ ...keep, exerciseId: rec.id, kg: 0 }, isTimedEx(cur), isTimedEx(rec));
       await DB.put('plans', plan);
       haptic();
       renderTab();

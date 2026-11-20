@@ -596,9 +596,12 @@
        8    from Ask AI: plans may carry why (≤600 chars) and weeksPlan
             ([{rir, sets, note} | null] per week); plan items rest (s), rir
             and note; exercises variantOf — all optional, a 7 file needs
-            no rewrite */
-  const BACKUP_SCHEMA = 8;
+            no rewrite
+       9    plan items may carry planReps (1–100), the reps chosen on the
+            every-set wheel — optional, an 8 file needs no rewrite */
+  const BACKUP_SCHEMA = 9;
   const BACKUP_MIGRATIONS = {
+    8: () => {},
     7: () => {},
     6: () => {},
     5: data => {
@@ -690,6 +693,7 @@
           if (it.rest != null) { const r = num(it.rest, NaN); if (Number.isFinite(r) && r > 0) it.rest = Math.max(15, Math.min(600, r)); else delete it.rest; }
           if (it.rir != null) { const r = num(it.rir, NaN); if (Number.isFinite(r)) it.rir = Math.max(0, Math.min(5, r)); else delete it.rir; }
           if (it.note != null) { it.note = typeof it.note === 'string' ? it.note.slice(0, 80) : ''; if (!it.note) delete it.note; }
+          if (it.planReps != null) { const r = num(it.planReps, NaN); if (Number.isFinite(r) && r >= 1) it.planReps = Math.min(100, r); else delete it.planReps; }
         }
       }
     }

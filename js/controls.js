@@ -228,6 +228,8 @@
         /* below the floor there is no weight to show — the strip keeps its
            spacing but draws nothing, rather than a row of dashes */
         if (ok) {
+          // an optional band (a target range) is tinted so it reads at a glance
+          if (opts.zone && v >= opts.zone[0] && v <= opts.zone[1]) t.classList.add('zone');
           t.appendChild(el('i', stepsFromZero % majorEvery === 0 ? 'h20' : (stepsFromZero % 2 ? 'h11' : 'h15')));
           t.dataset.lbl = stepsFromZero % lblEvery === 0 ? fmt(v) : '';
           t.appendChild(el('span', 'num', t.dataset.lbl));
@@ -543,6 +545,41 @@
       });
     ctr.appendChild(quick);
     box.appendChild(ctr);
+    return box;
+  }
+
+  /* One wheel for every set. The plan says 6, today is an 8 day: set it
+     once here instead of row by row. Only the sets still to do move —
+     logged sets and the deliberately light W sets keep their own numbers —
+     and a single row can still be changed on its own wheel afterwards. */
+  function repsAllScale(lw, cur, updateVals) {
+    const todo = () => cur.sets.filter(s => !s.done && !s.warm);
+    const box = el('div', 'reps-all');
+    const head = el('div', 'ra-head');
+    head.appendChild(el('div', 'ra-lbl', 'Reps · every set'));
+    const pen = el('button', 'ks-pen ra-pen');
+    pen.appendChild(svgIcon(PENCIL, 13));
+    pen.setAttribute('aria-label', 'Type the reps for every set');
+    head.appendChild(pen);
+    box.appendChild(head);
+    const apply = v => {
+      v = Math.max(1, Math.round(v));
+      todo().forEach(s => { s.reps = v; });
+      cur.planReps = v;            // the block keeps it when the session is saved
+      live.set(lw);
+      updateVals();
+    };
+    const first = todo()[0];
+    const ruler = rulerScale({
+      value: first ? first.reps : cur.repLo, step: 1, tickW: 30, span: 14, min: 1,
+      label: 'Reps for every set', unit: 'reps', labelEvery: 1, majorEvery: 5,
+      zone: [cur.repLo, cur.repHi], cls: 'ra-ruler', onChange: apply
+    });
+    pen.onclick = () => openNumPad({
+      title: 'Reps · every set', value: ruler.get(), decimals: false, min: 1, max: 100,
+      apply: v => ruler.setVal(Math.round(v))
+    });
+    box.appendChild(ruler.el);
     return box;
   }
 

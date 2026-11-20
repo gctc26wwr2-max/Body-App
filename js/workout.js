@@ -169,6 +169,12 @@
       const hist = sessions.filter(s => s.exerciseId === ex.id).sort((a, b) => b.ts - a.ts);
       const lastSets = hist.length ? hist[0].sets : null;
       const assisted = isAssisted(ex);
+      /* reps chosen on the every-set wheel are the block's for this
+         exercise from then on — every working set starts there. Without
+         one, last session's reps, set by set; failing that, the range's
+         bottom. */
+      const planned = !isTimedEx(ex) && Number.isFinite(item.planReps) && item.planReps >= 1
+        ? Math.min(100, Math.round(item.planReps)) : null;
       const lastMax = lastSets
         ? (assisted
           ? Math.min(...lastSets.map(s2 => s2.weight || 0))     // least help you managed
@@ -193,7 +199,7 @@
           const base = lastMax || item.kg || 0;
           // a deload on an assisted machine means MORE help, not less weight
           const kg = deload ? wRound(base * (assisted ? 2 - DELOAD_LOAD : DELOAD_LOAD)) : base;
-          const reps = (prev && prev.reps) || lo;
+          const reps = planned || (prev && prev.reps) || lo;
           return { kg, reps, targetLo: lo, targetHi: hi, done: false };
         })
       });
@@ -718,6 +724,11 @@
       });
       card.appendChild(ws);
     }
+
+    /* above the table: one wheel for the reps of every set still to do,
+       while there is more than one of them */
+    if (!cur.timed && !cur.warmup && cur.sets.filter(s => !s.done && !s.warm).length > 1)
+      card.appendChild(repsAllScale(lw, cur, updateVals));
 
     /* column headers — the rep range lives here, never inline in a row.
        A held exercise has no weight worth a column, so the seconds take the
